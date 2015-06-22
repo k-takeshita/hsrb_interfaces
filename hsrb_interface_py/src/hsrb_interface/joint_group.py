@@ -43,6 +43,8 @@ from tmc_planning_msgs.srv import (
     PlanWithJointGoalsRequest,
     PlanWithHandGoals,
     PlanWithHandGoalsRequest,
+    PlanWithHandLine,
+    PlanWithHandLineRequest,
 )
 
 from .utils import (
@@ -184,9 +186,8 @@ def multiply_transforms(t1, t2):
     return (trans3, rot3)
 
 
-
 def extract_trajectory(joint_trajectory, joint_names, joint_state):
-    """関節軌道から指定した関節の軌道のみを抜き出し、残りを現在値で埋める
+    """関節軌道から指定した関節の軌道のみを抜き出し、残りの関節目標値を現在値で埋める
 
     Args:
         joint_trajectory (trajectory_msgs.msg.JointTrajector): 処理対象のJointTrajectory
@@ -236,7 +237,7 @@ def merge_trajectory(original_trajectory, additional_trajectory):
     """互いにpoints数が同じな別の関節のsrc_trajectory1とsrc_trajectory2をマージして一つのtrajectoryにする。
 
     pointsのサイズが異なると失敗となる。
-    time_from_startはoriginalに合わせられる。
+    ``time_from_start`` は ``original`` に合わせられる。
 
     Args:
         original_trajectory (trajectory_msgs.msg.JointTrajectory): original入力軌道
@@ -364,6 +365,7 @@ class JointGroup(object):
     def clear_collision_environment(self):
         self._collision_env = None
 
+
     def change_joint_state(self, goal_state):
         u"""外部干渉を考慮しない指定関節角度までの遷移
 
@@ -431,6 +433,12 @@ class JointGroup(object):
 
 
     def get_endeffector_pose(self, ref_frame_id=None):
+        return self.get_hand_pose(ref_frame_id)
+
+    def move_endeffector(self, hand_pose, ref_frame_id=None):
+        self.move_hand(hand_pose, ref_frame_id)
+
+    def get_hand_pose(self, ref_frame_id=None):
         u"""現在のオドメトリ基準のエンドエフェクタの姿勢を返す
 
         Returns:
@@ -445,12 +453,12 @@ class JointGroup(object):
                                                       rospy.Duration(_TF_TIMEOUT))
         return transform_to_tuples(transform.transform)
 
-    def move_endeffector(self, hand_pose, ref_frame_id=None):
+    def move_hand(self, hand_pose, ref_frame_id=None):
         u"""外部干渉を考慮せずグリッパを指定姿勢まで動かす
 
         Args
             hand_pose (Tuple[float,float,float,float,float,float,float]):
-            ref_frame_id (): 手先の基準座標
+            ref_frame_id (str): 手先の基準座標(デフォルトはロボット座標系)
 
         Returns:
             None
@@ -489,7 +497,6 @@ class JointGroup(object):
         req.use_joints = use_joints
         req.origin_to_hand_goals.append(odom_to_hand_pose)
         req.ref_frame_id = settings['hand_frame_id']
-        #req.environment_before_planning = collision_env
         req.probability_goal_generate = _PLANNING_GOAL_GENERATION
         req.timeout = rospy.Duration(_PLANNING_ARM_TIMEOUT)
         req.max_iteration = _PLANNING_MAX_ITERATION
@@ -503,6 +510,50 @@ class JointGroup(object):
         res.base_solution.header.frame_id = settings['odom_frame_id']
         self.play_trajectory(res.solution, res.base_solution)
 
+    def move_hand_by_line(self, axis, distance, ref_frame_id=None):
+        u"""3次元空間上の直線に沿って手先を動かす
+
+        """
+        use_joints = (
+            'wrist_flex_joint',
+            'wrist_roll_joint',
+            'arm_roll_joint',
+            'arm_flex_joint',
+            'arm_lift_joint'
+        )
+        if ref_frame_id is None:
+            ref_frame_id = settings['hand_frame_id']
+        odom_to_robot_transform = self._tf2_buffer.lookup_transform(settings['odom_frame_id'],
+                                                                    settings['base_frame_id'],
+                                                                    rospy.Time(0),
+                                                                    rospy.Duration(_TF_TIMEOUT))
+        odom_to_robot_pose = tuples_to_pose(transform_to_tuples(odom_to_robot_transform.transform))
+
+        req = PlanWithHandLineRequest()
+        req.base_movement_type.val = BaseMovementType.PLANAR
+        req.origin_to_basejoint = odom_to_robot_pose
+        req.initial_joint_state = self._get_joint_state()
+        req.use_joints = use_joints
+        req.axis.x = axis[0]
+        req.axis.y = axis[1]
+        req.axis.z = axis[2]
+        req.local_origin_of_axis = True
+        req.ref_frame_id = ref_frame_id
+        req.goal_value = distance
+        req.probability_goal_generate = _PLANNING_GOAL_GENERATION
+        req.attached_objects = []
+        req.timeout = rospy.Duration(_PLANNING_ARM_TIMEOUT)
+        req.max_iteration = _PLANNING_MAX_ITERATION
+        req.uniform_bound_sampling = False
+        req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
+        req.extra_goal_constraints = []
+
+        plan_service = rospy.ServiceProxy(settings['plan_with_hand_line_service'], PlanWithHandLine)
+        res = plan_service.call(req)
+        if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
+            raise PlannerError("Fail to plan move_hand_line: {0}".format(res.error_code.val))
+        res.base_solution.header.frame_id = settings['odom_frame_id']
+        self.play_trajectory(res.solution, res.base_solution)
 
     def play_trajectory(self, joint_trajectory, base_trajectory=None):
         u"""指定の軌道を再生する
