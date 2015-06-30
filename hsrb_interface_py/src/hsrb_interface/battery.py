@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
 
-from .settings import settings
+from .robot import Resource
+from .settings import get_setting
 from .utils import CachingSubscriber
 
 from tmc_msgs.msg import BatteryState
 
-class Battery(object):
-    u"""バッテリー状態を表す"""
-    def __init__(self):
-        topic = settings['battery_state']
+class Battery(Resource):
+    u"""バッテリー情報を取得するためのクラス
+    """
+    def __init__(self, name):
+        super(Battery, self).__init__()
+        self._setting = get_setting('power_source', name)
+        topic = self._setting['topic']
         self._sub = CachingSubscriber(topic, BatteryState)
 
     @property

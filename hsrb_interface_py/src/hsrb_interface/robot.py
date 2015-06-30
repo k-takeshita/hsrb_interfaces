@@ -2,82 +2,82 @@
 # vim: fileencoding=utf-8
 import rospy
 
-from geometry_msgs.msg import PoseStamped
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
-from sensor_msgs.msg import JointState
 
-from .joint_group import JointGroup
 from .utils import CachingSubscriber, SingletonMeta
-from .settings import hsrb as settings
+from .settings import settings
+from .exceptions import RobotInitializationError
 
 
 class Robot(object):
-    u"""ロボットとの接続と、各デバイスのリソース情報を保持するシングルトンクラス
+    u"""ロボットとの接続と、各デバイスのリソース管理を行うコンテキストマネージャ
 
     with文に対応している。
-    connect/disconnectメソッド呼ぶことで、直接制御も可能
-
-    Attributes
 
     """
     __metaclass__ = SingletonMeta
 
+    _initialized = False
+
     def __init__(self):
-        self._camera_names = (
-            'head_l_stereo_camera',
-            'head_r_stereo_camera',
-        )
-        self._rgbd_senesor_names = ('rgbd_sensor',)
-        self._laser_names = ('base_scan')
-        self._imu_names = ('base_imu',)
-        self._force_torque_sensor_names = ('wrist_wrench',)
-        self._battery_names = ('battery',)
-        self._hands = ('hrh_gripper',)
-        self._joint_groups = ('whole_body',)
-        self._moble_base = ('omni_base',)
-
-
-    def connect(self):
-        u"""
-        """
         rospy.init_node('hsrb_interface_py', anonymous=True)
+        Robo._initialized = True
 
-    def disconnect(self):
-        u"""シャットダウン処理"""
-        rospy.signal_shutdown('shutdown from ')
+    def close(self):
+        u"""直ちに接続を閉じる"""
+        self.__exit__(None, None, None)
 
     def __enter__(self):
-        self.connect()
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        if exc_type:
-            self.disconnect()
-            return False
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if Robot._initialized == False:
+            return
+        if exc_type is None:
+            rospy.signal_shutdown('shutdown normally')
         else:
-            self.disconnect()
-            return True
+            rospy.signal_shutdown('shutdown by an exception')
+        Robot._initialized = False
 
     @property
-    def cameras(self):
-        return self._cameras_names
+    def name(self):
+        return settings['robot']['name']
 
-    @property
-    def lasers(self):
-        return self._laser_names
+    def list_joint_group(self):
+        return [r.name for r in settings['joint_group']]
 
-    @property
-    def imus(self):
-        return self._imu_names
+    def list_mobile_base(self):
+        return [r.name for r in settings['mobile_base']]
 
-    @property
-    def force_torque_sensors(self):
-        return self._force_torque_sensor_names
+    def list_camera(self):
+        return [r.name for r in settings['camera']]
 
-    @property
-    def batteries(self):
-        return self._battery_names
+    def list_laser_scan(self):
+        return [r.name for r in settings['laser_scan']]
 
-    @property
-    def hands(self):
-        return self._grippers
+    def list_imu(self):
+        return [r.name for r in settings['imu']]
+
+    def list_force_torque(self):
+        return [r.name for r in settings['force_torque']]
+
+    def list_poser_source(self):
+        return [r.name for r in settings['power_source']]
+
+    def list_end_effector(self):
+        return [r.name for r in settings['end_effector']]
+
+    def list_object_detector(self):
+        return [r.name for r in settings['object_detector']]
+
+    def list_collision_map(self):
+        return [r.name for r in settings['collision_map']]
+
+    def list_text_to_speech(self):
+        return [r.name for r in settings['text_to_speech']]
+
+class Resource(object):
+    u"""
+    """
+    def __init__(self):
+        if not Robot._initialized:
+            raise RobotInitializationError("Robot is not initialized correcly")

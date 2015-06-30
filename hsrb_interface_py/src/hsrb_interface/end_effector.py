@@ -8,23 +8,24 @@ from std_msgs.msg import Bool
 
 import rospy
 import actionlib
-from .settings import settings
+from .robot import Resource
+from .settings import get_setting
 from .utils import CachingSubscriber
+from .exceptions import GripperError
 
 _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT = 20.0
 _GRIPPER_GRASP_TIMEOUT = 20.0
 
-class GripperError(Exception):
-    pass
-
-class Gripper(object):
+class Gripper(Resource):
     u"""HRHグリッパーの制御を行うクラス
 
     """
     def __init__(self, name):
+        super(Gripper, self).__init__()
+        self._setting = get_setting('end_effector', name)
         self._name = name
-        self._joint_names = settings['hand_joint_names']
-        prefix = settings['hand_controller_prefix']
+        self._joint_names = self._setting['joint_names']
+        prefix = self._setting['prefix']
         self._follow_joint_trajectory_client = actionlib.SimpleActionClient(
                 prefix + "/follow_joint_trajectory",
                 FollowJointTrajectoryAction)
@@ -80,11 +81,11 @@ class Suction(object):
     """
 
     def __init__(self, name):
-        u"""
-        """
+        super(Suction, self).__init__()
+        self._setting = get_setting('end_effector', name)
         self._name = name
-        self._pub = rospy.Publisher(settings['suction_topic'], Bool)
-        self._sub = CachingSubscriber(settings['pressure_sensor_topic'], Bool)
+        self._pub = rospy.Publisher(self._setting['suction_topic'], Bool)
+        self._sub = CachingSubscriber(self._setting['pressure_sensor_topic'], Bool)
 
     def command(self, command):
         u"""吸引ノズルのOn/Off制御

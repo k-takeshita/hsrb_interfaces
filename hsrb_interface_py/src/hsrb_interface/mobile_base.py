@@ -11,18 +11,19 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 
 from .utils import CachingSubscriber
-from .settings import settings
+from .robot import Resource
+from .settings import get_setting, get_frame
 
 _ACTION_TIMEOUT = 30.0
 
-class MobileBase(object):
+class MobileBase(Resource):
     def __init__(self, name):
-        if name not in settings['mobile_base_names']:
-            raise NoSuchDeviceError('{0} does not exist'.format(name))
+        super(MobileBase, self).__init__()
+        self._setting = get_setting('mobile_base', name)
 
-        self._pose_sub = CachingSubscriber(settings['pose_topic'], PoseStamped)
+        self._pose_sub = CachingSubscriber(self._settings['pose_topic'], PoseStamped)
 
-        self._action_client = actionlib.SimpleActionClient(settings['move_base_action'], MoveBaseAction)
+        self._action_client = actionlib.SimpleActionClient(self._settings['move_base_action'], MoveBaseAction)
 
     def go(self, x, y, yaw, timeout=0.0, ref_frame_id=None):
         u"""指定した姿勢まで移動する
@@ -38,7 +39,7 @@ class MobileBase(object):
             None
         """
         if ref_frame_id is None:
-            ref_frame_id = settings['map_frame_id']
+            ref_frame_id = get_frame('map')
 
         target_pose = PoseStamped()
         target_pose.header.frame_id = ref_frame_id

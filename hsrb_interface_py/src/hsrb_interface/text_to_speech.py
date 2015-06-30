@@ -3,7 +3,8 @@
 
 import rospy
 
-from .settings import settings
+from .robot import Resource
+from .settings import get_setting
 
 from tmc_msgs.msg import Voice
 
@@ -21,8 +22,10 @@ class TextToSpeech(object):
     JAPANESE = Voice.kJapanese
     ENGLISH  = Voice.kEnglish
 
-    def __init__(self):
-        self._pub = rospy.Publisher(settings['text_to_speech_topic'], Voice, queue_size=0)
+    def __init__(self, name):
+        super(TextToSpeech, self).__init__()
+        self._setting = get_setting('text_to_speech', name)
+        self._pub = rospy.Publisher(self._setting['topic'], Voice, queue_size=0)
         self._language = TextToSpeech.JAPANESE
 
     @property

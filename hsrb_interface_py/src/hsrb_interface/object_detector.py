@@ -7,23 +7,31 @@ import functools
 
 from tmc_vision_msgs.msg import RecognizedObject
 
-from .settings import settings
+from .robot import Resource
+from .settings import get_setting
 
 
 def _expired(now, expiration, obj):
     return (now - obj.header.stamp) > expiration
 
-class ObjectDetector(object):
-    u"""オブジェクト認識機の結果を保持するオブジェクト
+class Object(object):
+    u"""認識された物体
+    """
+
+class ObjectDetector(Resource):
+    u"""オブジェクト認識機の結果を保持するクラス
 
     Parameters:
         expiration (float): オブジェクトを検知してから、無効になるまでの時間[sec]
+            デフォルトは１０秒。
     """
-    def __init__(self, expiration=10.0):
+    def __init__(self, name, expiration=10.0):
+        super(ObjectDetector, self).__init__(self)
+        self._setting = get_setting('object_detector', name)
         self._lock = threading.Lock()
         self._cache = {}
         self._expiration = rospy.Duration(expiration)
-        self._sub = rospy.Subscriber(settings['recognized_object_topic'],
+        self._sub = rospy.Subscriber(self._setting['topic'],
                                      RecognizedObject,
                                      self._callback, queue_size=100)
 
@@ -35,23 +43,25 @@ class ObjectDetector(object):
                 self._lock.release()
 
     def get_objects(self):
+        u"""認識しているオブジェクトを返す
+
+        Returns:
+            Dict[str, Any]:
+        """
         with self._lock:
             now = rospy.Time.now()
             new_cache = dict([(k, v) for k, v in self._cache.items() if not _expired(now, self._expiration, v)])
             self._cache = new_cache
             objects = copy.deepcopy(self._cache.values())
         results = []
-        for obj in objects:
-            frame_id = obj.header.frame_id
-            pos = (obj.object_frame.position.x,
-                   obj.object_frame.position.y,
-                   obj.object_frame.position.z)
-            ori = (obj.object_frame.orientation.x,
-                   obj.object_frame.orientation.y,
-                   obj.object_frame.orientation.z,
-                   obj.object_frame.orientation.w)
-
-            result = (obj.object_id.object_id, obj.object_id.name, frame_id, pos, ori)
-            results.append(result)
-        return results
+        #for obj in objects:
+        #    result = {
+        #        'frame_id':     obj.header.frame_id,
+        #        'position':     obj.,
+        #        'orientaion':   ori,
+        #        'name':         obj.object_id.name,
+        #        'id':           obj.object_id.object_id,
+        #    }
+        #    results.append(result)
+        return objects
 

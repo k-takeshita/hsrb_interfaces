@@ -5,91 +5,98 @@ from cv_bridge import CvBridge
 
 from sensor_msgs.msg import (
     Image,
-    PointCloud2,
     Imu,
-    JointState,
     LaserScan,
 )
 
 from geometry_msgs.msg import WrenchStamped
 
-from .core import NoSuchDeviceError
+from .robot import Resource
 from .utils import CachingSubscriber
-from .settings import settings
+from .settings import get_setting, get_frame
 
-class Camera(object):
+
+class Camera(Resource):
     u"""カメラ
 
     Args:
         name (str): デバイス名
     """
-    def __init__(self, name, prefix):
+    def __init__(self, name):
+        super(Camera, self).__init__()
         self._name = name
+        self._setting = get_setting('camera', name)
+
         self._cv_bridge = CvBridge()
-        self._image_sub = CachingSubscriber(prefix + '/image_raw', Image)
+        self._image_sub = CachingSubscriber(self._setting['prefix'] + '/image_raw', Image)
 
     def get_image(self):
         return self._cv_bridge.imgmsg_to_cv2(self._image_sub.data)
 
 
-class RGBDSensor(object):
-    u"""
-    Args:
-        name (str): デバイス名
-    """
-    def __init__(self, name, prefix):
-        self._name = name
-        self._cv_bridge = CvBridge()
-        self._image_sub = CachingSubscriber(prefix + '/rgb/image_raw', Image)
-        self._depth_sub = CachingSubscriber(prefix + '/depth/image_raw', Image)
-
-    def get_image(self):
-        u"""
-        """
-        return self._cv_bridge.imgmsg_to_cv2(self._image_sub.data)
-
-    def get_depth(self):
-        u"""
-        """
-        return self._cv_bridge.imgmsg_to_cv2(self._depth_sub.data)
-
-
-class ForceTorqueSensor(object):
-    u"""6軸力センサーへのアクセスを提供する
+class ForceTorque(Resource):
+    u"""6軸力センサー
 
     Args:
         name (str): デバイス名
 
-    Attributes:
-        data ()
-
     """
-    def __init__(self, name, topic):
+    def __init__(self, name):
+        super(ForceTorque, self).__init__()
+        self._setting = get_setting('force_torque', name)
+        topic = self._setting['topic']
         self._name = name
         self._sub = CachingSubscriber(topic, WrenchStamped)
 
-    def get_value(self):
-        return self._sub.data
+    def get_wrench(self):
+        u"""最新の値を取得する
 
-class IMU(object):
+        Returns:
+            (fx, fy, fz, tx, ty, tz)
+        """
+        wrench = self._sub.data
+        result = (wrench.force.x,
+                  wrench.force.y,
+                  wrench.force.z,
+                  wrench.torque.x,
+                  wrench.torque.y,
+                  wrench.torque.z)
+        return result
+
+
+class IMU(Resource):
     u"""慣性センサーへのアクセスを提供する
 
     Args:
         name (str): デバイス名
     """
-    def __init__(self, name, topic):
+    def __init__(self, *args, **kwargs):
+        super(IMU, self).__init__()
+        self._setting = get_setting('imu', name)
+        topic = self._setting['topic']
         self._name = name
         self._sub = CachingSubscriber(topic, Imu)
 
-    def get_value(self):
-        return self._sub.data
+    def get_data(self):
+        u"""最新の値を取得する
+        """
+        imu = self._sub.data
+        ori = imu.orientaion
+        angvel = imu.angular_velocity
+        accel  = imu.linear_acceleration
+        return (ori, angvel, accel)
 
-class LaserScanner(object):
+class LaserScan(Resource):
     u"""レーザースキャナへのアクセスを提供する"""
-    def __init__(self, name, topic):
+    def __init__(self, *args, **kwargs):
+        super(LaserScan, self).__init__()
+        self._setting = get_setting('laser_scan', name)
+        topic = self._setting['topic']
         self._name = name
         self._sub = CachingSubscriber(topic, LaserScan)
 
-    @property
-    def data(self):
+    def get_scan(self):
+        u"""最新の値を取得する
+        """
         return self._sub.data
+

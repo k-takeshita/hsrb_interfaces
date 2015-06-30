@@ -10,10 +10,6 @@ import mock
 from hsrb_interface import utils
 
 
-def test_caching_subscriber():
-    pass
-
-
 def test_singleton_meta():
     class Foo(object):
         __metaclass__ = utils.SingletonMeta
