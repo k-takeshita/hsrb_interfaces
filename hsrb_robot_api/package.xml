@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package>
+  <name>hsrb_robot_api</name>
+  <version>0.0.0</version>
+  <description>The hsrb_robot_api package</description>
+
+  <maintainer email="akiyoshi_ochiai@mail.toyota.co.jp">akiyoshi_ochiai</maintainer>
+
+  <license>TMC</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>hsrb_interface_py</run_depend>
+
+  <export>
+    <metapackage />
+  </export>
+</package>
