@@ -13,6 +13,7 @@ from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from .utils import CachingSubscriber
 from .robot import Resource
 from .settings import get_setting, get_frame
+from .exceptions import MoveBaseError
 
 _ACTION_TIMEOUT = 30.0
 
@@ -21,9 +22,9 @@ class MobileBase(Resource):
         super(MobileBase, self).__init__()
         self._setting = get_setting('mobile_base', name)
 
-        self._pose_sub = CachingSubscriber(self._settings['pose_topic'], PoseStamped)
+        self._pose_sub = CachingSubscriber(self._setting['pose_topic'], PoseStamped)
 
-        self._action_client = actionlib.SimpleActionClient(self._settings['move_base_action'], MoveBaseAction)
+        self._action_client = actionlib.SimpleActionClient(self._setting['move_base_action'], MoveBaseAction)
 
     def go(self, x, y, yaw, timeout=0.0, ref_frame_id=None):
         u"""指定した姿勢まで移動する

@@ -103,11 +103,11 @@ HSR_BEETLE = {
         },
         {
             'name':    'head_rgbd_sensor_rgb',
-            'prefix': '/camera/rgb/image_raw'
+            'prefix': '/camera/rgb'
         },
         {
             'name': 'head_rgbd_sensor_depth',
-            'prefix': '/camera/depth/image_raw'
+            'prefix': '/camera/depth'
         },
     ],
     'imu': [
@@ -125,7 +125,7 @@ HSR_BEETLE = {
     'laser_scan': [
         {
             'name': 'base_scan',
-            'topi': "/scan",
+            'topic': "/scan",
         }
     ],
     'object_detector': [
@@ -162,8 +162,8 @@ def get_setting(section, name):
         if entry['name'] == name:
             return entry
     else:
-        None
+        raise ResourceNotFoundError('Resource {0} not found'.format(name))
 
 def get_frame(name):
-    return settings['frame']['name']
+    return settings['frame'][name]
 

@@ -26,7 +26,7 @@ class ObjectDetector(Resource):
             デフォルトは１０秒。
     """
     def __init__(self, name, expiration=10.0):
-        super(ObjectDetector, self).__init__(self)
+        super(ObjectDetector, self).__init__()
         self._setting = get_setting('object_detector', name)
         self._lock = threading.Lock()
         self._cache = {}

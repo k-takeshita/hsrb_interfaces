@@ -20,7 +20,7 @@ class Robot(object):
 
     def __init__(self):
         rospy.init_node('hsrb_interface_py', anonymous=True)
-        Robo._initialized = True
+        Robot._initialized = True
 
     def close(self):
         u"""直ちに接続を閉じる"""
@@ -43,37 +43,37 @@ class Robot(object):
         return settings['robot']['name']
 
     def list_joint_group(self):
-        return [r.name for r in settings['joint_group']]
+        return [r['name'] for r in settings['joint_group']]
 
     def list_mobile_base(self):
-        return [r.name for r in settings['mobile_base']]
+        return [r['name'] for r in settings['mobile_base']]
 
     def list_camera(self):
-        return [r.name for r in settings['camera']]
+        return [r['name'] for r in settings['camera']]
 
     def list_laser_scan(self):
-        return [r.name for r in settings['laser_scan']]
+        return [r['name'] for r in settings['laser_scan']]
 
     def list_imu(self):
-        return [r.name for r in settings['imu']]
+        return [r['name'] for r in settings['imu']]
 
     def list_force_torque(self):
-        return [r.name for r in settings['force_torque']]
+        return [r['name'] for r in settings['force_torque']]
 
-    def list_poser_source(self):
-        return [r.name for r in settings['power_source']]
+    def list_power_source(self):
+        return [r['name'] for r in settings['power_source']]
 
     def list_end_effector(self):
-        return [r.name for r in settings['end_effector']]
+        return [r['name'] for r in settings['end_effector']]
 
     def list_object_detector(self):
-        return [r.name for r in settings['object_detector']]
+        return [r['name'] for r in settings['object_detector']]
 
     def list_collision_map(self):
-        return [r.name for r in settings['collision_map']]
+        return [r['name'] for r in settings['collision_map']]
 
     def list_text_to_speech(self):
-        return [r.name for r in settings['text_to_speech']]
+        return [r['name'] for r in settings['text_to_speech']]
 
 class Resource(object):
     u"""

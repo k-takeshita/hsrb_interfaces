@@ -315,7 +315,7 @@ class JointGroup(Resource):
     u"""関節グループの制御を行うクラス
     """
     def __init__(self, name):
-        super(JointState, self).__init__()
+        super(JointGroup, self).__init__()
         self._setting = get_setting('joint_group', name)
         self._arm_client = FollowTrajectoryActionClient(self._setting['arm_controller_prefix'])
         self._head_client = FollowTrajectoryActionClient(self._setting['head_controller_prefix'])

@@ -55,12 +55,12 @@ class ForceTorque(Resource):
             (fx, fy, fz, tx, ty, tz)
         """
         wrench = self._sub.data
-        result = (wrench.force.x,
-                  wrench.force.y,
-                  wrench.force.z,
-                  wrench.torque.x,
-                  wrench.torque.y,
-                  wrench.torque.z)
+        result = (wrench.wrench.force.x,
+                  wrench.wrench.force.y,
+                  wrench.wrench.force.z,
+                  wrench.wrench.torque.x,
+                  wrench.wrench.torque.y,
+                  wrench.wrench.torque.z)
         return result
 
 
@@ -70,7 +70,7 @@ class IMU(Resource):
     Args:
         name (str): デバイス名
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name):
         super(IMU, self).__init__()
         self._setting = get_setting('imu', name)
         topic = self._setting['topic']
@@ -88,7 +88,7 @@ class IMU(Resource):
 
 class LaserScan(Resource):
     u"""レーザースキャナへのアクセスを提供する"""
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name):
         super(LaserScan, self).__init__()
         self._setting = get_setting('laser_scan', name)
         topic = self._setting['topic']
