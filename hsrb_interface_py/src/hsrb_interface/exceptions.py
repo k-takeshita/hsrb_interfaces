@@ -24,3 +24,6 @@ class PlannerError(Exception):
 
 class GripperError(Exception):
     pass
+
+class MoveBaseError(Exception):
+    pass
