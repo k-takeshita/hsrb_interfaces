@@ -45,29 +45,7 @@ class CachingSubscriber(object):
             return copy.deepcopy(self._msg)
 
 
-class SingletonMeta(type):
-    u"""シングルトンを実現するメタクラス"""
-    _instances = {}
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(SingletonMeta, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
 
-
-def normalize_angle_positive(angle):
-    twopi = 2.0 * math.pi
-    return math.fmod(math.fmod(angle, twopi) + twopi, twopi)
-
-
-def normalize_angle(angle):
-    a = normalize_angle_positive(angle)
-    if a > math.pi:
-        a -= 2.0 * math.pi
-    return a
-
-
-def shortest_angular_distance(_from, to):
-    return normalize_angle(to - _from)
 
 
 def iterate(func, times=None):

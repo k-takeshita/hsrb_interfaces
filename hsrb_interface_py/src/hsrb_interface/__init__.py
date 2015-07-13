@@ -9,13 +9,24 @@ from .sensors import (
     LaserScan,
     IMU,
     ForceTorque,
+    DigitalIO,
 )
 from .joint_group import JointGroup
 from .text_to_speech import TextToSpeech
-from .gripper import Gripper, Suction
+from .end_effector import Gripper, Suction
 from .mobile_base import MobileBase
 from .robot import Robot
 from .collision_map import CollisionMap
+
+from .exceptions import (
+    RobotConnectionError,
+    ResourceNotFoundError,
+    TrajectoryLengthError,
+    TrajectoryFilterError,
+    FollowTrajectoryError,
+    PlannerError,
+    GripperError,
+)
 
 __all__ = (
     ObjectDetector,
@@ -31,4 +42,5 @@ __all__ = (
     MobileBase,
     Robot,
     CollisionMap,
+    DigitalIO,
 )

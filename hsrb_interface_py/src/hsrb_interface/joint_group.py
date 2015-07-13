@@ -59,8 +59,19 @@ from .robot import Resource
 from .utils import (
     CachingSubscriber,
     iterate,
-    shortest_angular_distance,
 )
+
+from .geometry import (
+    Vector3,
+    Quaternion,
+    shortest_angular_distance,
+    tuples_to_pose,
+    pose_to_tuples,
+    tuples_to_transform,
+    transform_to_tuples,
+    multiply_tuples,
+)
+
 
 from .settings import get_setting, get_frame
 
@@ -118,66 +129,6 @@ _TRAJECTORY_FILTER_TIMEOUT = 30.0
 # handのOpenにかかる時間[sec]
 _TIME_OPEN_HAND = 10.0
 
-def tuples_to_pose(tuples):
-    trans, rot = tuples
-    pose = Pose()
-    pose.position.x = trans[0]
-    pose.position.y = trans[1]
-    pose.position.z = trans[2]
-    pose.orientation.x = rot[0]
-    pose.orientation.y = rot[1]
-    pose.orientation.z = rot[2]
-    pose.orientation.w = rot[3]
-    return pose
-
-def pose_to_tuples(pose):
-    x = pose.position.x
-    y = pose.position.y
-    z = pose.position.z
-    qx = pose.orientation.x
-    qy = pose.orientation.y
-    qz = pose.orientation.z
-    qw = pose.orientation.w
-    return ((x, y, z), (qx, qy, qz, qw))
-
-def tuples_to_transform(tuples):
-    trans, rot = tuples
-    transform = Transform()
-    transform.translation.x = trans[0]
-    transform.translation.y = trans[1]
-    transform.translation.z = trans[2]
-    transform.rotation.x = rot[0]
-    transform.rotation.y = rot[1]
-    transform.rotation.z = rot[2]
-    transform.rotation.w = rot[3]
-    return transform
-
-def transform_to_tuples(transform):
-    x = transform.translation.x
-    y = transform.translation.y
-    z = transform.translation.z
-    qx = transform.rotation.x
-    qy = transform.rotation.y
-    qz = transform.rotation.z
-    qw = transform.rotation.w
-    return ((x, y, z), (qx, qy, qz, qw))
-
-def multiply_transforms(t1, t2):
-    trans1, rot1 = t1
-    trans1_mat = tf.transformations.translation_matrix(trans1)
-    rot1_mat = tf.transformations.quaternion_matrix(rot1)
-    mat1 = numpy.dot(trans1_mat, rot1_mat)
-
-    trans2, rot2 = t2
-    trans2_mat = tf.transformations.translation_matrix(trans2)
-    rot2_mat = tf.transformations.quaternion_matrix(rot2)
-    mat2 = numpy.dot(trans2_mat, rot2_mat)
-
-    mat3 = numpy.dot(mat1, mat2)
-    trans3 = tf.transformations.translation_from_matrix(mat3)
-    rot3 = tf.transformations.quaternion_from_matrix(mat3)
-
-    return (trans3, rot3)
 
 
 def extract_trajectory(joint_trajectory, joint_names, joint_state):
@@ -438,7 +389,7 @@ class JointGroup(Resource):
         u"""現在のオドメトリ基準のエンドエフェクタの姿勢を返す
 
         Returns:
-            タプル((x, y, z), (qx, qy, qz, qw))
+            Tuple[Vector3, Quaternion]
         """
         # 基準座標省略時はロボット座標系
         if ref_frame_id is None:
@@ -447,13 +398,13 @@ class JointGroup(Resource):
                                                       get_frame('hand'),
                                                       rospy.Time(0),
                                                       rospy.Duration(_TF_TIMEOUT))
-        return transform_to_tuples(transform.transform)
+        result = transform_to_tuples(transform.transform)
 
     def move_hand(self, hand_pose, ref_frame_id=None):
         u"""外部干渉を考慮せずグリッパを指定姿勢まで動かす
 
         Args
-            hand_pose (Tuple[float,float,float,float,float,float,float]):
+            hand_pose (Tuple[Vector3, Quaternion]):
             ref_frame_id (str): 手先の基準座標(デフォルトはロボット座標系)
 
         Returns:
@@ -483,7 +434,7 @@ class JointGroup(Resource):
                                                                   rospy.Time(0),
                                                                   rospy.Duration(_TF_TIMEOUT))
         odom_to_ref = transform_to_tuples(odom_to_ref_transform.transform)
-        odom_to_hand = multiply_transforms(odom_to_ref, hand_pose)
+        odom_to_hand = multiply_tuples(odom_to_ref, hand_pose)
         odom_to_hand_pose = tuples_to_pose(odom_to_hand)
 
         req = PlanWithHandGoalsRequest()
@@ -509,6 +460,13 @@ class JointGroup(Resource):
     def move_hand_by_line(self, axis, distance, ref_frame_id=None):
         u"""3次元空間上の直線に沿って手先を動かす
 
+        Args:
+            axis (Vector3): 動かす軸方向
+            distance (float): 移動量[m]
+            ref_frame_id (str): 基準となる座標系
+
+        Returns:
+            None
         """
         use_joints = (
             'wrist_flex_joint',
@@ -530,9 +488,9 @@ class JointGroup(Resource):
         req.origin_to_basejoint = odom_to_robot_pose
         req.initial_joint_state = self._get_joint_state()
         req.use_joints = use_joints
-        req.axis.x = axis[0]
-        req.axis.y = axis[1]
-        req.axis.z = axis[2]
+        req.axis.x = axis.x
+        req.axis.y = axis.y
+        req.axis.z = axis.z
         req.local_origin_of_axis = True
         req.ref_frame_id = ref_frame_id
         req.goal_value = distance

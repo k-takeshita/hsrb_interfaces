@@ -14,6 +14,36 @@ from geometry_msgs.msg import WrenchStamped
 from .robot import Resource
 from .utils import CachingSubscriber
 from .settings import get_setting, get_frame
+from .geometry import (
+    Vector3,
+    Quaternion,
+    from_ros_vector3,
+    from_ros_quaternion
+)
+
+
+class Image(object):
+    u"""
+    """
+    def __init__(self, data):
+        self._data = data
+
+    def to_cv(self):
+        cv_bridge = CvBridge()
+        return self._cv_bridge.imgmsg_to_cv2(self.data)
+
+    def to_ros(self):
+        return self._data
+
+
+class LaserScan(object):
+    u"""
+    """
+    def __init__(self, data):
+        self._data = data
+
+    def to_ros(self):
+        return self._data
 
 
 class Camera(Resource):
@@ -27,11 +57,10 @@ class Camera(Resource):
         self._name = name
         self._setting = get_setting('camera', name)
 
-        self._cv_bridge = CvBridge()
         self._image_sub = CachingSubscriber(self._setting['prefix'] + '/image_raw', Image)
 
     def get_image(self):
-        return self._cv_bridge.imgmsg_to_cv2(self._image_sub.data)
+        return Image(self._image_sub.data)
 
 
 class ForceTorque(Resource):
@@ -52,15 +81,11 @@ class ForceTorque(Resource):
         u"""最新の値を取得する
 
         Returns:
-            (fx, fy, fz, tx, ty, tz)
+            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の取得値
         """
         wrench = self._sub.data
-        result = (wrench.force.x,
-                  wrench.force.y,
-                  wrench.force.z,
-                  wrench.torque.x,
-                  wrench.torque.y,
-                  wrench.torque.z)
+        result = (from_ros_vector3(wrench.force),
+                  from_ros_vector3(wrench.torque))
         return result
 
 
@@ -81,12 +106,14 @@ class IMU(Resource):
         u"""最新の値を取得する
         """
         imu = self._sub.data
-        ori = imu.orientaion
-        angvel = imu.angular_velocity
-        accel  = imu.linear_acceleration
+        ori = from_ros_quaternion(imu.orientaion)
+        angvel = from_ros_vector(imu.angular_velocity)
+        accel  = from_ros_vector(imu.linear_acceleration)
         return (ori, angvel, accel)
 
-class LaserScan(Resource):
+
+
+class Lidar(Resource):
     u"""レーザースキャナへのアクセスを提供する"""
     def __init__(self, *args, **kwargs):
         super(LaserScan, self).__init__()
@@ -99,4 +126,17 @@ class LaserScan(Resource):
         u"""最新の値を取得する
         """
         return self._sub.data
+
+
+class DigitalIO(Resource):
+    u"""デジタルI/O
+    """
+    def __init__(self, *args, **kwargs):
+        super(LaserScan, self).__init__()
+        self._setting = get_setting('laser_scan', name)
+        topic = self._setting['topic']
+        self._name = name
+        self._sub = CachingSubscriber(topic, LaserScan)
+
+
 

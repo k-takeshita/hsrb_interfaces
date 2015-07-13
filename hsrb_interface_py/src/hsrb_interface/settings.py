@@ -9,6 +9,8 @@ u"""ROS Graph 名のマッピングテーブル
 
 from .exceptions import ResourceNotFoundError
 
+VERSION = "1.0.0"
+
 
 HSRB = {
     'map_frame_id':                   "floor/reproduce_ant_task",

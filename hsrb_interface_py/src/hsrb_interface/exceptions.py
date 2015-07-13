@@ -1,7 +1,7 @@
 # + "/hsrb/omni_base_controllere!/usr/bin/env python
 # vim: fileencoding=utf-8
 
-class RobotInitializationError(Exception):
+class RobotConnectionError(Exception):
     pass
 
 class ResourceNotFoundError(Exception):

@@ -18,6 +18,10 @@ class Object(object):
     u"""認識された物体
     """
 
+    def __init__(self, data):
+        self._data = data
+
+
 class ObjectDetector(Resource):
     u"""オブジェクト認識機の結果を保持するクラス
 
@@ -53,15 +57,7 @@ class ObjectDetector(Resource):
             new_cache = dict([(k, v) for k, v in self._cache.items() if not _expired(now, self._expiration, v)])
             self._cache = new_cache
             objects = copy.deepcopy(self._cache.values())
-        results = []
-        #for obj in objects:
-        #    result = {
-        #        'frame_id':     obj.header.frame_id,
-        #        'position':     obj.,
-        #        'orientaion':   ori,
-        #        'name':         obj.object_id.name,
-        #        'id':           obj.object_id.object_id,
-        #    }
-        #    results.append(result)
-        return objects
+
+        return [Object for o in objects]
+
 
