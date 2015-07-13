@@ -25,10 +25,6 @@ def test_singleton_meta():
     # 同一性チェック
     ok_(foo1 is foo2)
 
-def test_shortest_angular_distance():
-    eq_(math.pi, utils.shortest_angular_distance(0.0, math.pi))
-    eq_(math.pi / 2.0, utils.shortest_angular_distance(0.0, math.pi / 2.0))
-    eq_(-math.pi / 2.0, utils.shortest_angular_distance(0.0, math.pi / 2.0 * 3.0))
 
 
 def test_iterate():
