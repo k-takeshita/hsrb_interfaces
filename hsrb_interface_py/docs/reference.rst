@@ -4,13 +4,22 @@
 .. contents:: 目次
    :local:
 
-中核機能
-=========
+ロボット管理
+==============
 
 Robot
 ----------
 
 .. autoclass:: hsrb_interface.Robot
+   :members:
+
+電源
+===========
+
+Battery
+------------------
+
+.. autoclass:: hsrb_interface.Battery
    :members:
 
 動作
@@ -40,46 +49,15 @@ Suction
 .. autoclass:: hsrb_interface.Suction
    :members:
 
-認識機能
-=========
-
-Object
--------------
-
-.. autoclass:: hsrb_interface.Object
-   :members:
-
-ObjectDetector
----------------
-
-.. autoclass:: hsrb_interface.ObjectDetector
-   :members:
-
-CollisionEnvironment
-------------------------
-
-.. autoclass:: hsrb_interface.CollisionEnvironment
-   :members:
 
 センサー
 ==========
 
-Image
----------
-
-.. autoclass:: hsrb_interface.Image
-   :members:
 
 Camera
 -----------
 
 .. autoclass:: hsrb_interface.Camera
-   :members:
-
-RGBDSensor
--------------
-
-.. autoclass:: hsrb_interface.RGBDSensor
    :members:
 
 IMU
@@ -88,17 +66,29 @@ IMU
 .. autoclass:: hsrb_interface.IMU
    :members:
 
-ForceTorqueSensor
+ForceTorque
 --------------------
 
-.. autoclass:: hsrb_interface.ForceTorqueSensor
+.. autoclass:: hsrb_interface.ForceTorque
    :members:
 
-電源
-===========
+DigitalIO
+--------------------
 
-Battery
-------------------
+.. autoclass:: hsrb_interface.DigitalIO
 
-.. autoclass:: hsrb_interface.Battery
+認識機能
+=========
+
+
+ObjectDetector
+---------------
+
+.. autoclass:: hsrb_interface.ObjectDetector
+   :members:
+
+CollisionMap
+------------------------
+
+.. autoclass:: hsrb_interface.CollisionMap
    :members:
