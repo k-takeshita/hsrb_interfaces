@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
 
+from __future__ import absolute_import
 from .object_detector import ObjectDetector
 from .battery import Battery
 from .sensors import (
     Image,
     Camera,
     LaserScan,
+    Lidar,
     IMU,
     ForceTorque,
-    DigitalIO,
 )
 from .joint_group import JointGroup
 from .text_to_speech import TextToSpeech
@@ -32,7 +33,7 @@ __all__ = (
     ObjectDetector,
     Battery,
     Camera,
-    LaserScan,
+    Lidar,
     IMU,
     ForceTorque,
     JointGroup,
@@ -40,7 +41,6 @@ __all__ = (
     Gripper,
     Suction,
     MobileBase,
-    Robot,
     CollisionMap,
-    DigitalIO,
+    Robot,
 )

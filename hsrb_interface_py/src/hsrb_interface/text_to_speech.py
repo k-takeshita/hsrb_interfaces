@@ -3,16 +3,15 @@
 
 import rospy
 
-from .robot import Resource
-from .settings import get_setting
+from . import robot
+from . import settings
+from . import exceptions
 
 from tmc_msgs.msg import Voice
 
-class InvalidLanguageError(Exception):
-    pass
 
 
-class TextToSpeech(object):
+class TextToSpeech(robot.Resource):
     u"""音声合成サービス
 
     Attributes:
@@ -24,7 +23,7 @@ class TextToSpeech(object):
 
     def __init__(self, name):
         super(TextToSpeech, self).__init__()
-        self._setting = get_setting('text_to_speech', name)
+        self._setting = settings.get_entry('text_to_speech', name)
         self._pub = rospy.Publisher(self._setting['topic'], Voice, queue_size=0)
         self._language = TextToSpeech.JAPANESE
 
@@ -35,7 +34,7 @@ class TextToSpeech(object):
     @language.setter
     def language(self, value):
         if value not in (Voice.kJapanese, Voice.kEnglish):
-            raise InvalidLanguageError("Language code {0] is not supported}".format(value))
+            raise exceptions.InvalidLanguageError("Language code {0] is not supported}".format(value))
         self._language = value
 
     def say(self, text):

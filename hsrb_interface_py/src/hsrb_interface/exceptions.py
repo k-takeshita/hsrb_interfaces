@@ -24,3 +24,9 @@ class PlannerError(Exception):
 
 class GripperError(Exception):
     pass
+
+class InvalidLanguageError(Exception):
+    pass
+
+class MobileBaseError(Exception):
+    pass

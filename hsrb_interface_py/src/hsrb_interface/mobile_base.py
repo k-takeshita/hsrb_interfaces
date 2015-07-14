@@ -10,18 +10,19 @@ from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 
-from .utils import CachingSubscriber
-from .robot import Resource
-from .settings import get_setting, get_frame
+from . import utils
+from . import robot
+from . import settings
+from . import exceptions
 
 _ACTION_TIMEOUT = 30.0
 
-class MobileBase(Resource):
+class MobileBase(robot.Resource):
     def __init__(self, name):
         super(MobileBase, self).__init__()
-        self._setting = get_setting('mobile_base', name)
+        self._setting = settings.get_entry('mobile_base', name)
 
-        self._pose_sub = CachingSubscriber(self._settings['pose_topic'], PoseStamped)
+        self._pose_sub = utils.CachingSubscriber(self._settings['pose_topic'], PoseStamped)
 
         self._action_client = actionlib.SimpleActionClient(self._settings['move_base_action'], MoveBaseAction)
 
@@ -39,7 +40,7 @@ class MobileBase(Resource):
             None
         """
         if ref_frame_id is None:
-            ref_frame_id = get_frame('map')
+            ref_frame_id = settings.get_frame('map')
 
         target_pose = PoseStamped()
         target_pose.header.frame_id = ref_frame_id
@@ -57,7 +58,7 @@ class MobileBase(Resource):
 
         self._action_client.wait_for_result(rospy.Duration(timeout))
         if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
-            raise MoveBaseError('Failed to reach goal')
+            raise exceptions.MobileBaseError('Failed to reach goal')
 
     @property
     def pose(self):

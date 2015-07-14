@@ -7,8 +7,6 @@ u"""ROS Graph 名のマッピングテーブル
 今後大きな仕様変更がありうるので注意。
 """
 
-from .exceptions import ResourceNotFoundError
-
 VERSION = "1.0.0"
 
 
@@ -50,17 +48,26 @@ HSRB = {
 
 HSR_BEETLE = {
     'robot': {
-        'name': 'hsrb',
+        'hsrb': {
+            'fullname': 'HSR-Beetle'
+        }
     },
     'frame': {
-        'map':  "floor/reproduce_ant_task",
-        'odom': "odom",
-        'base': "base_footprint",
-        'hand': "gripper_palm_link",
+        'map': {
+            'frame_id': "floor/reproduce_ant_task",
+        },
+        'odom': {
+            'frame_id': "odom",
+        },
+        'base': {
+            'frame_id': "base_footprint",
+        },
+        'hand': {
+            'id': "gripper_palm_link",
+        }
     },
-    'joint_group': [
-        {
-            'name':                           'whole_body',
+    'joint_group': {
+        'whole_body': {
             'joint_states_topic':             "/joint_states",
             'arm_controller_prefix':          "/hsr_beetle/arm_controller",
             'head_controller_prefix':         "/hsr_beetle/head_controller",
@@ -72,100 +79,88 @@ HSR_BEETLE = {
             'plan_with_hand_line_service':    "/plan_with_hand_line",
             'plan_with_joint_goals_service':  "/plan_with_joint_goals",
         },
-    ],
-    'end_effector': [
-        {
-            'name':         'gripper',
+    },
+    'end_effector': {
+        'gripper': {
             'joint_names':  ["motor_proximal_joint"],
             'prefix':       "/hsr_beetle/gripper_controller",
         },
-        {
-            'name':                           'suction',
+        'suction': {
             'action':                         "/suction_control",
             'suction_topic':                  "/suction_on",
             'pressure_sensor_topic':          "/pressure_sensor",
         },
-    ],
-    'mobile_base': [
-        {
-            'name':              'omni_base',
+    },
+    'mobile_base': {
+        'omni_base': {
             'move_base_action':  "/move_base/move",
             'pose_topic':        "/laser_2d_pose_ref",
             'goal_topic':        "/base_goal",
         },
-    ],
-    'camera': [
-        {
-            'name':   'head_l_stereo_camera',
+    },
+    'camera': {
+        'head_l_stereo_camera': {
             'prefix': "/stereo_camera/left"
         },
-        {
-            'name':    'head_r_stereo_camera',
+        'head_r_stereo_camera': {
             'prefix':  "/stereo_camera/right"
         },
-        {
-            'name':    'head_rgbd_sensor_rgb',
+        'head_rgbd_sensor_rgb': {
             'prefix': '/camera/rgb/image_raw'
         },
-        {
-            'name': 'head_rgbd_sensor_depth',
+        'head_rgbd_sensor_depth': {
             'prefix': '/camera/depth/image_raw'
         },
-    ],
-    'imu': [
-        {
-            'name': 'base_imu',
+    },
+    'imu': {
+        'base_imu': {
             'topic': "/imu/data"
         }
-    ],
-    'force_torque': [
-        {
-            'name':  'wrist_wrench',
+    },
+    'force_torque': {
+        'wrist_wrench': {
             'topic': "/wrench_state"
         }
-    ],
-    'laser_scan': [
-        {
-            'name': 'base_scan',
-            'topi': "/scan",
+    },
+    'lidar': {
+        'base_scan': {
+            'topic': "/scan",
         }
-    ],
-    'object_detector': [
-        {
-            'name':  'marker',
+    },
+    'object_detector': {
+        'marker': {
             'topic': "/recognized_object",
         }
-    ],
-    'power_source': [
-        {
-            'name': 'battery',
+    },
+    'power_supply': {
+        'battery': {
             'topic': "/battery_state"
         }
-    ],
-    'text_to_speech': [
-        {
-            'name': 'default',
+    },
+    'text_to_speech': {
+        'default': {
             'topic': '/talk_request',
         }
-    ],
-    'collision_map': [
-        {
-            'name': 'default',
+    },
+    'collision_map': {
+        'default': {
             'service': '/get_collision_environment'
         }
-    ],
+    },
 }
 
-settings = HSR_BEETLE
+_settings = HSR_BEETLE
 
-def get_setting(section, name):
-    section = settings[section]
-    for entry in section:
-        if entry['name'] == name:
-            return entry
+def get_section(section):
+    return _settings.get(section, None)
+
+
+def get_entry(section, name):
+    if section in _settings:
+        return _settings[section].get(name, None)
     else:
-        None
+        return None
 
 def get_frame(name):
-    return settings['frame']['name']
+    return _settings['frame']['name']['frame_id']
 

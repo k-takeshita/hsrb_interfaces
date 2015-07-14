@@ -11,7 +11,7 @@ Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 
 def from_ros_vector3(msg):
-    return Vecotr3(msg.x, msg.y, msg.z)
+    return Vector3(msg.x, msg.y, msg.z)
 
 def from_ros_quaternion(msg):
     return Quaternion(msg.x, msg.y, msg.z, msg.w)

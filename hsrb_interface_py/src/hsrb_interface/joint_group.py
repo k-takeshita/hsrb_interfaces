@@ -4,24 +4,12 @@
 import copy
 from itertools import repeat
 
-import numpy
-
 import tf
 import tf2_ros
 import actionlib
 import rospy
 
-from .exceptions import (
-    TrajectoryLengthError,
-    TrajectoryFilterError,
-    FollowTrajectoryError,
-    PlannerError,
-)
-
-from geometry_msgs.msg import (
-    Pose,
-    Transform,
-)
+from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import (
     JointTrajectory,
@@ -54,26 +42,11 @@ from tmc_planning_msgs.srv import (
     PlanWithHandLineRequest,
 )
 
-from .robot import Resource
-
-from .utils import (
-    CachingSubscriber,
-    iterate,
-)
-
-from .geometry import (
-    Vector3,
-    Quaternion,
-    shortest_angular_distance,
-    tuples_to_pose,
-    pose_to_tuples,
-    tuples_to_transform,
-    transform_to_tuples,
-    multiply_tuples,
-)
-
-
-from .settings import get_setting, get_frame
+from . import exceptions
+from . import settings
+from . import robot
+from . import utils
+from . import geometry
 
 
 # subscriberのバッファ数
@@ -152,7 +125,7 @@ def extract_trajectory(joint_trajectory, joint_names, joint_state):
                 index_map[joint_index] = input_joint_index
     trajectory_out = JointTrajectory()
     trajectory_out.joint_names = joint_names
-    trajectory_out.points = list(iterate(JointTrajectoryPoint, num_points))
+    trajectory_out.points = list(utils.iterate(JointTrajectoryPoint, num_points))
     for point_index in range(num_points):
         target = trajectory_out.points[point_index]
         source = joint_trajectory.points[point_index]
@@ -248,9 +221,9 @@ class FollowTrajectoryActionClient(object):
         result = self._client.get_result()
 
         if result.error_code != FollowJointTrajectoryResult.SUCCESSFUL:
-            raise FollowTrajectoryError("{0}".format(result.error_code))
+            raise exceptions.FollowTrajectoryError("{0}".format(result.error_code))
         if state != actionlib.GoalStatus.SUCCEEDED:
-            raise FollowTrajectoryError("{0}".format(state))
+            raise exceptions.FollowTrajectoryError("{0}".format(state))
         return result
 
     @property
@@ -262,17 +235,17 @@ class FollowTrajectoryActionClient(object):
         return self._controller_name
 
 
-class JointGroup(Resource):
+class JointGroup(robot.Resource):
     u"""関節グループの制御を行うクラス
     """
     def __init__(self, name):
         super(JointState, self).__init__()
-        self._setting = get_setting('joint_group', name)
+        self._setting = settings.get_entry('joint_group', name)
         self._arm_client = FollowTrajectoryActionClient(self._setting['arm_controller_prefix'])
         self._head_client = FollowTrajectoryActionClient(self._setting['head_controller_prefix'])
         self._hand_client = FollowTrajectoryActionClient(self._setting["hand_controller_prefix"])
         self._base_client = FollowTrajectoryActionClient(self._setting["omni_base_controller_prefix"], "/base_coordinates")
-        self._joint_state_sub = CachingSubscriber(self._setting["joint_states_topic"], JointState)
+        self._joint_state_sub = utils.CachingSubscriber(self._setting["joint_states_topic"], JointState)
         self._tf2_buffer = tf2_ros.Buffer()
         self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
 
@@ -343,7 +316,7 @@ class JointGroup(Resource):
         plan_service = rospy.ServiceProxy(self._setting['plan_with_joint_goals_service'], PlanWithJointGoals)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            raise PlannerError("Fail to plan change_joint_state: {0}".format(res.error_code.val))
+            raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(res.error_code.val))
         self.play_trajectory(res.solution)
 
     def move_to_joint_positions(self, goals):
@@ -393,12 +366,13 @@ class JointGroup(Resource):
         """
         # 基準座標省略時はロボット座標系
         if ref_frame_id is None:
-            ref_frame_id = get_frame('base')
+            ref_frame_id = settings.get_frame('base')
         transform = self._tf2_buffer.lookup_transform(ref_frame_id,
-                                                      get_frame('hand'),
+                                                      settings.get_frame('hand'),
                                                       rospy.Time(0),
                                                       rospy.Duration(_TF_TIMEOUT))
-        result = transform_to_tuples(transform.transform)
+        result = geometry.transform_to_tuples(transform.transform)
+        return result
 
     def move_hand(self, hand_pose, ref_frame_id=None):
         u"""外部干渉を考慮せずグリッパを指定姿勢まで動かす
@@ -421,21 +395,21 @@ class JointGroup(Resource):
 
         # 基準座標省略時はロボット座標系
         if ref_frame_id is None:
-            ref_frame_id = get_frame('base_frame_id')
+            ref_frame_id = settings.get_frame('base_frame_id')
 
-        odom_to_robot_transform = self._tf2_buffer.lookup_transform(get_frame('odom'),
-                                                                    get_frame('base'),
+        odom_to_robot_transform = self._tf2_buffer.lookup_transform(settings.get_frame('odom'),
+                                                                    settings.get_frame('base'),
                                                                     rospy.Time(0),
                                                                     rospy.Duration(_TF_TIMEOUT))
-        odom_to_robot_pose = tuples_to_pose(transform_to_tuples(odom_to_robot_transform.transform))
+        odom_to_robot_pose = geometry.tuples_to_pose(geometry.transform_to_tuples(odom_to_robot_transform.transform))
 
-        odom_to_ref_transform = self._tf2_buffer.lookup_transform(get_frame('odom'),
+        odom_to_ref_transform = self._tf2_buffer.lookup_transform(settings.get_frame('odom'),
                                                                   ref_frame_id,
                                                                   rospy.Time(0),
                                                                   rospy.Duration(_TF_TIMEOUT))
-        odom_to_ref = transform_to_tuples(odom_to_ref_transform.transform)
-        odom_to_hand = multiply_tuples(odom_to_ref, hand_pose)
-        odom_to_hand_pose = tuples_to_pose(odom_to_hand)
+        odom_to_ref = geometry.transform_to_tuples(odom_to_ref_transform.transform)
+        odom_to_hand = geometry.multiply_tuples(odom_to_ref, hand_pose)
+        odom_to_hand_pose = geometry.tuples_to_pose(odom_to_hand)
 
         req = PlanWithHandGoalsRequest()
         req.base_movement_type.val = BaseMovementType.PLANAR
@@ -443,7 +417,7 @@ class JointGroup(Resource):
         req.initial_joint_state = self._get_joint_state()
         req.use_joints = use_joints
         req.origin_to_hand_goals.append(odom_to_hand_pose)
-        req.ref_frame_id = get_frame('hand')
+        req.ref_frame_id = settings.get_frame('hand')
         req.probability_goal_generate = _PLANNING_GOAL_GENERATION
         req.timeout = rospy.Duration(_PLANNING_ARM_TIMEOUT)
         req.max_iteration = _PLANNING_MAX_ITERATION
@@ -453,8 +427,8 @@ class JointGroup(Resource):
         plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_goals_service'], PlanWithHandGoals)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            raise PlannerError("Fail to plan move_endpoint: {0}".format(res.error_code.val))
-        res.base_solution.header.frame_id = get_frame('odom_frame_id')
+            raise exceptions.PlannerError("Fail to plan move_endpoint: {0}".format(res.error_code.val))
+        res.base_solution.header.frame_id = settings.get_frame('odom_frame_id')
         self.play_trajectory(res.solution, res.base_solution)
 
     def move_hand_by_line(self, axis, distance, ref_frame_id=None):
@@ -476,12 +450,12 @@ class JointGroup(Resource):
             'arm_lift_joint'
         )
         if ref_frame_id is None:
-            ref_frame_id = get_frame('hand')
-        odom_to_robot_transform = self._tf2_buffer.lookup_transform(get_frame('odom'),
-                                                                    get_frame('base'),
+            ref_frame_id = settings.get_frame('hand')
+        odom_to_robot_transform = self._tf2_buffer.lookup_transform(settings.get_frame('odom'),
+                                                                    settings.get_frame('base'),
                                                                     rospy.Time(0),
                                                                     rospy.Duration(_TF_TIMEOUT))
-        odom_to_robot_pose = tuples_to_pose(transform_to_tuples(odom_to_robot_transform.transform))
+        odom_to_robot_pose = geometry.tuples_to_pose(geometry.transform_to_tuples(odom_to_robot_transform.transform))
 
         req = PlanWithHandLineRequest()
         req.base_movement_type.val = BaseMovementType.PLANAR
@@ -505,8 +479,8 @@ class JointGroup(Resource):
         plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_line_service'], PlanWithHandLine)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            raise PlannerError("Fail to plan move_hand_line: {0}".format(res.error_code.val))
-        res.base_solution.header.frame_id = get_frame('odom')
+            raise exceptions.PlannerError("Fail to plan move_hand_line: {0}".format(res.error_code.val))
+        res.base_solution.header.frame_id = settings.get_frame('odom')
         self.play_trajectory(res.solution, res.base_solution)
 
     def play_trajectory(self, joint_trajectory, base_trajectory=None):
@@ -524,17 +498,17 @@ class JointGroup(Resource):
         else:
             clients = [self._head_client, self._arm_client, self._base_client]
             if len(joint_trajectory.points) != len(base_trajectory.points):
-                raise TrajectoryLengthError("Uneven joint_trajectory size and base_trajectory size.")
+                raise exceptions.TrajectoryLengthError("Uneven joint_trajectory size and base_trajectory size.")
 
             odom_to_frame_transform = self._tf2_buffer.lookup_transform(_BASE_TRAJECTORY_ORIGIN,
                                                                         base_trajectory.header.frame_id,
                                                                         rospy.Time(0),
                                                                         rospy.Duration(_TF_TIMEOUT))
-            odom_to_frame = transform_to_tuples(odom_to_frame_transform.transform)
+            odom_to_frame = geometry.transform_to_tuples(odom_to_frame_transform.transform)
 
             num_points = len(joint_trajectory.points)
             odom_base_trajectory = JointTrajectory()
-            odom_base_trajectory.points = list(iterate(JointTrajectoryPoint, num_points))
+            odom_base_trajectory.points = list(utils.iterate(JointTrajectoryPoint, num_points))
             odom_base_trajectory.header = base_trajectory.header
             odom_base_trajectory.joint_names = self._base_client.joint_names
 
@@ -542,17 +516,17 @@ class JointGroup(Resource):
             previous_theta = 0.0
             for i in range(num_points):
                 t = base_trajectory.points[i].transforms[0]
-                frame_to_base = transform_to_tuples(t)
+                frame_to_base = geometry.transform_to_tuples(t)
 
                 # odom_to_base = odom_to_frame * frame_to_base
-                (odom_to_base_trans, odom_to_base_rot) = multiply_transforms(odom_to_frame, frame_to_base)
+                (odom_to_base_trans, odom_to_base_rot) = geometry.multiply_transforms(odom_to_frame, frame_to_base)
 
                 odom_base_trajectory.points[i].positions = [0, 0, 0]
                 odom_base_trajectory.points[i].positions[0] = odom_to_base_trans[0]
                 odom_base_trajectory.points[i].positions[1] = odom_to_base_trans[1]
 
                 roll, pitch, yaw = tf.transformations.euler_from_quaternion(odom_to_base_rot)
-                theta = previous_theta * shortest_angular_distance(previous_theta, yaw)
+                theta = previous_theta * geometry.shortest_angular_distance(previous_theta, yaw)
 
                 odom_base_trajectory.points[i].positions[2] = theta
                 previous_theta = theta
@@ -566,6 +540,7 @@ class JointGroup(Resource):
 
     def _execute_trajectory(self, clients, joint_trajectory):
         u"""軌道再生を実行する
+
         Parameters:
             clients (List[FollowTrajectoryActionClient]):
             joint_trajectory (trajectory_msgs.msg.JointTrajectory): 再生する関節軌道
@@ -583,7 +558,7 @@ class JointGroup(Resource):
         try:
             res = filter_service.call(req)
             if res.error_code.val != res.error_code.SUCCESS:
-                raise TrajectoryFilterError("Failed to filter trajectory: {0}".fomrat(res.error_code.val))
+                raise exceptions.TrajectoryFilterError("Failed to filter trajectory: {0}".fomrat(res.error_code.val))
         except rospy.ServiceException:
             import traceback
             traceback.print_exc()
@@ -610,7 +585,7 @@ class JointGroup(Resource):
                     log.append("{0}={1}".format(c.name, c.get_state()))
                     c.cancel_goal()
                 text = "Playing trajecotry failed: {0}".format(', '.join(log))
-                raise FollowTrajectoryError(text)
+                raise exceptions.FollowTrajectoryError(text)
             if all(map(lambda s: s == actionlib.GoalStatus.SUCCEEDED, states)):
                 break
             rate.sleep()

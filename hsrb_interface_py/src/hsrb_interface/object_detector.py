@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
+from __future__ import absolute_import
 import threading
 import rospy
 import copy
@@ -7,8 +8,8 @@ import functools
 
 from tmc_vision_msgs.msg import RecognizedObject
 
-from .robot import Resource
-from .settings import get_setting
+from . import robot
+from . import settings
 
 
 def _expired(now, expiration, obj):
@@ -22,7 +23,7 @@ class Object(object):
         self._data = data
 
 
-class ObjectDetector(Resource):
+class ObjectDetector(robot.Resource):
     u"""オブジェクト認識機の結果を保持するクラス
 
     Parameters:
@@ -31,7 +32,7 @@ class ObjectDetector(Resource):
     """
     def __init__(self, name, expiration=10.0):
         super(ObjectDetector, self).__init__(self)
-        self._setting = get_setting('object_detector', name)
+        self._setting = settings.get_entry('object_detector', name)
         self._lock = threading.Lock()
         self._cache = {}
         self._expiration = rospy.Duration(expiration)

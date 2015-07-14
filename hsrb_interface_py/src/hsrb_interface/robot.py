@@ -4,14 +4,14 @@
 # Copyright (c) 2015, TOYOTA MOTOR CORPORATION
 # All rights reserved.
 #
+from __future__ import absolute_import
+import weakref
 import rospy
 
 
-from .utils import CachingSubscriber
-from .settings import settings
-from .exceptions import RobotConnectionError
-
-import weakref
+from . import utils
+from . import settings
+from . import exceptions
 
 
 class _Connection(object):
@@ -32,6 +32,7 @@ class Robot(object):
     新たに接続を確立するには、新しいインスタンスを生成する必要がある。
 
     Example:
+
         with Robot() as r:
             print r.list_camera()
 
@@ -66,9 +67,9 @@ class Robot(object):
 
     @property
     def name(self):
-        u"""ロボット名を
+        u"""ロボット名を返す
         """
-        return settings['robot']['name']
+        return settings.get_entry('robot', 'hsrb')['fullname']
 
     def list_joint_group(self):
         u"""利用可能なジョイントグループをリストアップする。
@@ -76,7 +77,7 @@ class Robot(object):
         Returns:
             List[str]: 利用可能なジョイントグループ名のリスト
         """
-        return [r.name for r in settings['joint_group']]
+        return settings.get_section('joint_group').keys()
 
     def list_mobile_base(self):
         u"""利用可能な移動台座をリストアップする。
@@ -84,7 +85,7 @@ class Robot(object):
         Returns:
             List[str]: 利用可能な移動台座名のリスト
         """
-        return [r.name for r in settings['mobile_base']]
+        return settings.get_section('mobile_base').keys()
 
     def list_camera(self):
         u"""利用可能なカメラをリストアップする。
@@ -92,15 +93,15 @@ class Robot(object):
         Returns:
             List[str]: 利用可能なカメラ名のリスト
         """
-        return [r.name for r in settings['camera']]
+        return settings.get_section('camera').keys()
 
-    def list_laser_scan(self):
+    def list_lidar(self):
         u"""利用可能なレーザースキャナーをリストアップする。
 
         Returns:
             List[str]: 利用可能なレーザースキャナー名のリスト
         """
-        return [r.name for r in settings['laser_scan']]
+        return settings.get_section('lidar').keys()
 
     def list_imu(self):
         u"""利用可能な慣性センサーをリストアップする。
@@ -108,7 +109,7 @@ class Robot(object):
         Returns:
             List[str]: 利用可能な慣性センサー名のリスト
         """
-        return [r.name for r in settings['imu']]
+        return settings.get_section('imu').keys()
 
     def list_force_torque(self):
         u"""利用可能な6軸力センサーをリストアップする。
@@ -116,15 +117,15 @@ class Robot(object):
         Returns:
             List[str]: 利用可能な6軸力センサー名のリスト
         """
-        return [r.name for r in settings['force_torque']]
+        return settings.get_section('force_torque').keys()
 
-    def list_power_source(self):
+    def list_power_supply(self):
         u"""利用可能な電源をリストアップする。
 
         Returns:
             List[str]: 利用可能な電源名のリスト
         """
-        return [r.name for r in settings['power_source']]
+        return settings.get_section('power_supply').keys()
 
     def list_end_effector(self):
         u"""利用可能なエンドエフェクターをリストアップする。
@@ -132,7 +133,7 @@ class Robot(object):
         Returns:
             List[str]: 利用可能なエンドエフェクターのリスト
         """
-        return [r.name for r in settings['end_effector']]
+        return settings.get_section('end_effector').keys()
 
     def list_object_detector(self):
         u"""利用可能な物体認識器をリストアップする。
@@ -140,7 +141,7 @@ class Robot(object):
         Returns:
             List[str]: 利用可能な物体認識器のリスト
         """
-        return [r.name for r in settings['object_detector']]
+        return settings.get_section('object_detector').keys()
 
     def list_collision_map(self):
         u"""利用可能な物体干渉マップをリストアップする。
@@ -148,7 +149,7 @@ class Robot(object):
         Returns:
             List[str]: 利用可能な物体干渉マップのリスト
         """
-        return [r.name for r in settings['collision_map']]
+        return settings.get_section('collision_map').keys()
 
     def list_text_to_speech(self):
         u"""利用可能な音声合成サービスをリストアップする。
@@ -156,7 +157,7 @@ class Robot(object):
         Returns:
             List[str]: 利用可能な音声合成サービスのリスト
         """
-        return [r.name for r in settings['text_to_speech']]
+        return settings.get_section('text_to_speech').keys()
 
 
 class Resource(object):
@@ -165,4 +166,4 @@ class Resource(object):
     """
     def __init__(self):
         if Robot._connection is None or Robot._connection() is None:
-            raise RobotConnectionError("Noe robot connection")
+            raise exceptions.RobotConnectionError("No robot connection")

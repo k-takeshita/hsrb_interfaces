@@ -8,21 +8,21 @@ from std_msgs.msg import Bool
 
 import rospy
 import actionlib
-from .robot import Resource
-from .settings import get_setting
-from .utils import CachingSubscriber
-from .exceptions import GripperError
+from . import robot
+from . import settings
+from . import utils
+from . import exceptions
 
 _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT = 20.0
 _GRIPPER_GRASP_TIMEOUT = 20.0
 
-class Gripper(Resource):
+class Gripper(robot.Resource):
     u"""HRHグリッパーの制御を行うクラス
 
     """
     def __init__(self, name):
         super(Gripper, self).__init__()
-        self._setting = get_setting('end_effector', name)
+        self._setting = settings.get_entry('end_effector', name)
         self._name = name
         self._joint_names = self._setting['joint_names']
         prefix = self._setting['prefix']
@@ -51,7 +51,7 @@ class Gripper(Resource):
         self._follow_joint_trajectory_client.wait_for_result(rospy.Duration(_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT))
         s = self._follow_joint_trajectory_client.get_state()
         if s != actionlib.GoalStatus.SUCCEEDED:
-            raise GripperError("Failed to follow commanded trajectory")
+            raise exceptions.GripperError("Failed to follow commanded trajectory")
 
     def grasp(self, effort):
         u"""グリッパーの握りこみ動作を実行する
@@ -68,7 +68,7 @@ class Gripper(Resource):
         self._grasp_client.get_result()
         s = self._grasp_client.get_state()
         if s != actionlib.GoalStatus.SUCCEEDED:
-            raise GripperError("Failed to grasp")
+            raise exceptions.GripperError("Failed to grasp")
 
 
 class Suction(object):
@@ -82,10 +82,10 @@ class Suction(object):
 
     def __init__(self, name):
         super(Suction, self).__init__()
-        self._setting = get_setting('end_effector', name)
+        self._setting = settings.get_entry('end_effector', name)
         self._name = name
         self._pub = rospy.Publisher(self._setting['suction_topic'], Bool)
-        self._sub = CachingSubscriber(self._setting['pressure_sensor_topic'], Bool)
+        self._sub = utils.CachingSubscriber(self._setting['pressure_sensor_topic'], Bool)
 
     def command(self, command):
         u"""吸引ノズルのOn/Off制御

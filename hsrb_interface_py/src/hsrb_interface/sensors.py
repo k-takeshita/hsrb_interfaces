@@ -4,23 +4,17 @@ from cv_bridge import CvBridge
 
 
 from sensor_msgs.msg import (
-    Image,
+    Image as ROSImage,
     Imu,
-    LaserScan,
+    LaserScan as ROSLaserScan,
 )
 
 from geometry_msgs.msg import WrenchStamped
 
-from .robot import Resource
-from .utils import CachingSubscriber
-from .settings import get_setting, get_frame
-from .geometry import (
-    Vector3,
-    Quaternion,
-    from_ros_vector3,
-    from_ros_quaternion
-)
-
+from . import robot
+from . import utils
+from . import settings
+from . import geometry
 
 class Image(object):
     u"""
@@ -46,7 +40,7 @@ class LaserScan(object):
         return self._data
 
 
-class Camera(Resource):
+class Camera(robot.Resource):
     u"""カメラ
 
     Args:
@@ -55,15 +49,16 @@ class Camera(Resource):
     def __init__(self, name):
         super(Camera, self).__init__()
         self._name = name
-        self._setting = get_setting('camera', name)
+        self._setting = settings.get_entry('camera', name)
 
-        self._image_sub = CachingSubscriber(self._setting['prefix'] + '/image_raw', Image)
+        self._image_sub = utils.CachingSubscriber(self._setting['prefix'] + '/image_raw', ROSImage)
 
-    def get_image(self):
+    @property
+    def image(self):
         return Image(self._image_sub.data)
 
 
-class ForceTorque(Resource):
+class ForceTorque(robot.Resource):
     u"""6軸力センサー
 
     Args:
@@ -72,71 +67,61 @@ class ForceTorque(Resource):
     """
     def __init__(self, name):
         super(ForceTorque, self).__init__()
-        self._setting = get_setting('force_torque', name)
+        self._setting = settings.get_entry('force_torque', name)
         topic = self._setting['topic']
         self._name = name
-        self._sub = CachingSubscriber(topic, WrenchStamped)
+        self._sub = utils.CachingSubscriber(topic, WrenchStamped)
 
-    def get_wrench(self):
+    @property
+    def wrench(self):
         u"""最新の値を取得する
 
         Returns:
             (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の取得値
         """
         wrench = self._sub.data
-        result = (from_ros_vector3(wrench.force),
-                  from_ros_vector3(wrench.torque))
+        result = (geometry.from_ros_vector3(wrench.wrench.force),
+                  geometry.from_ros_vector3(wrench.wrench.torque))
         return result
 
 
-class IMU(Resource):
+class IMU(robot.Resource):
     u"""慣性センサーへのアクセスを提供する
 
     Args:
         name (str): デバイス名
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name):
         super(IMU, self).__init__()
-        self._setting = get_setting('imu', name)
+        self._setting = settings.get_entry('imu', name)
         topic = self._setting['topic']
         self._name = name
-        self._sub = CachingSubscriber(topic, Imu)
+        self._sub = utils.CachingSubscriber(topic, Imu)
 
-    def get_data(self):
+    @property
+    def data(self):
         u"""最新の値を取得する
         """
         imu = self._sub.data
-        ori = from_ros_quaternion(imu.orientaion)
-        angvel = from_ros_vector(imu.angular_velocity)
-        accel  = from_ros_vector(imu.linear_acceleration)
+        ori = geometry.from_ros_quaternion(imu.orientation)
+        angvel = geometry.from_ros_vector3(imu.angular_velocity)
+        accel  = geometry.from_ros_vector3(imu.linear_acceleration)
         return (ori, angvel, accel)
 
 
 
-class Lidar(Resource):
+class Lidar(robot.Resource):
     u"""レーザースキャナへのアクセスを提供する"""
-    def __init__(self, *args, **kwargs):
-        super(LaserScan, self).__init__()
-        self._setting = get_setting('laser_scan', name)
+    def __init__(self, name):
+        super(Lidar, self).__init__()
+        self._setting = settings.get_entry('lidar', name)
         topic = self._setting['topic']
         self._name = name
-        self._sub = CachingSubscriber(topic, LaserScan)
+        self._sub = utils.CachingSubscriber(topic, ROSLaserScan)
 
-    def get_scan(self):
-        u"""最新の値を取得する
-        """
-        return self._sub.data
-
-
-class DigitalIO(Resource):
-    u"""デジタルI/O
-    """
-    def __init__(self, *args, **kwargs):
-        super(LaserScan, self).__init__()
-        self._setting = get_setting('laser_scan', name)
-        topic = self._setting['topic']
-        self._name = name
-        self._sub = CachingSubscriber(topic, LaserScan)
-
+    @property
+    def scan(self):
+        u"""最新の値を取得する"""
+        return LaserScan(self._sub.data)
 
 

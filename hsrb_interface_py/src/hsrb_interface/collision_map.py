@@ -9,16 +9,16 @@ from tmc_manipulation_msgs.srv import (
     GetCollisionEnvironmentRequest,
 )
 
-from .robot import Resource
-from .settings import get_setting, get_frame
+from . import robot
+from . import settings
 
-class CollisionMap(Resource):
+class CollisionMap(robot.Resource):
     def __init__(self, name):
         super(CollisionMap, self).__init__()
-        self._setting = get_setting('collision_map', name)
+        self._setting = settings.get_entry('collision_map', name)
 
         self._known_object_only = True
-        self._ref_frame_id = get_frame('map')
+        self._ref_frame_id = settings.get_frame('map')
         self._environment = None
 
     @property
