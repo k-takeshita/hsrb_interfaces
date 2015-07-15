@@ -24,9 +24,9 @@ class MobileBase(robot.Resource):
 
         self._pose_sub = utils.CachingSubscriber(self._settings['pose_topic'], PoseStamped)
 
-        self._action_client = actionlib.SimpleActionClient(self._settings['move_base_action'], MoveBaseAction)
+        self._action_client = actionlib.SimpleActionClient(self._setting['move_base_action'], MoveBaseAction)
 
-    def go(self, x, y, yaw, timeout=0.0, ref_frame_id=None):
+    def goto(self, x, y, yaw, timeout=0.0, ref_frame_id=None):
         u"""指定した姿勢まで移動する
 
         Args:

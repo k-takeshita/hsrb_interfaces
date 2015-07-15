@@ -233,8 +233,7 @@ def get_entry(section, name):
     if section in _settings:
         return _settings[section].get(name, None)
     else:
-        return None
+        raise ResorceNotFoundError("{0}({1}) is not found".format(section, name))
 
 def get_frame(name):
-    return _settings['frame']['name']['frame_id']
-
+    return get_entry('frame', 'name')['frame_id']

@@ -46,7 +46,6 @@ class Robot(object):
     def connecting():
         return Robot._connection is not None and Robot._connection() is not None
 
-
     def __init__(self, *args, **kwargs):
         if Robot._connection is None or Robot._connection() is None:
             self._conn = _Connection()
