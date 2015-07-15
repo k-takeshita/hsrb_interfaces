@@ -42,6 +42,11 @@ class Robot(object):
 
     _connection = None
 
+    @staticmethod
+    def connecting():
+        return Robot._connection is not None and Robot._connection() is not None
+
+
     def __init__(self, *args, **kwargs):
         if Robot._connection is None or Robot._connection() is None:
             self._conn = _Connection()
@@ -143,13 +148,13 @@ class Robot(object):
         """
         return settings.get_section('object_detector').keys()
 
-    def list_collision_map(self):
+    def list_collision_world(self):
         u"""利用可能な物体干渉マップをリストアップする。
 
         Returns:
             List[str]: 利用可能な物体干渉マップのリスト
         """
-        return settings.get_section('collision_map').keys()
+        return settings.get_section('collision_world').keys()
 
     def list_text_to_speech(self):
         u"""利用可能な音声合成サービスをリストアップする。
@@ -165,5 +170,5 @@ class Resource(object):
 
     """
     def __init__(self):
-        if Robot._connection is None or Robot._connection() is None:
+        if not Robot.connecting():
             raise exceptions.RobotConnectionError("No robot connection")

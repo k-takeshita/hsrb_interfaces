@@ -23,21 +23,22 @@ class Gripper(robot.Resource):
     def __init__(self, name):
         super(Gripper, self).__init__()
         self._setting = settings.get_entry('end_effector', name)
+        if self._setting is None:
+            raise exceptions.ResourceNotFoundError('{0}({1}) is not found '.format('end_effector', name))
         self._name = name
         self._joint_names = self._setting['joint_names']
         prefix = self._setting['prefix']
         self._follow_joint_trajectory_client = actionlib.SimpleActionClient(
-                prefix + "/follow_joint_trajectory",
-                FollowJointTrajectoryAction)
-        self._grasp_client = actionlib.SimpleActionClient(
-                prefix + "/grasp",
-                GripperApplyEffortAction)
+                                                   prefix + "/follow_joint_trajectory",
+                                                   FollowJointTrajectoryAction)
+        self._grasp_client = actionlib.SimpleActionClient(prefix + "/grasp",
+                                                          GripperApplyEffortAction)
 
-    def command(self, open_angle):
+    def command(self, open_distance):
         u"""グリッパーの開き量を指示する
 
         Args:
-            open_angle (float): グリッパーの開き量[?]
+            open_distance (float): グリッパーの開き量[?]
         Returns:
             None
         """
@@ -83,6 +84,8 @@ class Suction(object):
     def __init__(self, name):
         super(Suction, self).__init__()
         self._setting = settings.get_entry('end_effector', name)
+        if self._setting is None:
+            raise exceptions.ResourceNotFoundError('{0}({1}) is not found '.format('end_effector', name))
         self._name = name
         self._pub = rospy.Publisher(self._setting['suction_topic'], Bool)
         self._sub = utils.CachingSubscriber(self._setting['pressure_sensor_topic'], Bool)
@@ -101,7 +104,11 @@ class Suction(object):
 
     @property
     def pressure_sensor(self):
-        u"""吸引ノズル圧力センサーのOn/Off"""
+        u"""吸引ノズル圧力センサーのOn/Off
+
+        Returns:
+            bool:
+        """
         return self._sub.data.data
 
 

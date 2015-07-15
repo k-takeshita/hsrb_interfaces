@@ -17,7 +17,7 @@ from .text_to_speech import TextToSpeech
 from .end_effector import Gripper, Suction
 from .mobile_base import MobileBase
 from .robot import Robot
-from .collision_map import CollisionMap
+from .collision_world import CollisionWorld
 
 from .exceptions import (
     RobotConnectionError,
@@ -41,6 +41,6 @@ __all__ = (
     Gripper,
     Suction,
     MobileBase,
-    CollisionMap,
+    CollisionWorld,
     Robot,
 )

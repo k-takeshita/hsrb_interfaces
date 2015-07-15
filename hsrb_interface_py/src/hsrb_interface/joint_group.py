@@ -237,6 +237,11 @@ class FollowTrajectoryActionClient(object):
 
 class JointGroup(robot.Resource):
     u"""関節グループの制御を行うクラス
+
+
+    Attributes:
+        joint_names (List[str]):
+
     """
     def __init__(self, name):
         super(JointState, self).__init__()
@@ -275,15 +280,12 @@ class JointGroup(robot.Resource):
         return self._behavior._get_joint_state()
 
     @property
-    def collision_environment(self):
-        return self._collision_env
+    def collision_world(self):
+        return self._collision_world
 
-    @collision_environment.setter
-    def collision_environment(self, value):
-        self._collision_env = value
-
-    def clear_collision_environment(self):
-        self._collision_env = None
+    @collision_world.setter
+    def collision_world(self, value):
+        self._collision_world = value
 
 
     def change_joint_state(self, goal_state):

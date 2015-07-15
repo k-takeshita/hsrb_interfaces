@@ -7,149 +7,223 @@ u"""ROS Graph 名のマッピングテーブル
 今後大きな仕様変更がありうるので注意。
 """
 
+import json
+
 VERSION = "1.0.0"
 
 
-HSRB = {
-    'map_frame_id':                   "floor/reproduce_ant_task",
-    'odom_frame_id':                  "odom",
-    'base_frame_id':                  "base_footprint",
-    'hand_frame_id':                  "hand_palm_link",
-    'text_to_speech_topic':           "/talk_request",
-    'goal_topic':                     "/goal",
-    'pose_topic':                     "/laser_2d_pose_ref",
-    'laser_topic':                    "/hsrb/base_scan",
-    'imu_topic':                      "/hsrb/base_imu",
-    'wrist_wrench_topic':             "/hsrb/wrist_wrench",
-    'joint_states_topic':             "/hsrb/joint_states",
-    'recognized_object_topic':        "/hsrb/ecognized_object",
-    'arm_controller_prefix':          "/hsrb/arm_trajectory_controller",
-    'head_controller_prefix':         "/hsrb/head_trajectory_controller",
-    'hand_controller_prefix':         "/hsrb/gripper_controller",
-    'hand_joint_names':               ["hand_motor_joint"],
-    'head_controller_prefix':         "/hsrb/head_trajectory_controller",
-    'omni_base_controller_prefix':    "/hsrb/omni_base_controller",
-    'head_l_stereo_camera_prefix':    "/hsrb/head_l_stereo_camera",
-    'head_r_stereo_camera_prefix':    "/hsrb/head_r_stereo_camera",
-    'head_center_camera_prefix':      "/hsrb/head_center_camera",
-    'hand_camera_prefix':             "/hsrb/hand_camera",
-    'rgbd_sensor_prefix':             "/hsrb/rgbd_sensor",
-    'move_base_action':               "/move_base/move",
-    'battery_state':                  "/hsrb/battery_state",
-    'suction_controller':             "/hsrb/sucction_controller",
-    'pressure_sensor_topic':          "/sucction_on",
-    'trajectory_filter_service':      "/pressure_sensor_on",
-    'trajectory_filter_service':      "/trajectory_filter/filter_trajectory_with_constraints",
-    'plan_with_constraints_service':  "/plan_with_constraints",
-    'plan_with_hand_goals_service':   "/plan_with_hand_goals",
-    'plan_with_hand_line_service':    "/plan_with_hand_line",
-    'plan_with_joint_goals_service':  "/plan_with_joint_goals",
+HSRB = """
+{
+    "robot": {
+        "hsrb": {
+            "fullname": "HSR-B"
+        }
+    },
+    "frame": {
+        "map": {
+            "frame_id": "floor/reproduce_ant_task"
+        },
+        "odom": {
+            "frame_id": "odom"
+        },
+        "base": {
+            "frame_id": "base_footprint"
+        },
+        "hand": {
+            "id": "hand_palm_link"
+        }
+    },
+    "joint_group": {
+        "whole_body": {
+            "joint_states_topic":             "/hsrb/joint_states",
+            "arm_controller_prefix":          "/hsrb/arm_trajectory_controller",
+            "head_controller_prefix":         "/hsrb/head_trajectory_controller",
+            "hand_controller_prefix":         "/hsrb/gripper_controller",
+            "omni_base_controller_prefix":    "/hsrb/omni_base_controller",
+            "trajectory_filter_service":      "/trajectory_filter/filter_trajectory_with_constraints",
+            "plan_with_constraints_service":  "/plan_with_constraints",
+            "plan_with_hand_goals_service":   "/plan_with_hand_goals",
+            "plan_with_hand_line_service":    "/plan_with_hand_line",
+            "plan_with_joint_goals_service":  "/plan_with_joint_goals"
+        }
+    },
+    "end_effector": {
+        "gripper": {
+            "joint_names":  ["hand_motor_joint"],
+            "prefix":       "/hsrb/gripper_controller"
+        },
+        "suction": {
+            "action":                         "/suction_control",
+            "suction_topic":                  "/suction_on",
+            "pressure_sensor_topic":          "/pressure_sensor"
+        }
+    },
+    "mobile_base": {
+        "omni_base": {
+            "move_base_action":  "/move_base/move",
+            "pose_topic":        "/laser_2d_pose_ref",
+            "goal_topic":        "/base_goal"
+        }
+    },
+    "camera": {
+        "head_l_stereo_camera": {
+            "prefix": "/hsrb/head_l_stereo_camera"
+        },
+        "head_r_stereo_camera": {
+            "prefix":  "/hsrb/head_l_stereo_camera"
+        },
+        "head_rgbd_sensor_rgb": {
+            "prefix": "/hsrb/head_rgbd_sensor/rgb/image_raw"
+        },
+        "head_rgbd_sensor_depth": {
+            "prefix": "hsrb/head_rgbd_sensor/depth/image_raw"
+        }
+    },
+    "imu": {
+        "base_imu": {
+            "topic": "/hsrb/base_imu/data"
+        }
+    },
+    "force_torque": {
+        "wrist_wrench": {
+            "topic": "/hsrb/wrench_state"
+        }
+    },
+    "lidar": {
+        "base_scan": {
+            "topic": "/hsrb/base_sscan"
+        }
+    },
+    "object_detector": {
+        "marker": {
+            "topic": "/recognized_object"
+        }
+    },
+    "power_supply": {
+        "battery": {
+            "topic": "/hsrb/battery_state"
+        }
+    },
+    "text_to_speech": {
+        "default": {
+            "topic": "/talk_request"
+        }
+    },
+    "collision_world": {
+        "default": {
+            "service": "/get_collision_environment"
+        }
+    }
 }
+"""
 
-HSR_BEETLE = {
-    'robot': {
-        'hsrb': {
-            'fullname': 'HSR-Beetle'
+
+HSR_BEETLE = """
+{
+    "robot": {
+        "hsrb": {
+            "fullname": "HSR-Beetle"
         }
     },
-    'frame': {
-        'map': {
-            'frame_id': "floor/reproduce_ant_task",
+    "frame": {
+        "map": {
+            "frame_id": "floor/reproduce_ant_task"
         },
-        'odom': {
-            'frame_id': "odom",
+        "odom": {
+            "frame_id": "odom"
         },
-        'base': {
-            'frame_id': "base_footprint",
+        "base": {
+            "frame_id": "base_footprint"
         },
-        'hand': {
-            'id': "gripper_palm_link",
+        "hand": {
+            "id": "gripper_palm_link"
         }
     },
-    'joint_group': {
-        'whole_body': {
-            'joint_states_topic':             "/joint_states",
-            'arm_controller_prefix':          "/hsr_beetle/arm_controller",
-            'head_controller_prefix':         "/hsr_beetle/head_controller",
-            'hand_controller_prefix':         "/hsr_beetle/gripper_controller",
-            'omni_base_controller_prefix':    "/hsr_beetle/omni_base_controller",
-            'trajectory_filter_service':      "/trajectory_filter/filter_trajectory_with_constraints",
-            'plan_with_constraints_service':  "/plan_with_constraints",
-            'plan_with_hand_goals_service':   "/plan_with_hand_goals",
-            'plan_with_hand_line_service':    "/plan_with_hand_line",
-            'plan_with_joint_goals_service':  "/plan_with_joint_goals",
-        },
-    },
-    'end_effector': {
-        'gripper': {
-            'joint_names':  ["motor_proximal_joint"],
-            'prefix':       "/hsr_beetle/gripper_controller",
-        },
-        'suction': {
-            'action':                         "/suction_control",
-            'suction_topic':                  "/suction_on",
-            'pressure_sensor_topic':          "/pressure_sensor",
-        },
-    },
-    'mobile_base': {
-        'omni_base': {
-            'move_base_action':  "/move_base/move",
-            'pose_topic':        "/laser_2d_pose_ref",
-            'goal_topic':        "/base_goal",
-        },
-    },
-    'camera': {
-        'head_l_stereo_camera': {
-            'prefix': "/stereo_camera/left"
-        },
-        'head_r_stereo_camera': {
-            'prefix':  "/stereo_camera/right"
-        },
-        'head_rgbd_sensor_rgb': {
-            'prefix': '/camera/rgb/image_raw'
-        },
-        'head_rgbd_sensor_depth': {
-            'prefix': '/camera/depth/image_raw'
-        },
-    },
-    'imu': {
-        'base_imu': {
-            'topic': "/imu/data"
+    "joint_group": {
+        "whole_body": {
+            "joint_states_topic":             "/joint_states",
+            "arm_controller_prefix":          "/hsr_beetle/arm_controller",
+            "head_controller_prefix":         "/hsr_beetle/head_controller",
+            "hand_controller_prefix":         "/hsr_beetle/gripper_controller",
+            "omni_base_controller_prefix":    "/hsr_beetle/omni_base_controller",
+            "trajectory_filter_service":      "/trajectory_filter/filter_trajectory_with_constraints",
+            "plan_with_constraints_service":  "/plan_with_constraints",
+            "plan_with_hand_goals_service":   "/plan_with_hand_goals",
+            "plan_with_hand_line_service":    "/plan_with_hand_line",
+            "plan_with_joint_goals_service":  "/plan_with_joint_goals"
         }
     },
-    'force_torque': {
-        'wrist_wrench': {
-            'topic': "/wrench_state"
+    "end_effector": {
+        "gripper": {
+            "joint_names":  ["motor_proximal_joint"],
+            "prefix":       "/hsr_beetle/gripper_controller"
+        },
+        "suction": {
+            "action":                         "/suction_control",
+            "suction_topic":                  "/suction_on",
+            "pressure_sensor_topic":          "/pressure_sensor"
         }
     },
-    'lidar': {
-        'base_scan': {
-            'topic': "/scan",
+    "mobile_base": {
+        "omni_base": {
+            "move_base_action":  "/move_base/move",
+            "pose_topic":        "/laser_2d_pose_ref",
+            "goal_topic":        "/base_goal"
         }
     },
-    'object_detector': {
-        'marker': {
-            'topic': "/recognized_object",
+    "camera": {
+        "head_l_stereo_camera": {
+            "prefix": "/stereo_camera/left"
+        },
+        "head_r_stereo_camera": {
+            "prefix":  "/stereo_camera/right"
+        },
+        "head_rgbd_sensor_rgb": {
+            "prefix": "/camera/rgb/image_raw"
+        },
+        "head_rgbd_sensor_depth": {
+            "prefix": "/camera/depth/image_raw"
+        },
+    },
+    "imu": {
+        "base_imu": {
+            "topic": "/imu/data"
         }
     },
-    'power_supply': {
-        'battery': {
-            'topic': "/battery_state"
+    "force_torque": {
+        "wrist_wrench": {
+            "topic": "/wrench_state"
         }
     },
-    'text_to_speech': {
-        'default': {
-            'topic': '/talk_request',
+    "lidar": {
+        "base_scan": {
+            "topic": "/scan"
         }
     },
-    'collision_map': {
-        'default': {
-            'service': '/get_collision_environment'
+    "object_detector": {
+        "marker": {
+            "topic": "/recognized_object"
         }
     },
+    "power_supply": {
+        "battery": {
+            "topic": "/battery_state"
+        }
+    },
+    "text_to_speech": {
+        "default": {
+            "topic": "/talk_request"
+        }
+    },
+    "collision_world": {
+        "default": {
+            "service": "/get_collision_environment"
+        }
+    }
 }
+"""
 
-_settings = HSR_BEETLE
+_settings = json.loads(HSRB)
 
 def get_section(section):
     return _settings.get(section, None)

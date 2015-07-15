@@ -87,8 +87,8 @@ ObjectDetector
 .. autoclass:: hsrb_interface.ObjectDetector
    :members:
 
-CollisionMap
+CollisionWorld
 ------------------------
 
-.. autoclass:: hsrb_interface.CollisionMap
+.. autoclass:: hsrb_interface.CollisionWorld
    :members:
