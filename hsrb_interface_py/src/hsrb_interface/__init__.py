@@ -3,7 +3,10 @@
 
 from __future__ import absolute_import
 from .robot import Robot
+from .geometry import Vector3, Quaternion
 
 __all__ = (
+    Vector3,
+    Quaternion,
     Robot,
 )

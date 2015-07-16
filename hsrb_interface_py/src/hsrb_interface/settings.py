@@ -31,7 +31,7 @@ HSRB = """
             "frame_id": "base_footprint"
         },
         "hand": {
-            "id": "hand_palm_link"
+            "frame_id": "hand_palm_link"
         }
     },
     "joint_group": {
@@ -247,9 +247,13 @@ def get_section(section):
 
 def get_entry(section, name):
     if section in _settings:
-        return _settings[section].get(name, None)
+        result = _settings[section].get(name, None)
+        if result is None:
+            raise exceptions.ResourceNotFoundError("{0}({1}) is not found".format(section, name))
+        else:
+            return result
     else:
         raise exceptions.ResourceNotFoundError("{0}({1}) is not found".format(section, name))
 
 def get_frame(name):
-    return get_entry('frame', 'name')['frame_id']
+    return get_entry('frame', name)['frame_id']

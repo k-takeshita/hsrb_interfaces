@@ -35,25 +35,9 @@ class CollisionWorld(robot.Resource):
     def known_object_only(self, value):
         self._known_object_only = value
 
-    @property
-    def ref_frame_id(self):
-        return self._ref_frame_id
-
-    @ref_frame_id.setter
-    def ref_frame_id(self, value):
-        self._ref_frame_id = value
-
-    @property
-    def environment(self):
-        if self._environment is None:
-            self.update()
-        return self._environment
-
     def update(self):
         req = GetCollisionEnvironmentRequest()
         req.known_object_only = self._known_object_only
-        if self._ref_frame_id is None:
-            self._ref_frame_id = settings.get_frame('map')
         req.ref_frame_id = self._ref_frame_id
 
         service = rospy.ServiceProxy(self._setting['service'],

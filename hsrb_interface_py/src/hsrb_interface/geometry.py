@@ -7,6 +7,10 @@
 import math
 import collections
 
+import tf
+import numpy as np
+from geometry_msgs.msg import Pose, Transform
+
 Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 
@@ -26,7 +30,6 @@ def normalize_angle(angle):
     if a > math.pi:
         a -= 2.0 * math.pi
     return a
-
 
 def shortest_angular_distance(_from, to):
     return normalize_angle(to - _from)
@@ -79,15 +82,15 @@ def multiply_tuples(t1, t2):
     trans1, rot1 = t1
     trans1_mat = tf.transformations.translation_matrix(trans1)
     rot1_mat = tf.transformations.quaternion_matrix(rot1)
-    mat1 = numpy.dot(trans1_mat, rot1_mat)
+    mat1 = np.dot(trans1_mat, rot1_mat)
 
     trans2, rot2 = t2
     trans2_mat = tf.transformations.translation_matrix(trans2)
     rot2_mat = tf.transformations.quaternion_matrix(rot2)
-    mat2 = numpy.dot(trans2_mat, rot2_mat)
+    mat2 = np.dot(trans2_mat, rot2_mat)
 
-    mat3 = numpy.dot(mat1, mat2)
+    mat3 = np.dot(mat1, mat2)
     trans3 = tf.transformations.translation_from_matrix(mat3)
     rot3 = tf.transformations.quaternion_from_matrix(mat3)
 
-    return (Vector3(*trans3), Quarternion(*rot3))
+    return (Vector3(*trans3), Quaternion(*rot3))

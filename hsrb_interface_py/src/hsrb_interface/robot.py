@@ -37,7 +37,7 @@ class _ConnectionManager(object):
         u"""
         """
         if res_type is None:
-            targets = [x.value for x in  Robot.Items]
+            targets = [x.value for x in Robot.Items]
         else:
             targets = [res_type]
         results = []

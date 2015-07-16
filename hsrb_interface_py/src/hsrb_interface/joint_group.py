@@ -354,13 +354,7 @@ class JointGroup(robot.Resource):
         self.move_to_joint_positions(goals)
 
 
-    def get_endeffector_pose(self, ref_frame_id=None):
-        return self.get_hand_pose(ref_frame_id)
-
-    def move_endeffector(self, hand_pose, ref_frame_id=None):
-        self.move_hand(hand_pose, ref_frame_id)
-
-    def get_hand_pose(self, ref_frame_id=None):
+    def get_end_effector_pose(self, ref_frame_id=None):
         u"""現在のオドメトリ基準のエンドエフェクタの姿勢を返す
 
         Returns:
@@ -376,11 +370,11 @@ class JointGroup(robot.Resource):
         result = geometry.transform_to_tuples(transform.transform)
         return result
 
-    def move_hand(self, hand_pose, ref_frame_id=None):
-        u"""外部干渉を考慮せずグリッパを指定姿勢まで動かす
+    def move_end_effector_pose(self, pose, ref_frame_id=None):
+        u"""指定姿勢まで動かす
 
         Args
-            hand_pose (Tuple[Vector3, Quaternion]):
+            pose (Tuple[Vector3, Quaternion]):
             ref_frame_id (str): 手先の基準座標(デフォルトはロボット座標系)
 
         Returns:
@@ -397,7 +391,7 @@ class JointGroup(robot.Resource):
 
         # 基準座標省略時はロボット座標系
         if ref_frame_id is None:
-            ref_frame_id = settings.get_frame('base_frame_id')
+            ref_frame_id = settings.get_frame('base')
 
         odom_to_robot_transform = self._tf2_buffer.lookup_transform(settings.get_frame('odom'),
                                                                     settings.get_frame('base'),
@@ -410,7 +404,7 @@ class JointGroup(robot.Resource):
                                                                   rospy.Time(0),
                                                                   rospy.Duration(_TF_TIMEOUT))
         odom_to_ref = geometry.transform_to_tuples(odom_to_ref_transform.transform)
-        odom_to_hand = geometry.multiply_tuples(odom_to_ref, hand_pose)
+        odom_to_hand = geometry.multiply_tuples(odom_to_ref, pose)
         odom_to_hand_pose = geometry.tuples_to_pose(odom_to_hand)
 
         req = PlanWithHandGoalsRequest()
@@ -430,7 +424,7 @@ class JointGroup(robot.Resource):
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             raise exceptions.PlannerError("Fail to plan move_endpoint: {0}".format(res.error_code.val))
-        res.base_solution.header.frame_id = settings.get_frame('odom_frame_id')
+        res.base_solution.header.frame_id = settings.get_frame('odom')
         self.play_trajectory(res.solution, res.base_solution)
 
     def move_hand_by_line(self, axis, distance, ref_frame_id=None):
@@ -521,7 +515,7 @@ class JointGroup(robot.Resource):
                 frame_to_base = geometry.transform_to_tuples(t)
 
                 # odom_to_base = odom_to_frame * frame_to_base
-                (odom_to_base_trans, odom_to_base_rot) = geometry.multiply_transforms(odom_to_frame, frame_to_base)
+                (odom_to_base_trans, odom_to_base_rot) = geometry.multiply_tuples(odom_to_frame, frame_to_base)
 
                 odom_base_trajectory.points[i].positions = [0, 0, 0]
                 odom_base_trajectory.points[i].positions[0] = odom_to_base_trans[0]
@@ -584,7 +578,7 @@ class JointGroup(robot.Resource):
             if any(map(lambda s: s not in ok_set, states)):
                 log = []
                 for c in clients:
-                    log.append("{0}={1}".format(c.name, c.get_state()))
+                    log.append("{0}={1}".format(c.controller_name, c.get_state()))
                     c.cancel_goal()
                 text = "Playing trajecotry failed: {0}".format(', '.join(log))
                 raise exceptions.FollowTrajectoryError(text)
