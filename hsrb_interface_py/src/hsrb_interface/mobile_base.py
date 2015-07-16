@@ -22,7 +22,7 @@ class MobileBase(robot.Resource):
         super(MobileBase, self).__init__()
         self._setting = settings.get_entry('mobile_base', name)
 
-        self._pose_sub = utils.CachingSubscriber(self._settings['pose_topic'], PoseStamped)
+        self._pose_sub = utils.CachingSubscriber(self._setting['pose_topic'], PoseStamped)
 
         self._action_client = actionlib.SimpleActionClient(self._setting['move_base_action'], MoveBaseAction)
 
@@ -76,4 +76,3 @@ class MobileBase(robot.Resource):
               pose.pose.orientation.w ]
         yaw = tf.transformations.euler_from_quaternion(q)[2]
         return [x, y, yaw]
-
