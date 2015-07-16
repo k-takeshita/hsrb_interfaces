@@ -8,6 +8,7 @@ from sensor_msgs.msg import (
 )
 from geometry_msgs.msg import WrenchStamped
 import hsrb_interface
+import hsrb_interface.sensors
 
 @patch('hsrb_interface.utils.CachingSubscriber')
 @patch('hsrb_interface.Robot.connecting')
@@ -19,7 +20,7 @@ def test_camera(mock_get_entry, mock_connecting, mock_sub_class):
         'prefix': "/stereo_camera/left",
     }
 
-    camera = hsrb_interface.Camera('example')
+    camera = hsrb_interface.sensors.Camera('example')
     mock_get_entry.assert_called_with('camera', 'example')
 
     mock_sub_class.assert_called_with("/stereo_camera/left/image_raw", Image)
@@ -53,7 +54,7 @@ def test_force_torque(mock_get_entry, mock_connecting, mock_sub_class):
         'topic': "foo",
     }
 
-    force_torque = hsrb_interface.ForceTorque('example')
+    force_torque = hsrb_interface.sensors.ForceTorque('example')
     mock_get_entry.assert_called_with('force_torque', 'example')
 
     mock_sub_class.assert_called_with("foo", WrenchStamped)
@@ -83,7 +84,7 @@ def test_imu(mock_get_entry, mock_connecting, mock_sub_class):
         'topic': "foo",
     }
 
-    imu = hsrb_interface.IMU('example')
+    imu = hsrb_interface.sensors.IMU('example')
     mock_get_entry.assert_called_with('imu', 'example')
 
     mock_sub_class.assert_called_with("foo", Imu)
@@ -118,7 +119,7 @@ def test_lidar(mock_get_entry, mock_connecting, mock_sub_class):
         'topic': "foo",
     }
 
-    lidar = hsrb_interface.Lidar('example')
+    lidar = hsrb_interface.sensors.Lidar('example')
     mock_get_entry.assert_called_with('lidar', 'example')
 
     mock_sub_class.assert_called_with("foo", LaserScan)

@@ -3,8 +3,9 @@ from mock import patch, call
 
 import hsrb_interface
 import hsrb_interface.robot
+import hsrb_interface.exceptions
 
-@raises(hsrb_interface.RobotConnectionError)
+@raises(hsrb_interface.exceptions.RobotConnectionError)
 def test_resource():
     r = hsrb_interface.robot.Resource()
 #

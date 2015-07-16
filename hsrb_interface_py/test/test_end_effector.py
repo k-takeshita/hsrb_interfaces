@@ -2,6 +2,7 @@ from nose.tools import ok_, eq_, raises
 from mock import patch, call
 
 import hsrb_interface
+import hsrb_interface.end_effector
 from tmc_msgs.msg import BatteryState
 
 
@@ -14,7 +15,7 @@ def test_gripper(mock_action_client_class, mock_get_entry, mock_connecting):
     mock_get_entry.return_value = {
         'topic': 'hoge'
     }
-    gripper = hsrb_interface.Gripper('foo')
+    gripper = hsrb_interface.end_effector.Gripper('foo')
 
 
 @patch.object(hsrb_interface.Robot, 'connecting')
@@ -28,6 +29,6 @@ def test_gripper(mock_sub_class, mock_get_entry, mock_connecting):
         "suction_topic":                  "/suction_on",
         "pressure_sensor_topic":          "/pressure_sensor"
     }
-    battery = hsrb_interface.Suction('foo')
+    battery = hsrb_interface.end_effector.Suction('foo')
     mock_get_entry.assert_called_with('end_effector', 'foo')
 

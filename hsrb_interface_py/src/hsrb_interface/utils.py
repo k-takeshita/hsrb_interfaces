@@ -63,3 +63,4 @@ def iterate(func, times=None):
     else:
         for i in range(times):
             yield func()
+

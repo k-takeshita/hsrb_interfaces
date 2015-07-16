@@ -7,20 +7,62 @@
 from __future__ import absolute_import
 import weakref
 import rospy
-
+import importlib
+import enum
 
 from . import utils
 from . import settings
 from . import exceptions
 
 
-class _Connection(object):
+class Resource(object):
+    u"""リソース管理を受けるオブジェクトのベースクラス"""
+    def __init__(self):
+        if not Robot.connecting():
+            raise exceptions.RobotConnectionError("No robot connection")
+
+
+
+class _ConnectionManager(object):
     u"""ロボットとの接続制御を行うオブジェクト"""
+
     def __init__(self):
         rospy.init_node('hsrb_interface_py', anonymous=True)
+        self._registry = {}
 
     def __del__(self):
         rospy.signal_shutdown('shutdown')
+
+    def list(self, res_type):
+        u"""
+        """
+        if res_type is None:
+            targets = [x.value for x in  Robot.Items]
+        else:
+            targets = [res_type]
+        results = []
+        for target in targets:
+            section = settings.get_section(target)
+            if section is None:
+                raise exceptions.ResourceNotFoundError("No such category ({0})".format(target))
+            for key in section.keys():
+                results.append((target, key))
+        return results
+
+    def get(self, name, res_type):
+        u"""
+        """
+        key = (name, res_type)
+        if key in self._registry:
+            return self._registry[key]
+        else:
+            config = settings.get_entry(res_type.value, name)
+            module_name, class_name= config["class"]
+            module = importlib.import_module(".{0}".format(module_name), "hsrb_interface")
+            cls = getattr(module, class_name)
+            obj = cls(name)
+            self._registry[key] = obj
+            return weakref.proxy(obj)
 
 
 class Robot(object):
@@ -34,11 +76,25 @@ class Robot(object):
     Example:
 
         with Robot() as r:
-            print r.list_camera()
+            print r.list(Robot.Items.JOINT_GROUP)
+            j = r.get("whole_body", Robot.Items.JOINT_GROUP)
 
     Attributes:
         name (str): ロボット名
     """
+
+    class Items(enum.Enum):
+        JOINT_GROUP     = 'joint_group'
+        MOBILE_BASE     = 'mobile_base'
+        END_EFFECTOR    = 'end_effector'
+        CAMERA          = 'camera'
+        FORCE_TORQUE    = 'force_torque'
+        IMU             = 'imu'
+        LIDAR           = 'lidar'
+        BATTERY         = 'power_supply'
+        OBJECT_DETECTOR = 'object_detector'
+        COLLISION_WORLD = 'collision_world'
+        TEXT_TO_SPEECH  = 'text_to_speech'
 
     _connection = None
 
@@ -48,13 +104,15 @@ class Robot(object):
 
     def __init__(self, *args, **kwargs):
         if Robot._connection is None or Robot._connection() is None:
-            self._conn = _Connection()
+            self._conn = _ConnectionManager()
             Robot._connection = weakref.ref(self._conn)
         else:
             self._conn = Robot._connection()
 
     def close(self):
-        u"""直ちに接続を閉じる"""
+        u"""直ちに接続を閉じる
+
+        """
         self.__exit__(None, None, None)
 
     def __enter__(self):
@@ -75,99 +133,20 @@ class Robot(object):
         """
         return settings.get_entry('robot', 'hsrb')['fullname']
 
-    def list_joint_group(self):
-        u"""利用可能なジョイントグループをリストアップする。
+    def list(self, res_type=None):
+        u"""利用可能なResourceをリストアップする。
 
         Returns:
-            List[str]: 利用可能なジョイントグループ名のリスト
+            List[str]: 利用可能なリスト
         """
-        return settings.get_section('joint_group').keys()
+        return self._conn.list(res_type)
 
-    def list_mobile_base(self):
-        u"""利用可能な移動台座をリストアップする。
 
+    def get(self, name, res_type=None):
+        u"""
         Returns:
-            List[str]: 利用可能な移動台座名のリスト
+
+        Raises:
+            ResourceNotFoundError
         """
-        return settings.get_section('mobile_base').keys()
-
-    def list_camera(self):
-        u"""利用可能なカメラをリストアップする。
-
-        Returns:
-            List[str]: 利用可能なカメラ名のリスト
-        """
-        return settings.get_section('camera').keys()
-
-    def list_lidar(self):
-        u"""利用可能なレーザースキャナーをリストアップする。
-
-        Returns:
-            List[str]: 利用可能なレーザースキャナー名のリスト
-        """
-        return settings.get_section('lidar').keys()
-
-    def list_imu(self):
-        u"""利用可能な慣性センサーをリストアップする。
-
-        Returns:
-            List[str]: 利用可能な慣性センサー名のリスト
-        """
-        return settings.get_section('imu').keys()
-
-    def list_force_torque(self):
-        u"""利用可能な6軸力センサーをリストアップする。
-
-        Returns:
-            List[str]: 利用可能な6軸力センサー名のリスト
-        """
-        return settings.get_section('force_torque').keys()
-
-    def list_power_supply(self):
-        u"""利用可能な電源をリストアップする。
-
-        Returns:
-            List[str]: 利用可能な電源名のリスト
-        """
-        return settings.get_section('power_supply').keys()
-
-    def list_end_effector(self):
-        u"""利用可能なエンドエフェクターをリストアップする。
-
-        Returns:
-            List[str]: 利用可能なエンドエフェクターのリスト
-        """
-        return settings.get_section('end_effector').keys()
-
-    def list_object_detector(self):
-        u"""利用可能な物体認識器をリストアップする。
-
-        Returns:
-            List[str]: 利用可能な物体認識器のリスト
-        """
-        return settings.get_section('object_detector').keys()
-
-    def list_collision_world(self):
-        u"""利用可能な物体干渉マップをリストアップする。
-
-        Returns:
-            List[str]: 利用可能な物体干渉マップのリスト
-        """
-        return settings.get_section('collision_world').keys()
-
-    def list_text_to_speech(self):
-        u"""利用可能な音声合成サービスをリストアップする。
-
-        Returns:
-            List[str]: 利用可能な音声合成サービスのリスト
-        """
-        return settings.get_section('text_to_speech').keys()
-
-
-class Resource(object):
-    u"""リソース管理を受けるオブジェクトのベースクラス
-
-    """
-    def __init__(self):
-        if not Robot.connecting():
-            raise exceptions.RobotConnectionError("No robot connection")
+        return self._conn.get(name, res_type)

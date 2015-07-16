@@ -244,7 +244,7 @@ class JointGroup(robot.Resource):
 
     """
     def __init__(self, name):
-        super(JointState, self).__init__()
+        super(JointGroup, self).__init__()
         self._setting = settings.get_entry('joint_group', name)
         self._arm_client = FollowTrajectoryActionClient(self._setting['arm_controller_prefix'])
         self._head_client = FollowTrajectoryActionClient(self._setting['head_controller_prefix'])

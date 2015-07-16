@@ -2,6 +2,7 @@ from nose.tools import ok_, eq_, raises
 from mock import patch, call
 
 import hsrb_interface
+import hsrb_interface.battery
 from tmc_msgs.msg import BatteryState
 
 
@@ -14,7 +15,7 @@ def test_battery(mock_sub_class, mock_get_entry, mock_connection):
     mock_get_entry.return_value = {
         'topic': 'hoge'
     }
-    battery = hsrb_interface.Battery('foo')
+    battery = hsrb_interface.battery.Battery('foo')
     mock_get_entry.assert_called_with('power_supply', 'foo')
     mock_sub_class.assert_called_with('hoge', BatteryState)
 
