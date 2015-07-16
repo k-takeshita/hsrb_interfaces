@@ -107,7 +107,7 @@ _TIME_OPEN_HAND = 10.0
 
 
 
-def extract_trajectory(joint_trajectory, joint_names, joint_state):
+def _extract_trajectory(joint_trajectory, joint_names, joint_state):
     """関節軌道から指定した関節の軌道のみを抜き出し、残りの関節目標値を現在値で埋める
 
     Args:
@@ -154,7 +154,7 @@ def extract_trajectory(joint_trajectory, joint_names, joint_state):
     return trajectory_out
 
 
-def merge_trajectory(original_trajectory, additional_trajectory):
+def _merge_trajectory(original_trajectory, additional_trajectory):
     """互いにpoints数が同じな別の関節のsrc_trajectory1とsrc_trajectory2をマージして一つのtrajectoryにする。
 
     pointsのサイズが異なると失敗となる。
@@ -253,7 +253,7 @@ class JointGroup(robot.Resource):
         self._head_client = FollowTrajectoryActionClient(self._setting['head_controller_prefix'])
         self._hand_client = FollowTrajectoryActionClient(self._setting["hand_controller_prefix"])
         self._base_client = FollowTrajectoryActionClient(self._setting["omni_base_controller_prefix"], "/base_coordinates")
-        self._joint_state_sub = utils.CachingSubscriber(self._setting["joint_states_topic"], JointState)
+        self._joint_state_sub = utils.CachingSubscriber(self._setting["joint_states_topic"], JointState, default=JointState())
         self._tf2_buffer = tf2_ros.Buffer()
         self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
 
@@ -280,7 +280,7 @@ class JointGroup(robot.Resource):
 
     @property
     def joint_state(self):
-        return self._behavior._get_joint_state()
+        return self._get_joint_state()
 
     @property
     def collision_world(self):
@@ -291,7 +291,7 @@ class JointGroup(robot.Resource):
         self._collision_world = value
 
 
-    def change_joint_state(self, goal_state):
+    def _change_joint_state(self, goal_state):
         u"""外部干渉を考慮しない指定関節角度までの遷移
 
         Args:
@@ -322,10 +322,10 @@ class JointGroup(robot.Resource):
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(res.error_code.val))
-        self.play_trajectory(res.solution)
+        self._play_trajectory(res.solution)
 
     def move_to_joint_positions(self, goals):
-        u"""外部干渉を考慮せず指定の姿勢に遷移する
+        u"""指定の姿勢に遷移する
 
         Args:
             positions (Dict[str, float]): 関節名と目標位置の組による辞書
@@ -337,7 +337,7 @@ class JointGroup(robot.Resource):
         for k, v in goals.items():
             goal_state.name.append(k)
             goal_state.position.append(v)
-        self.change_joint_state(goal_state)
+        self._change_joint_state(goal_state)
 
     def move_to_neutral(self):
         u"""外部干渉を考慮せず基準姿勢に遷移する
@@ -355,7 +355,6 @@ class JointGroup(robot.Resource):
             'head_tilt_joint': 0.0,
         }
         self.move_to_joint_positions(goals)
-
 
     def get_end_effector_pose(self, ref_frame_id=None):
         u"""現在のオドメトリ基準のエンドエフェクタの姿勢を返す
@@ -428,9 +427,9 @@ class JointGroup(robot.Resource):
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             raise exceptions.PlannerError("Fail to plan move_endpoint: {0}".format(res.error_code.val))
         res.base_solution.header.frame_id = settings.get_frame('odom')
-        self.play_trajectory(res.solution, res.base_solution)
+        self._play_trajectory(res.solution, res.base_solution)
 
-    def move_hand_by_line(self, axis, distance, ref_frame_id=None):
+    def move_end_effetor_by_line(self, axis, distance, ref_frame_id=None):
         u"""3次元空間上の直線に沿って手先を動かす
 
         Args:
@@ -480,9 +479,9 @@ class JointGroup(robot.Resource):
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             raise exceptions.PlannerError("Fail to plan move_hand_line: {0}".format(res.error_code.val))
         res.base_solution.header.frame_id = settings.get_frame('odom')
-        self.play_trajectory(res.solution, res.base_solution)
+        self._play_trajectory(res.solution, res.base_solution)
 
-    def play_trajectory(self, joint_trajectory, base_trajectory=None):
+    def _play_trajectory(self, joint_trajectory, base_trajectory=None):
         u"""指定の軌道を再生する
 
         Args:
@@ -531,7 +530,7 @@ class JointGroup(robot.Resource):
                 previous_theta = theta
 
             # 台車と腕の軌道をマージ
-            merged_trajectory = merge_trajectory(joint_trajectory, odom_base_trajectory)
+            merged_trajectory = _merge_trajectory(joint_trajectory, odom_base_trajectory)
 
             # 軌道を再生
             return self._execute_trajectory(clients, merged_trajectory)
@@ -567,7 +566,7 @@ class JointGroup(robot.Resource):
         joint_states = self._get_joint_state()
 
         for client in clients:
-            traj = extract_trajectory(filtered_traj, client.joint_names, joint_states)
+            traj = _extract_trajectory(filtered_traj, client.joint_names, joint_states)
             client.send_goal(traj)
 
         rate = rospy.Rate(_TRAJECTORY_RATE)
