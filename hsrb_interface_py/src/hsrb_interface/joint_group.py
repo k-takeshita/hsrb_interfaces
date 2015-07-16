@@ -61,6 +61,9 @@ _CALLBACK_RATE = 50.0
 #  wrenchの平均値を取る際のwrench取得周期[hz]
 _GET_WRENCH_RATE = 10.0
 
+# trajectoryの結果を取得する周期[hz]
+_TRAJECTORY_RATE = 30.0
+
 #  trajectory_filterのタイムアウト[sec]
 _TRAJECTORY_FILTER_TIMEOUT = 30
 
@@ -573,7 +576,7 @@ class JointGroup(robot.Resource):
             traj = extract_trajectory(filtered_traj, client.joint_names, joint_states)
             client.send_goal(traj)
 
-        rate = rospy.Rate(0.1)
+        rate = rospy.Rate(_TRAJECTORY_RATE)
         while True:
             ok_set = (
                 actionlib.GoalStatus.PENDING,
