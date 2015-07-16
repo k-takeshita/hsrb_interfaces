@@ -149,8 +149,8 @@ def extract_trajectory(joint_trajectory, joint_names, joint_state):
                 i = joint_state.name.index(joint_names[joint_index])
                 angle = joint_state.position[i]
                 target.positions[joint_index] = angle
-                target.velocities[joint_index] = angle
-                target.accelerations[joint_index] = angle
+                target.velocities[joint_index] = 0.0
+                target.accelerations[joint_index] = 0.0
     return trajectory_out
 
 
