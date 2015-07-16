@@ -11,8 +11,6 @@
 
 
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>Boost</build_depend>
-  <build_depend>Eigen</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>tf2</build_depend>
   <build_depend>actionlib</build_depend>
@@ -33,7 +31,6 @@
   <run_depend>sensor_msgs</run_depend>
   <run_depend>control_msgs</run_depend>
   <run_depend>trajectory_msgs</run_depend>
-  <run_depend>tmc_robot_interface_py</run_depend>
   <run_depend>tmc_planning_msgs</run_depend>
   <run_depend>tmc_manipulation_msgs</run_depend>
   <run_depend>tmc_control_msgs</run_depend>
