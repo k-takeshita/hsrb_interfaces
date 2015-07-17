@@ -15,11 +15,14 @@
   <run_depend>tf</run_depend>
   <run_depend>tf2</run_depend>
   <run_depend>actionlib</run_depend>
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>control_msgs</run_depend>
   <run_depend>move_base_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>control_msgs</run_depend>
   <run_depend>trajectory_msgs</run_depend>
+  <run_depend>tmc_vision_msgs</run_depend>
   <run_depend>tmc_planning_msgs</run_depend>
   <run_depend>tmc_manipulation_msgs</run_depend>
   <run_depend>tmc_control_msgs</run_depend>
