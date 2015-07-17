@@ -85,10 +85,13 @@ class Suction(object):
         super(Suction, self).__init__()
         self._setting = settings.get_entry('end_effector', name)
         if self._setting is None:
-            raise exceptions.ResourceNotFoundError('{0}({1}) is not found '.format('end_effector', name))
+            msg = '{0}({1}) is not found '.format('end_effector', name)
+            raise exceptions.ResourceNotFoundError(msg)
         self._name = name
-        self._pub = rospy.Publisher(self._setting['suction_topic'], Bool)
-        self._sub = utils.CachingSubscriber(self._setting['pressure_sensor_topic'], Bool)
+        pub_topic_name = self._setting['suction_topic']
+        self._pub = rospy.Publisher(pub_topic_name, Bool, queue_size=0)
+        sub_topic_name = self._setting['pressure_sensor_topic']
+        self._sub = utils.CachingSubscriber(sub_topic_name, Bool)
 
     def command(self, command):
         u"""吸引ノズルのOn/Off制御
