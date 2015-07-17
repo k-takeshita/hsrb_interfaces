@@ -524,11 +524,10 @@ class JointGroup(robot.Resource):
                 odom_base_trajectory.points[i].positions[1] = odom_to_base_trans[1]
 
                 roll, pitch, yaw = tf.transformations.euler_from_quaternion(odom_to_base_rot)
-                theta = previous_theta * geometry.shortest_angular_distance(previous_theta, yaw)
+                theta = previous_theta + geometry.shortest_angular_distance(previous_theta, yaw)
 
                 odom_base_trajectory.points[i].positions[2] = theta
                 previous_theta = theta
-
             # 台車と腕の軌道をマージ
             merged_trajectory = _merge_trajectory(joint_trajectory, odom_base_trajectory)
 

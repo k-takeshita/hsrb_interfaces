@@ -78,7 +78,7 @@ class _ConnectionManager(object):
         if key in self._registry:
             return self._registry[key]
         else:
-            config = settings.get_entry(res_type.value, name)
+            config = settings.get_entry(res_type, name)
             module_name, class_name= config["class"]
             module = importlib.import_module(".{0}".format(module_name), "hsrb_interface")
             cls = getattr(module, class_name)
