@@ -2,7 +2,6 @@
 # vim: fileencoding=utf-8
 
 import rospy
-
 import tf
 import actionlib
 
@@ -74,5 +73,6 @@ class MobileBase(robot.Resource):
               pose.pose.orientation.y,
               pose.pose.orientation.z,
               pose.pose.orientation.w ]
-        yaw = tf.transformations.euler_from_quaternion(q)[2]
+        euler_angles = tf.transformations.euler_from_quaternion(q)
+        yaw = euler_angles[2]
         return [x, y, yaw]
