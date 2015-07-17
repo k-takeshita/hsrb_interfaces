@@ -22,9 +22,8 @@ class Resource(object):
             raise exceptions.RobotConnectionError("No robot connection")
 
 
-class Items(enum.Enum):
-    u"""
-    """
+class ItemTypes(enum.Enum):
+    u""""""
     JOINT_GROUP      = 'joint_group'
     MOBILE_BASE      = 'mobile_base'
     END_EFFECTOR     = 'end_effector'
@@ -48,13 +47,13 @@ class _ConnectionManager(object):
     def __del__(self):
         rospy.signal_shutdown('shutdown')
 
-    def list(self, res_type):
+    def list(self, typ):
         u"""
         """
-        if res_type is None:
-            targets = [x for x in Items]
+        if typ is None:
+            targets = [x for x in ItemTypes]
         else:
-            targets = [res_type]
+            targets = [typ]
         results = []
         for target in targets:
             section = settings.get_section(target.value)
@@ -64,27 +63,26 @@ class _ConnectionManager(object):
                 results.append((key, target))
         return results
 
-    def get(self, name, res_type):
+    def get(self, name, typ):
         u"""
 
         Attributes:
             name (str): リソース名
-            res_type (Items): リソースカテゴリ
-
-
-
+            typ (ItemTypes): リソースカテゴリ
         """
-        key = (name, res_type)
+        key = (name, typ)
         if key in self._registry:
             return self._registry[key]
         else:
-            config = settings.get_entry(res_type, name)
-            module_name, class_name= config["class"]
+            config = settings.get_entry(typ.value, name)
+            module_name, class_name = config["class"]
             module = importlib.import_module(".{0}".format(module_name), "hsrb_interface")
             cls = getattr(module, class_name)
             obj = cls(name)
             self._registry[key] = obj
             return weakref.proxy(obj)
+
+
 
 
 class Robot(object):
@@ -98,13 +96,15 @@ class Robot(object):
     Example:
 
         with Robot() as r:
-            print r.list(Robot.Items.JOINT_GROUP)
-            j = r.get("whole_body", Robot.Items.JOINT_GROUP)
+            print r.list(ItemTypes.JOINT_GROUP)
+            j = r.get("whole_body", ItemTypes.JOINT_GROUP)
 
     Attributes:
         name (str): ロボット名
     """
     _connection = None
+
+    Items = ItemTypes
 
     @staticmethod
     def connecting():
@@ -141,24 +141,24 @@ class Robot(object):
         """
         return settings.get_entry('robot', 'hsrb')['fullname']
 
-    def list(self, res_type=None):
+    def list(self, typ=None):
         u"""利用可能なResourceをリストアップする。
 
         Returns:
             List[str]: 利用可能なリスト
         """
-        return self._conn.list(res_type)
+        return self._conn.list(typ)
 
 
-    def get(self, name, res_type=None):
+    def get(self, name, typ=None):
         u"""
         Args:
             name (str): 取得したいオブジェクトの名前
-            res_type (Types): 取得したいオブジェクトの種類
+            typ (Types): 取得したいオブジェクトの種類
 
         Returns:
 
         Raises:
             ResourceNotFoundError
         """
-        return self._conn.get(name, res_type)
+        return self._conn.get(name, typ)
