@@ -22,6 +22,21 @@ class Resource(object):
             raise exceptions.RobotConnectionError("No robot connection")
 
 
+class Items(enum.Enum):
+    u"""
+    """
+    JOINT_GROUP      = 'joint_group'
+    MOBILE_BASE      = 'mobile_base'
+    END_EFFECTOR     = 'end_effector'
+    CAMERA           = 'camera'
+    FORCE_TORQUE     = 'force_torque'
+    IMU              = 'imu'
+    LIDAR            = 'lidar'
+    BATTERY          = 'power_supply'
+    OBJECT_DETECTION = 'object_detection'
+    COLLISION_WORLD  = 'collision_world'
+    TEXT_TO_SPEECH   = 'text_to_speech'
+
 
 class _ConnectionManager(object):
     u"""ロボットとの接続制御を行うオブジェクト"""
@@ -37,20 +52,27 @@ class _ConnectionManager(object):
         u"""
         """
         if res_type is None:
-            targets = [x.value for x in Robot.Items]
+            targets = [x for x in Items]
         else:
             targets = [res_type]
         results = []
         for target in targets:
-            section = settings.get_section(target)
+            section = settings.get_section(target.value)
             if section is None:
                 raise exceptions.ResourceNotFoundError("No such category ({0})".format(target))
             for key in section.keys():
-                results.append((target, key))
+                results.append((key, target))
         return results
 
     def get(self, name, res_type):
         u"""
+
+        Attributes:
+            name (str): リソース名
+            res_type (Items): リソースカテゴリ
+
+
+
         """
         key = (name, res_type)
         if key in self._registry:
@@ -82,20 +104,6 @@ class Robot(object):
     Attributes:
         name (str): ロボット名
     """
-
-    class Items(enum.Enum):
-        JOINT_GROUP     = 'joint_group'
-        MOBILE_BASE     = 'mobile_base'
-        END_EFFECTOR    = 'end_effector'
-        CAMERA          = 'camera'
-        FORCE_TORQUE    = 'force_torque'
-        IMU             = 'imu'
-        LIDAR           = 'lidar'
-        BATTERY         = 'power_supply'
-        OBJECT_DETECTOR = 'object_detector'
-        COLLISION_WORLD = 'collision_world'
-        TEXT_TO_SPEECH  = 'text_to_speech'
-
     _connection = None
 
     @staticmethod
@@ -144,6 +152,10 @@ class Robot(object):
 
     def get(self, name, res_type=None):
         u"""
+        Args:
+            name (str): 取得したいオブジェクトの名前
+            res_type (Types): 取得したいオブジェクトの種類
+
         Returns:
 
         Raises:

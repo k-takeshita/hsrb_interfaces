@@ -22,6 +22,8 @@ class Object(object):
     def __init__(self, data):
         self._data = data
 
+    def to_ros(self):
+        return copy.deepcopy(self._data)
 
 class ObjectDetector(robot.Resource):
     u"""オブジェクト認識機の結果を保持するクラス
@@ -31,8 +33,8 @@ class ObjectDetector(robot.Resource):
             デフォルトは１０秒。
     """
     def __init__(self, name, expiration=10.0):
-        super(ObjectDetector, self).__init__(self)
-        self._setting = settings.get_entry('object_detector', name)
+        super(ObjectDetector, self).__init__()
+        self._setting = settings.get_entry('object_detection', name)
         self._lock = threading.Lock()
         self._cache = {}
         self._expiration = rospy.Duration(expiration)
@@ -59,6 +61,6 @@ class ObjectDetector(robot.Resource):
             self._cache = new_cache
             objects = copy.deepcopy(self._cache.values())
 
-        return [Object for o in objects]
+        return [Object(o) for o in objects]
 
 

@@ -106,9 +106,9 @@ HSRB = """
             "topic": "/hsrb/base_sscan"
         }
     },
-    "object_detector": {
+    "object_detection": {
         "marker": {
-            "class": ["object_detector", "ObjectDetector"],
+            "class": ["object_detection", "ObjectDetector"],
             "topic": "/recognized_object"
         }
     },
@@ -216,7 +216,7 @@ HSR_BEETLE = """
             "topic": "/scan"
         }
     },
-    "object_detector": {
+    "object_detection": {
         "marker": {
             "topic": "/recognized_object"
         }
