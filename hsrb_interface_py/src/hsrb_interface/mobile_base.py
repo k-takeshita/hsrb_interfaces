@@ -44,7 +44,7 @@ class MobileBase(robot.Resource):
 
         target_pose = PoseStamped()
         target_pose.header.frame_id = ref_frame_id
-        target_pose.header.stamp = rospy.Time.now()
+        target_pose.header.stamp = rospy.Time(0)
         target_pose.pose.position.x = x
         target_pose.pose.position.y = y
         q = tf.transformations.quaternion_from_euler(0.0, 0.0, yaw)
