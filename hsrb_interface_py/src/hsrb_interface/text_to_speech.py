@@ -10,9 +10,16 @@ from . import exceptions
 from tmc_msgs.msg import Voice
 
 
-
 class TextToSpeech(robot.Resource):
     u"""音声合成サービス
+
+    Examples:
+
+        ::
+            with Robot() as robot:
+                tts = robot.get("default", Items.TEXT_TO_SPEECH)
+                tts.language = tts.JAPANESE
+                tts.say(u"Hello, World!")
 
     Attributes:
         language (int): 音声合成エンジンの言語モード
@@ -34,7 +41,7 @@ class TextToSpeech(robot.Resource):
     @language.setter
     def language(self, value):
         if value not in (Voice.kJapanese, Voice.kEnglish):
-            raise exceptions.InvalidLanguageError("Language code {0] is not supported}".format(value))
+            raise exceptions.InvalidLanguageError("Language code {0} is not supported".format(value))
         self._language = value
 
     def say(self, text):
