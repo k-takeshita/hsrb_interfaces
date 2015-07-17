@@ -10,17 +10,8 @@
   <license>TMC</license>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>tf2</build_depend>
-  <build_depend>actionlib</build_depend>
-  <build_depend>geometry_msgs</build_depend>
-  <build_depend>move_base_msgs</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>control_msgs</build_depend>
-  <build_depend>trajectory_msgs</build_depend>
-  <build_depend>tmc_planning_msgs</build_depend>
-  <build_depend>tmc_manipulation_msgs</build_depend>
-  <build_depend>tmc_control_msgs</build_depend>
 
+  <run_depend>rospy</run_depend>
   <run_depend>tf2</run_depend>
   <run_depend>actionlib</run_depend>
   <run_depend>move_base_msgs</run_depend>
