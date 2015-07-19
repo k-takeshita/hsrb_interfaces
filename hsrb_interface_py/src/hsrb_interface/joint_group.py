@@ -349,7 +349,7 @@ class JointGroup(robot.Resource):
             'arm_lift_joint': 0.0,
             'arm_flex_joint': 0.0,
             'arm_roll_joint': 0.0,
-            'wrist_flex_joint': 0.0,
+            'wrist_flex_joint': -1.57,
             'wrist_roll_joint': 0.0,
             'head_pan_joint': 0.0,
             'head_tilt_joint': 0.0,

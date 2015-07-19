@@ -13,6 +13,7 @@ from . import utils
 from . import robot
 from . import settings
 from . import exceptions
+from . import geometry
 
 _ACTION_TIMEOUT = 30.0
 
@@ -24,6 +25,33 @@ class MobileBase(robot.Resource):
         self._pose_sub = utils.CachingSubscriber(self._setting['pose_topic'], PoseStamped)
 
         self._action_client = actionlib.SimpleActionClient(self._setting['move_base_action'], MoveBaseAction)
+
+    def goto_pose(self, pose, timeout=0.0, ref_frame_id=None):
+        u"""指定した姿勢まで移動する
+
+        Args:
+            pose (Tuple[Vector3, Quaternion]):
+            ref_frame_idから見た目標姿勢
+            timeout (float): 移動のタイムアウト[sec]（省略時は0となり、無期限に待つ）
+            ref_frame_id (str): ゴールの基準座標系名(省略時はマップ座標系）
+
+        Returns:
+            None
+        """
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('map')
+
+        target_pose = PoseStamped()
+        target_pose.header.frame_id = ref_frame_id
+        target_pose.header.stamp = rospy.Time(0)
+        target_pose.pose = geometry.tuples_to_pose(pose)
+        goal = MoveBaseGoal()
+        goal.target_pose = target_pose
+        self._action_client.send_goal(goal)
+
+        self._action_client.wait_for_result(rospy.Duration(timeout))
+        if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
+            raise exceptions.MobileBaseError('Failed to reach goal')
 
     def goto(self, x, y, yaw, timeout=0.0, ref_frame_id=None):
         u"""指定した姿勢まで移動する
