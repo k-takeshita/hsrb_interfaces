@@ -62,6 +62,40 @@ def test_mobile_base_goto(mock_sub_cls, mock_get_entry, mock_connecting, mock_ac
     mock_action_client.send_goal.call_with_args(expected_goal)
     mock_action_client.wait_for_result.call_with_args(mock_duraiton_cls(3.0))
 
+@patch("rospy.Duration")
+@patch("rospy.Time")
+@patch("actionlib.SimpleActionClient")
+@patch("hsrb_interface.Robot.connecting")
+@patch('hsrb_interface.settings.get_entry')
+@patch('hsrb_interface.utils.CachingSubscriber')
+def test_mobile_base_goto_pose(mock_sub_cls, mock_get_entry, mock_connecting, mock_action_client_cls,
+                               mock_time_cls, mock_duraiton_cls):
+    mock_connecting.return_value = True
+    mock_get_entry.return_value = {
+        "pose_topic": "/pose",
+        "move_base_action": "/move_base"
+    }
+    mock_action_client = mock_action_client_cls.return_value
+    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
+
+    mock_action_client.get_state.return_value = actionlib.GoalStatus.SUCCEEDED
+
+    mobile_base.goto_pose(((0, 1, 2), (0.5, 0.5, 0.5, 0.5)), timeout=3.0, ref_frame_id="map")
+
+    expected_goal = MoveBaseGoal()
+    expected_goal.target_pose.header.frame_id = "map"
+    expected_goal.target_pose.header.stamp = mock_time_cls(0)
+    expected_goal.target_pose.pose.position.x = 0
+    expected_goal.target_pose.pose.position.y = 1
+    expected_goal.target_pose.pose.position.z = 2
+    expected_goal.target_pose.pose.orientation.x = 0.5
+    expected_goal.target_pose.pose.orientation.y = 0.5
+    expected_goal.target_pose.pose.orientation.z = 0.5
+    expected_goal.target_pose.pose.orientation.w = 0.5
+
+    mock_action_client.send_goal.call_with_args(expected_goal)
+    mock_action_client.wait_for_result.call_with_args(mock_duraiton_cls(3.0))
+
 
 @patch("actionlib.SimpleActionClient")
 @patch("hsrb_interface.Robot.connecting")
@@ -88,4 +122,3 @@ def test_mobile_base_pose(mock_sub_cls, mock_get_entry, mock_connecting, mock_ac
     assert_almost_equals(x, 0.0)
     assert_almost_equals(y, 1.0)
     assert_almost_equals(yaw, math.pi / 4.0)
-
