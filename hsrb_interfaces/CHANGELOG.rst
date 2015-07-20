@@ -1,0 +1,9 @@
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package hsrb_interfaces
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+0.1.0 (2015-07-20)
+------------------
+* Fix package descriptions
+* Add metapackage
+* Contributors: Akiyoshi Ochiai
