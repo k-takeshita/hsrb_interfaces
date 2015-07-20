@@ -30,13 +30,17 @@ class MobileBase(robot.Resource):
         u"""指定した姿勢まで移動する
 
         Args:
-            pose (Tuple[Vector3, Quaternion]):
-            ref_frame_idから見た目標姿勢
+            pose (Tuple[Vector3[m], Quaternion]): ref_frame_idから見た目標姿勢
             timeout (float): 移動のタイムアウト[sec]（省略時は0となり、無期限に待つ）
             ref_frame_id (str): ゴールの基準座標系名(省略時はマップ座標系）
 
         Returns:
             None
+        Example:
+            Usage::
+                with Robot() as robot:
+                         base = robot.get('omni_base', robot.Items.MOBILE_BASE)
+                         base.goto_pose(((0.1, 0.2, 0.0), (0.0, 0.0, 0.0, 1.0)), 10.0, 'base_footprint')
         """
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('map')
