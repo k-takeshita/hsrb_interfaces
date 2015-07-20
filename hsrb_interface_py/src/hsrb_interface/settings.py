@@ -66,7 +66,7 @@ HSRB = """
         "omni_base": {
             "class": ["mobile_base", "MobileBase"],
             "move_base_action":  "/move_base/move",
-            "pose_topic":        "/laser_2d_pose_ref",
+            "pose_topic":        "/global_pose",
             "goal_topic":        "/base_goal"
         }
     },
@@ -183,7 +183,7 @@ HSR_BEETLE = """
     "mobile_base": {
         "omni_base": {
             "move_base_action":  "/move_base/move",
-            "pose_topic":        "/laser_2d_pose_ref",
+            "pose_topic":        "/global_pose",
             "goal_topic":        "/base_goal"
         }
     },
