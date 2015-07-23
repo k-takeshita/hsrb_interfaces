@@ -22,7 +22,7 @@ HSRB = """
     },
     "frame": {
         "map": {
-            "frame_id": "floor/reproduce_ant_task"
+            "frame_id": "map"
         },
         "odom": {
             "frame_id": "odom"
@@ -143,7 +143,7 @@ HSR_BEETLE = """
     },
     "frame": {
         "map": {
-            "frame_id": "floor/reproduce_ant_task"
+            "frame_id": "map"
         },
         "odom": {
             "frame_id": "odom"
