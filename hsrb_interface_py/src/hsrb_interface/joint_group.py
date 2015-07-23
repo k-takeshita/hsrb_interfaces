@@ -266,7 +266,7 @@ class JointGroup(robot.Resource):
 
     @property
     def joint_names(self):
-        self.get_joint_state().name
+        return self._get_joint_state().name
 
     @property
     def joint_positions(self):
@@ -276,7 +276,7 @@ class JointGroup(robot.Resource):
     @property
     def joint_velocities(self):
         joint_state = self._get_joint_state()
-        return dict(zip(joint_state.name, joint_state.position))
+        return dict(zip(joint_state.name, joint_state.velocity))
 
     @property
     def joint_state(self):
