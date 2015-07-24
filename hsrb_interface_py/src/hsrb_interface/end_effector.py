@@ -34,18 +34,25 @@ class Gripper(robot.Resource):
         self._grasp_client = actionlib.SimpleActionClient(prefix + "/grasp",
                                                           GripperApplyEffortAction)
 
-    def command(self, open_distance):
+    def command(self, open_angle, motion_time=1.0):
         u"""グリッパーの開き量を指示する
 
         Args:
-            open_distance (float): グリッパーの開き量[?]
+            open_angle (float): グリッパーの開き量[rad]
+            motion_time (float): グリッパーを開くのにかかる時間[s]
         Returns:
             None
+        Example:
+            Usage:
+                    robot = hsrb_interface.Robot()
+                    gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
+                    gripper.command(1.2, 2.0)
+
         """
         goal = FollowJointTrajectoryGoal()
         goal.trajectory.joint_names = self._joint_names
         goal.trajectory.points = [
-            JointTrajectoryPoint(positions=[open_angle], time_from_start=rospy.Duration(10.0))
+            JointTrajectoryPoint(positions=[open_angle], time_from_start=rospy.Duration(motion_time))
         ]
 
         self._follow_joint_trajectory_client.send_goal(goal)
@@ -113,6 +120,3 @@ class Suction(object):
             bool:
         """
         return self._sub.data.data
-
-
-
