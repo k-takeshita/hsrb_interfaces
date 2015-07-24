@@ -19,7 +19,7 @@ Robot
 Battery
 ------------------
 
-.. autoclass:: hsrb_interface.Battery
+.. autoclass:: hsrb_interface.battery.Battery
    :members:
 
 動作
@@ -28,25 +28,25 @@ Battery
 JointGroup
 ----------------
 
-.. autoclass:: hsrb_interface.JointGroup
+.. autoclass:: hsrb_interface.joint_group.JointGroup
    :members:
 
 MobileBase
 ----------------
 
-.. autoclass:: hsrb_interface.MobileBase
+.. autoclass:: hsrb_interface.mobile_base.MobileBase
    :members:
 
 Gripper
 ----------------
 
-.. autoclass:: hsrb_interface.Gripper
+.. autoclass:: hsrb_interface.end_effector.Gripper
    :members:
 
 Suction
 ----------------
 
-.. autoclass:: hsrb_interface.Suction
+.. autoclass:: hsrb_interface.end_effector.Suction
    :members:
 
 
@@ -57,25 +57,20 @@ Suction
 Camera
 -----------
 
-.. autoclass:: hsrb_interface.Camera
+.. autoclass:: hsrb_interface.sensors.Camera
    :members:
 
 IMU
 -------------
 
-.. autoclass:: hsrb_interface.IMU
+.. autoclass:: hsrb_interface.sensors.IMU
    :members:
 
 ForceTorque
 --------------------
 
-.. autoclass:: hsrb_interface.ForceTorque
+.. autoclass:: hsrb_interface.sensors.ForceTorque
    :members:
-
-DigitalIO
---------------------
-
-.. autoclass:: hsrb_interface.DigitalIO
 
 認識機能
 =========
@@ -84,11 +79,11 @@ DigitalIO
 ObjectDetector
 ---------------
 
-.. autoclass:: hsrb_interface.ObjectDetector
+.. autoclass:: hsrb_interface.object_detection.ObjectDetector
    :members:
 
 CollisionWorld
 ------------------------
 
-.. autoclass:: hsrb_interface.CollisionWorld
+.. autoclass:: hsrb_interface.collision_world.CollisionWorld
    :members:
