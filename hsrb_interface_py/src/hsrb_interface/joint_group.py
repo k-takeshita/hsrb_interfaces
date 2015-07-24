@@ -266,7 +266,7 @@ class JointGroup(robot.Resource):
 
     @property
     def joint_names(self):
-        self.get_joint_state().name
+        return self._get_joint_state().name
 
     @property
     def joint_positions(self):
@@ -276,7 +276,7 @@ class JointGroup(robot.Resource):
     @property
     def joint_velocities(self):
         joint_state = self._get_joint_state()
-        return dict(zip(joint_state.name, joint_state.position))
+        return dict(zip(joint_state.name, joint_state.velocity))
 
     @property
     def joint_state(self):
@@ -349,7 +349,7 @@ class JointGroup(robot.Resource):
             'arm_lift_joint': 0.0,
             'arm_flex_joint': 0.0,
             'arm_roll_joint': 0.0,
-            'wrist_flex_joint': 0.0,
+            'wrist_flex_joint': -1.57,
             'wrist_roll_joint': 0.0,
             'head_pan_joint': 0.0,
             'head_tilt_joint': 0.0,
