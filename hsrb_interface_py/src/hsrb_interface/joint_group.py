@@ -356,6 +356,24 @@ class JointGroup(robot.Resource):
         }
         self.move_to_joint_positions(goals)
 
+    def move_to_mobile(self):
+        u"""外部干渉を考慮せず移動向け基準姿勢に遷移する
+
+        Returns:
+            None
+        """
+        goals = {
+            'arm_flex_joint': 0.0,
+            'arm_lift_joint': 0.0,
+            'arm_roll_joint': -1.57,
+            'wrist_flex_joint': -1.57,
+            'wrist_roll_joint': 0.0,
+            'head_pan_joint': 0.0,
+            'head_tilt_joint': 0.0
+        }
+        self.move_to_joint_positions(goals)
+
+
     def get_end_effector_pose(self, ref_frame_id=None):
         u"""現在のオドメトリ基準のエンドエフェクタの姿勢を返す
 
