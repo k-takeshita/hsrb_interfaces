@@ -356,7 +356,7 @@ class JointGroup(robot.Resource):
         }
         self.move_to_joint_positions(goals)
 
-    def move_to_mobile(self):
+    def move_to_go(self):
         u"""外部干渉を考慮せず移動向け基準姿勢に遷移する
 
         Returns:
