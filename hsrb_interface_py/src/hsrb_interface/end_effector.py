@@ -43,10 +43,11 @@ class Gripper(robot.Resource):
         Returns:
             None
         Example:
-            Usage:
-                    robot = hsrb_interface.Robot()
-                    gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
-                    gripper.command(1.2, 2.0)
+            Usage::
+
+                robot = hsrb_interface.Robot()
+                gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
+                gripper.command(1.2, 2.0)
 
         """
         goal = FollowJointTrajectoryGoal()
