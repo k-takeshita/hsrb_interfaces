@@ -114,7 +114,7 @@ HSRB = """
     },
     "power_supply": {
         "battery": {
-            "class": ["power_supply", "Battery"],
+            "class": ["battery", "Battery"],
             "topic": "/hsrb/battery_state"
         }
     },
