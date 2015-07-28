@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
+
+import rospy
+
 from cv_bridge import CvBridge
 
 
@@ -15,6 +18,7 @@ from . import robot
 from . import utils
 from . import settings
 from . import geometry
+from . import exceptions
 
 class Image(object):
     u"""
@@ -51,11 +55,15 @@ class Camera(robot.Resource):
         self._name = name
         self._setting = settings.get_entry('camera', name)
 
-        self._image_sub = utils.CachingSubscriber(self._setting['prefix'] + '/image_raw', ROSImage)
+        topic = self._setting['prefix'] + '/image_raw'
+        self._sub = utils.CachingSubscriber(topic, ROSImage)
+
+        timeout = self._setting.get('timeout', None)
+        self._sub.wait_for_message(timeout)
 
     @property
     def image(self):
-        return Image(self._image_sub.data)
+        return Image(self._sub.data)
 
 
 class ForceTorque(robot.Resource):
@@ -71,6 +79,9 @@ class ForceTorque(robot.Resource):
         topic = self._setting['topic']
         self._name = name
         self._sub = utils.CachingSubscriber(topic, WrenchStamped)
+
+        timeout = self._setting.get('timeout', None)
+        self._sub.wait_for_message(timeout)
 
     @property
     def wrench(self):
@@ -98,6 +109,9 @@ class IMU(robot.Resource):
         self._name = name
         self._sub = utils.CachingSubscriber(topic, Imu)
 
+        timeout = self._setting.get('timeout', None)
+        self._sub.wait_for_message(timeout)
+
     @property
     def data(self):
         u"""最新の値を取得する
@@ -118,6 +132,9 @@ class Lidar(robot.Resource):
         topic = self._setting['topic']
         self._name = name
         self._sub = utils.CachingSubscriber(topic, ROSLaserScan)
+
+        timeout = self._setting.get('timeout', None)
+        self._sub.wait_for_message(timeout)
 
     @property
     def scan(self):

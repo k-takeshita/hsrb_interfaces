@@ -21,6 +21,9 @@ class Battery(robot.Resource):
         topic = self._setting['topic']
         self._sub = utils.CachingSubscriber(topic, BatteryState)
 
+        timeout = self._setting.get('timeout', None)
+        self._sub.wait_for_message(timeout)
+
     @property
     def charge(self):
         u"""充電残量(0.0 to 100.0)

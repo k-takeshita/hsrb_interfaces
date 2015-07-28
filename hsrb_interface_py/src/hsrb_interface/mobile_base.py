@@ -25,7 +25,10 @@ class MobileBase(robot.Resource):
         super(MobileBase, self).__init__()
         self._setting = settings.get_entry('mobile_base', name)
 
-        self._pose_sub = utils.CachingSubscriber(self._setting['pose_topic'], PoseStamped)
+        pose_topic = self._setting['pose_topic']
+        self._pose_sub = utils.CachingSubscriber(pose_topic, PoseStamped)
+        timeout = self._setting.get('timeout', None)
+        self._pose_sub.wait_for_message(timeout)
 
         self._action_client = actionlib.SimpleActionClient(self._setting['move_base_action'], MoveBaseAction)
 
@@ -130,3 +133,4 @@ class MobileBase(robot.Resource):
         euler_angles = tf.transformations.euler_from_quaternion(q)
         yaw = euler_angles[2]
         return [x, y, yaw]
+

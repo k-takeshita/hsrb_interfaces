@@ -101,6 +101,9 @@ class Suction(object):
         sub_topic_name = self._setting['pressure_sensor_topic']
         self._sub = utils.CachingSubscriber(sub_topic_name, Bool)
 
+        timeout = self._setting.get('timeout', None)
+        self._sub.wait_for_message(timeout)
+
     def command(self, command):
         u"""吸引ノズルのOn/Off制御
 

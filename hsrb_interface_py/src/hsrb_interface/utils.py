@@ -14,6 +14,7 @@ class CachingSubscriber(object):
         msg_type (rospy.Message):          ROSメッセージ
         time_to_live (double):             生存期間[sec]
         default (msg_type):  値が無効化した時の値
+        
         kwargs (Dict[str, object]):        rospy.Subscriberのオプション
     Attributes:
         data (msg_type): 保持する最新の値
@@ -25,7 +26,15 @@ class CachingSubscriber(object):
         kwargs['callback'] = self._callback
         self._default = default
         self._msg = default
+        self._topic = topic
+        self._msg_type = msg_type
         self._sub = rospy.Subscriber(topic, msg_type, **kwargs)
+
+    def wait_for_message(self, timeout=None):
+        try:
+            rospy.client.wait_for_message(self._topic, self._msg_type, timeout)
+        except rospy.ROSException as e:
+            raise exceptions.RobotConnectionError(e)
 
     def _callback(self, msg):
         if self._lock.acquire(False):

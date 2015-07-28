@@ -253,7 +253,10 @@ class JointGroup(robot.Resource):
         self._head_client = FollowTrajectoryActionClient(self._setting['head_controller_prefix'])
         self._hand_client = FollowTrajectoryActionClient(self._setting["hand_controller_prefix"])
         self._base_client = FollowTrajectoryActionClient(self._setting["omni_base_controller_prefix"], "/base_coordinates")
-        self._joint_state_sub = utils.CachingSubscriber(self._setting["joint_states_topic"], JointState, default=JointState())
+        joint_state_topic = self._setting["joint_states_topic"]
+        self._joint_state_sub = utils.CachingSubscriber(joint_state_topic, JointState, default=JointState())
+        timeout = self._setting.get('timeout', None)
+        self._joint_state_sub.wait_for_message(timeout)
         self._tf2_buffer = tf2_ros.Buffer()
         self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
 
@@ -605,3 +608,4 @@ class JointGroup(robot.Resource):
                 break
             rate.sleep()
         return (client.get_results() for client in clients)
+

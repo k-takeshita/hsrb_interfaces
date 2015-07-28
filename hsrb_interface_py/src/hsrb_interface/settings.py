@@ -46,20 +46,22 @@ HSRB = """
             "plan_with_constraints_service":  "/plan_with_constraints",
             "plan_with_hand_goals_service":   "/plan_with_hand_goals",
             "plan_with_hand_line_service":    "/plan_with_hand_line",
-            "plan_with_joint_goals_service":  "/plan_with_joint_goals"
+            "plan_with_joint_goals_service":  "/plan_with_joint_goals",
+            "timeout":                        3.0
         }
     },
     "end_effector": {
         "gripper": {
-            "class": ["end_effector", "Gripper"],
+            "class":        ["end_effector", "Gripper"],
             "joint_names":  ["hand_motor_joint"],
             "prefix":       "/hsrb/gripper_controller"
         },
         "suction": {
             "class": ["end_effector", "Suction"],
-            "action":                         "/suction_control",
-            "suction_topic":                  "/suction_on",
-            "pressure_sensor_topic":          "/pressure_sensor"
+            "action":                         "/hsrb/suction_control",
+            "suction_topic":                  "/hsrb/suction_on",
+            "pressure_sensor_topic":          "/hsrb/pressure_sensor",
+            "timeout":                        3.0
         }
     },
     "mobile_base": {
@@ -67,43 +69,51 @@ HSRB = """
             "class": ["mobile_base", "MobileBase"],
             "move_base_action":  "/move_base/move",
             "pose_topic":        "/global_pose",
-            "goal_topic":        "/base_goal"
+            "goal_topic":        "/base_goal",
+            "timeout":           3.0
         }
     },
     "camera": {
         "head_l_stereo_camera": {
-            "class": ["sensors", "Camera"],
-            "prefix": "/hsrb/head_l_stereo_camera"
+            "class":   ["sensors", "Camera"],
+            "prefix":  "/hsrb/head_l_stereo_camera",
+            "timeout": 3.0
         },
         "head_r_stereo_camera": {
             "class": ["sensors", "Camera"],
-            "prefix":  "/hsrb/head_l_stereo_camera"
+            "prefix":  "/hsrb/head_l_stereo_camera",
+            "timeout": 3.0
         },
         "head_rgbd_sensor_rgb": {
             "class": ["sensors", "Camera"],
-            "prefix": "/hsrb/head_rgbd_sensor/rgb/image_raw"
+            "prefix": "/hsrb/head_rgbd_sensor/rgb",
+            "timeout": 3.0
         },
         "head_rgbd_sensor_depth": {
             "class": ["sensors", "Camera"],
-            "prefix": "hsrb/head_rgbd_sensor/depth/image_raw"
+            "prefix": "hsrb/head_rgbd_sensor/depth",
+            "timeout": 3.0
         }
     },
     "imu": {
         "base_imu": {
             "class": ["sensors", "IMU"],
-            "topic": "/hsrb/base_imu/data"
+            "topic": "/hsrb/base_imu/data",
+            "timeout": 3.0
         }
     },
     "force_torque": {
         "wrist_wrench": {
             "class": ["sensors", "ForceTorque"],
-            "topic": "/hsrb/wrench_state"
+            "topic": "/hsrb/wrist_wrench",
+            "timeout": 3.0
         }
     },
     "lidar": {
         "base_scan": {
             "class": ["sensors", "Lidar"],
-            "topic": "/hsrb/base_scan"
+            "topic": "/hsrb/base_scan",
+            "timeout": 3.0
         }
     },
     "object_detection": {
@@ -115,7 +125,8 @@ HSRB = """
     "power_supply": {
         "battery": {
             "class": ["battery", "Battery"],
-            "topic": "/hsrb/battery_state"
+            "topic": "/hsrb/battery_state",
+            "timeout": 3.0
         }
     },
     "text_to_speech": {
