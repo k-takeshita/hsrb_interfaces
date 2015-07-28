@@ -447,7 +447,7 @@ class JointGroup(robot.Resource):
         res.base_solution.header.frame_id = settings.get_frame('odom')
         self._play_trajectory(res.solution, res.base_solution)
 
-    def move_end_effetor_by_line(self, axis, distance, ref_frame_id=None):
+    def move_end_effector_by_line(self, axis, distance, ref_frame_id=None):
         u"""3次元空間上の直線に沿って手先を動かす
 
         Args:
