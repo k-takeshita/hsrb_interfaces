@@ -26,6 +26,20 @@ class Object(object):
         """
         return copy.deepcopy(self._data)
 
+    def __repr__(self):
+        return "<{0}: id={1} name={2}>".format(self.__class__.__name__,
+                                               self._data.object_id.object_id,
+                                               self._data.object_id.name)
+    def __eq__(self, other):
+        return self._data.object_id == other._data.object_id
+
+    def get_pose(self, ref_frame_id=None):
+        pass
+
+    @property
+    def id(self):
+        return self._data.object_id.object_id
+
 class ObjectDetector(robot.Resource):
     u"""オブジェクト認識機の結果を保持するクラス
 
@@ -60,7 +74,7 @@ class ObjectDetector(robot.Resource):
 
     @property
     def expiration(self):
-        return self._expiration.to_secs()
+        return self._expiration.to_sec()
 
     @expiration.setter
     def expiration(self, value):
