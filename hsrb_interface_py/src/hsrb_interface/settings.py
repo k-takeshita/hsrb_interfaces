@@ -103,7 +103,7 @@ HSRB = """
     "lidar": {
         "base_scan": {
             "class": ["sensors", "Lidar"],
-            "topic": "/hsrb/base_sscan"
+            "topic": "/hsrb/base_scan"
         }
     },
     "object_detection": {
