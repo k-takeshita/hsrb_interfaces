@@ -9,7 +9,6 @@ from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 
 
-from . import utils
 from . import robot
 from . import settings
 from . import exceptions
@@ -77,24 +76,6 @@ class MobileBase(robot.Resource):
         if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
             raise exceptions.MobileBaseError('Failed to reach goal')
 
-    @property
-    def pose(self):
-        u"""``map`` 座標系での自己位置推定値
-
-        Returns:
-            List[float]: (x[m], y[m], yaw[rad])
-        """
-        pose = self._pose_sub.data
-        x = pose.pose.position.x
-        y = pose.pose.position.y
-        q = [ pose.pose.orientation.x,
-              pose.pose.orientation.y,
-              pose.pose.orientation.z,
-              pose.pose.orientation.w ]
-        euler_angles = tf.transformations.euler_from_quaternion(q)
-        yaw = euler_angles[2]
-        return [x, y, yaw]
-
     def go(self, x, y, yaw, timeout=0.0, relative=False):
         u"""指定した座標まで移動する
 
@@ -125,7 +106,6 @@ class MobileBase(robot.Resource):
         else:
             ref_frame_id = settings.get_frame('map')
         self.move(pose, timeout, ref_frame_id)
-
 
     @property
     def pose(self):

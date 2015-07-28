@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
 
-import rospy
 
 from cv_bridge import CvBridge
 
@@ -18,16 +17,15 @@ from . import robot
 from . import utils
 from . import settings
 from . import geometry
-from . import exceptions
 
 class Image(object):
     u"""
     """
     def __init__(self, data):
         self._data = data
+        self._cv_bridge = CvBridge()
 
     def to_cv(self):
-        cv_bridge = CvBridge()
         return self._cv_bridge.imgmsg_to_cv2(self.data)
 
     def to_ros(self):

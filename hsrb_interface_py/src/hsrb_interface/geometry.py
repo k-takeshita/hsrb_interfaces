@@ -14,6 +14,17 @@ from geometry_msgs.msg import Pose, Transform
 Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 
+def create_pose(x=0.0, y =0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
+    '''
+    Return pose tuple.
+    Args: x, y, z : Linear translation.
+          ei, ej, ek, axes : Rotation in euler form. default ei ej ek are roll pitch yaw.
+
+    '''
+    vec3 = (x, y, z)
+    quaternion = tf.transformations.quaternion_from_euler(ei, ej, ek, axes)
+    return (Vector3(*vec3), Quaternion(*quaternion))
+
 def from_ros_vector3(msg):
     return Vector3(msg.x, msg.y, msg.z)
 

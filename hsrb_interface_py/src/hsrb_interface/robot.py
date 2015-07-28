@@ -11,7 +11,6 @@ import importlib
 import enum
 import tf2_ros
 
-from . import utils
 from . import settings
 from . import exceptions
 

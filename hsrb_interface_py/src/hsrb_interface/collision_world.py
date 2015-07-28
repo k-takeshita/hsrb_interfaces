@@ -3,7 +3,6 @@
 
 import rospy
 
-from tmc_manipulation_msgs.msg import CollisionEnvironment
 from tmc_manipulation_msgs.srv import (
     GetCollisionEnvironment,
     GetCollisionEnvironmentRequest,
@@ -11,7 +10,6 @@ from tmc_manipulation_msgs.srv import (
 
 from . import robot
 from . import settings
-from . import exceptions
 
 class CollisionWorld(robot.Resource):
     u"""衝突検知用の空間

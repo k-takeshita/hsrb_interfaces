@@ -2,7 +2,6 @@
 # vim: fileencoding=utf-8
 import copy
 import threading
-import math
 
 import rospy
 
