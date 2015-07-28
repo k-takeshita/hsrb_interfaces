@@ -38,7 +38,7 @@ class CollisionWorld(robot.Resource):
     def update(self):
         req = GetCollisionEnvironmentRequest()
         req.known_object_only = self._known_object_only
-        req.ref_frame_id = self._ref_frame_id
+        req.origin_frame_id = self._ref_frame_id
 
         service = rospy.ServiceProxy(self._setting['service'],
                                      GetCollisionEnvironment)
