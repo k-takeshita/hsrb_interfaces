@@ -8,11 +8,13 @@ import hsrb_interface.exceptions
 @raises(hsrb_interface.exceptions.RobotConnectionError)
 def test_resource():
     r = hsrb_interface.robot.Resource()
-#
 
+
+@patch('tf2_ros.TransformListener')
+@patch('tf2_ros.Buffer')
 @patch('rospy.signal_shutdown')
 @patch('rospy.init_node')
-def test_robot_lifecycle(init_mock, shutdown_mock):
+def test_robot_lifecycle(init_mock, shutdown_mock, mock_buffer, mock_listner):
     r = hsrb_interface.Robot()
     init_mock.assert_called_with('hsrb_interface_py', anonymous=True)
     eq_(r.ok(), True)
@@ -21,9 +23,11 @@ def test_robot_lifecycle(init_mock, shutdown_mock):
     eq_(r.ok(), False)
 
 
+@patch('tf2_ros.TransformListener')
+@patch('tf2_ros.Buffer')
 @patch('rospy.signal_shutdown')
 @patch('rospy.init_node')
-def test_robot_with_statement(init_mock, shutdown_mock):
+def test_robot_with_statement(init_mock, shutdown_mock, mock_buffer, mock_listner):
     with hsrb_interface.Robot() as r:
         eq_(r.ok(), True)
         init_mock.assert_called_with('hsrb_interface_py', anonymous=True)

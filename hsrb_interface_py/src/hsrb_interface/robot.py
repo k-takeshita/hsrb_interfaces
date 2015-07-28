@@ -9,6 +9,7 @@ import weakref
 import rospy
 import importlib
 import enum
+import tf2_ros
 
 from . import utils
 from . import settings
@@ -42,14 +43,21 @@ class _ConnectionManager(object):
 
     def __init__(self):
         rospy.init_node('hsrb_interface_py', anonymous=True)
+        self._tf2_buffer = tf2_ros.Buffer()
+        self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
         self._registry = {}
 
     def __del__(self):
+        self._tf2_listener = None
+        self._tf2_buffer = None
         rospy.signal_shutdown('shutdown')
 
-    def list(self, typ):
-        u"""
-        """
+    @property
+    def tf2_buffer(self):
+        return weakref.proxy(self._tf2_buffer)
+
+    def list(self, typ=None):
+        u"""利用可能なアイテムを列挙する"""
         if typ is None:
             targets = [x for x in ItemTypes]
         else:
@@ -63,7 +71,7 @@ class _ConnectionManager(object):
                 results.append((key, target))
         return results
 
-    def get(self, name, typ):
+    def get(self, name, typ=None):
         u"""
 
         Attributes:
@@ -72,7 +80,7 @@ class _ConnectionManager(object):
         """
         key = (name, typ)
         if key in self._registry:
-            return self._registry[key]
+            return self._registry.get(key, None)
         else:
             config = settings.get_entry(typ.value, name)
             module_name, class_name = config["class"]
@@ -81,8 +89,6 @@ class _ConnectionManager(object):
             obj = cls(name)
             self._registry[key] = obj
             return weakref.proxy(obj)
-
-
 
 
 class Robot(object):
@@ -95,9 +101,10 @@ class Robot(object):
 
     Example:
 
-        with Robot() as r:
-            print r.list(ItemTypes.JOINT_GROUP)
-            j = r.get("whole_body", ItemTypes.JOINT_GROUP)
+	from hsrb_interface import Robot, ItemTypes
+        with Robot() as robot:
+            print robot.list(ItemTypes.JOINT_GROUP)
+            whole_body = robot.get("whole_body", ItemTypes.JOINT_GROUP)
 
     Attributes:
         name (str): ロボット名
@@ -106,9 +113,20 @@ class Robot(object):
 
     Items = ItemTypes
 
-    @staticmethod
-    def connecting():
-        return Robot._connection is not None and Robot._connection() is not None
+    @classmethod
+    def connecting(cls):
+        return cls._connection is not None and cls._connection() is not None
+
+    @classmethod
+    def _get_tf2_buffer(cls):
+        if cls._connection is not None:
+            conn = cls._connection()
+            if conn is not None:
+                return conn.tf2_buffer
+            else:
+                return None
+        else:
+            return None
 
     def __init__(self, *args, **kwargs):
         if Robot._connection is None or Robot._connection() is None:
@@ -118,9 +136,7 @@ class Robot(object):
             self._conn = Robot._connection()
 
     def close(self):
-        u"""直ちに接続を閉じる
-
-        """
+        u"""直ちに接続を閉じる"""
         self.__exit__(None, None, None)
 
     def __enter__(self):
@@ -137,12 +153,11 @@ class Robot(object):
 
     @property
     def name(self):
-        u"""ロボット名を返す
-        """
+        u"""ロボット名を返す"""
         return settings.get_entry('robot', 'hsrb')['fullname']
 
     def list(self, typ=None):
-        u"""利用可能なResourceをリストアップする。
+        u"""利用可能なアイテムをリストアップする。
 
         Returns:
             List[str]: 利用可能なリスト
@@ -151,14 +166,19 @@ class Robot(object):
 
 
     def get(self, name, typ=None):
-        u"""
+        u"""利用可能なアイテムを取得する。
         Args:
             name (str): 取得したいオブジェクトの名前
             typ (Types): 取得したいオブジェクトの種類
 
         Returns:
+            Resource: アイテムのインスタンス
 
         Raises:
             ResourceNotFoundError
         """
         return self._conn.get(name, typ)
+
+
+def _get_tf2_buffer():
+    return Robot._get_tf2_buffer()

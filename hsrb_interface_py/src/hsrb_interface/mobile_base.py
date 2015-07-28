@@ -15,22 +15,33 @@ from . import settings
 from . import exceptions
 from . import geometry
 
+# Action接続タイムアウト[sec]
 _ACTION_TIMEOUT = 30.0
 
+# tf受信待ちタイムアウト[sec]
+_TF_TIMEOUT = 1.0
+
 class MobileBase(robot.Resource):
-    u"""
+    u"""移動台車を制御するクラス
+
+    Example:
+
+        ::
+            with hsrb_interface.Robot() as robot:
+                omni_base = robot.get('omni_base')
+                omni_base.go(1, 2, math.pi / 2.0)
+                print(omni_base.pose)
+
     """
 
     def __init__(self, name):
         super(MobileBase, self).__init__()
         self._setting = settings.get_entry('mobile_base', name)
 
-        pose_topic = self._setting['pose_topic']
-        self._pose_sub = utils.CachingSubscriber(pose_topic, PoseStamped)
-        timeout = self._setting.get('timeout', None)
-        self._pose_sub.wait_for_message(timeout)
+        self._tf2_buffer = robot._get_tf2_buffer()
 
-        self._action_client = actionlib.SimpleActionClient(self._setting['move_base_action'], MoveBaseAction)
+        action_name =self._setting['move_base_action']
+        self._action_client = actionlib.SimpleActionClient(action_name, MoveBaseAction)
 
 
     def move(self, pose, timeout=0.0, ref_frame_id=None):
@@ -123,14 +134,25 @@ class MobileBase(robot.Resource):
         Returns:
             List[float]: (x[m], y[m], yaw[rad])
         """
-        pose = self._pose_sub.data
-        x = pose.pose.position.x
-        y = pose.pose.position.y
-        q = [ pose.pose.orientation.x,
-              pose.pose.orientation.y,
-              pose.pose.orientation.z,
-              pose.pose.orientation.w ]
+	pos, ori = self.get_pose()
+        q = [ ori.x, ori.y, ori.z, ori.w ]
         euler_angles = tf.transformations.euler_from_quaternion(q)
         yaw = euler_angles[2]
-        return [x, y, yaw]
+        return [pos.x, pos.y, yaw]
 
+    def get_pose(self, ref_frame_id=None):
+        u"""自己位置推定値を取得する
+
+        Args:
+             ref_frame_id (str): 返り値となる姿勢の基準座標系（省略時は地図座標系）
+        Returns:
+             (Vector3, Quaternion): ``ref_frame_id``から見た``base_footprint``座標系の姿勢
+        """
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('map')
+
+        transform = self._tf2_buffer.lookup_transform(ref_frame_id,
+                                                      settings.get_frame('base'),
+                                                      rospy.Time(0),
+                                                      rospy.Duration(_TF_TIMEOUT))
+        return geometry.transform_to_tuples(transform.transform)

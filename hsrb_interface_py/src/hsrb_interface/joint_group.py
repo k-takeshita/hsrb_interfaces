@@ -5,7 +5,6 @@ import copy
 from itertools import repeat
 
 import tf
-import tf2_ros
 import actionlib
 import rospy
 
@@ -257,8 +256,7 @@ class JointGroup(robot.Resource):
         self._joint_state_sub = utils.CachingSubscriber(joint_state_topic, JointState, default=JointState())
         timeout = self._setting.get('timeout', None)
         self._joint_state_sub.wait_for_message(timeout)
-        self._tf2_buffer = tf2_ros.Buffer()
-        self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
+        self._tf2_buffer = robot._get_tf2_buffer()
 
     def _get_joint_state(self):
         u"""

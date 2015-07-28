@@ -59,7 +59,7 @@ HSRB = """
         "suction": {
             "class": ["end_effector", "Suction"],
             "action":                         "/hsrb/suction_control",
-            "suction_topic":                  "/hsrb/suction_on",
+            "suction_topic":                  "/hsrb/command_suction",
             "pressure_sensor_topic":          "/hsrb/pressure_sensor",
             "timeout":                        3.0
         }
