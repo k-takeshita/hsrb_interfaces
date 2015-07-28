@@ -8,8 +8,10 @@ import copy
 from tmc_vision_msgs.msg import RecognizedObject
 
 from . import robot
+from . import geometry
 from . import settings
 
+_TF_TIMEOUT = 1.0
 
 def _expired(now, expiration, obj):
     return (now - obj.header.stamp) > expiration
@@ -33,11 +35,23 @@ class Object(object):
         return self._data.object_id == other._data.object_id
 
     def get_pose(self, ref_frame_id=None):
-        pass
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('map')
+        tf2_buffer = robot._get_tf2_buffer()
+        ref_to_marker_tf = tf2_buffer.lookup_transform(ref_frame_id,
+			                               self._data.header.frame_id,
+			                               rospy.Time(0),
+			                               rospy.Duration(_TF_TIMEOUT))
+       
+        ref_to_marker = geometry.transform_to_tuples(ref_to_marker_tf.transform)
+        marker_to_object_pose = geometry.pose_to_tuples(self._data.object_frame)
+        ref_to_object_pose = geometry.multiply_tuples(ref_to_marker, marker_to_object_pose)
+	return ref_to_object_pose
 
     @property
     def id(self):
         return self._data.object_id.object_id
+
 
 class ObjectDetector(robot.Resource):
     u"""オブジェクト認識機の結果を保持するクラス
