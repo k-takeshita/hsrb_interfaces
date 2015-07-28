@@ -8,6 +8,7 @@ catkin_python_setup()
 catkin_package(CATKIN_DEPENDS)
 
 install(PROGRAMS scripts/hsrb_operator.py DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+install(PROGRAMS scripts/ihsrb DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
 
 if(CATKIN_ENABLE_TESTING)
     catkin_add_nosetests(test)
