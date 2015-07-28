@@ -6,6 +6,8 @@ import math
 
 import rospy
 
+from . import exceptions
+
 class CachingSubscriber(object):
     u"""指定したトピックを購読し、指定時間最新の値を保持するクラス
 
