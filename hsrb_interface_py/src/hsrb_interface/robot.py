@@ -72,12 +72,19 @@ class _ConnectionManager(object):
         return results
 
     def get(self, name, typ=None):
-        u"""
+        u"""利用可能なアイテムのハンドルを生成する
 
         Attributes:
             name (str): リソース名
-            typ (ItemTypes): リソースカテゴリ
+            typ (ItemTypes): アイテムカテゴリ
         """
+        if typ is None:
+            section, config = settings.get_entry_by_name(name)
+            types = filter(lambda e: e.value == section, ItemTypes)
+            if types:
+                typ = types[0]
+            else:
+                raise exceptions.ResourceNotFoundError("No such category ({0})".format(section))
         key = (name, typ)
         if key in self._registry:
             return self._registry.get(key, None)

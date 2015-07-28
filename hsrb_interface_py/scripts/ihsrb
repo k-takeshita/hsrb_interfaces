@@ -23,22 +23,22 @@ LOGO = r"""
     /_/  \____/ /_/\____/ /_/ /_/  |_|  /_/ /_//____/_/ |_|  
 """
 
-from hsrb_interface import Robot
+from hsrb_interface import Robot, ItemTypes
 
 with Robot() as robot:
-    whole_body = robot.get('whole_body', robot.Items.JOINT_GROUP)
-    omni_base = robot.get('omni_base', robot.Items.MOBILE_BASE)
-    head_r_stereo_camera = robot.get('head_r_stereo_camera', robot.Items.CAMERA)
-    head_l_stereo_camera = robot.get('head_l_stereo_camera', robot.Items.CAMERA)
-    head_rgbd_sensor_depth = robot.get('head_rgbd_sensor_depth', robot.Items.CAMERA)
-    head_rgbd_sensor_rgb = robot.get('head_rgbd_sensor_rgb', robot.Items.CAMERA)
-    collision_world = robot.get('default', robot.Items.COLLISION_WORLD)
-    suction = robot.get('suction', robot.Items.END_EFFECTOR)
-    gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
-    #wrist_wrench = robot.get('wrist_wrench', robot.Items.FORCE_TORQUE)
-    #base_imu = robot.get('base_imu', robot.Items.IMU)
-    base_scan = robot.get('base_scan', robot.Items.LIDAR)
-    marker = robot.get('marker', robot.Items.OBJECT_DETECTION)
-    battery = robot.get('battery', robot.Items.BATTERY)
-    tts = robot.get('default', robot.Items.TEXT_TO_SPEECH)
+    whole_body = robot.get('whole_body')
+    omni_base = robot.get('omni_base')
+    head_r_stereo_camera = robot.get('head_r_stereo_camera', ItemTypes.CAMERA)
+    head_l_stereo_camera = robot.get('head_l_stereo_camera', ItemTypes.CAMERA)
+    head_rgbd_sensor_depth = robot.get('head_rgbd_sensor_depth', ItemTypes.CAMERA)
+    head_rgbd_sensor_rgb = robot.get('head_rgbd_sensor_rgb', ItemTypes.CAMERA)
+    collision_world = robot.get('default', ItemTypes.COLLISION_WORLD)
+    suction = robot.get('suction', ItemTypes.END_EFFECTOR)
+    gripper = robot.get('gripper', ItemTypes.END_EFFECTOR)
+    #wrist_wrench = robot.get('wrist_wrench', ItemTypes.FORCE_TORQUE)
+    #base_imu = robot.get('base_imu', ItemTypes..IMU)
+    base_scan = robot.get('base_scan', ItemTypes.LIDAR)
+    marker = robot.get('marker', ItemTypes.OBJECT_DETECTION)
+    battery = robot.get('battery', ItemTypes.BATTERY)
+    tts = robot.get('default', ItemTypes.TEXT_TO_SPEECH)
     shell(LOGO)
