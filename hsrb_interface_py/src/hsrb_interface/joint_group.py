@@ -479,9 +479,9 @@ class JointGroup(robot.Resource):
         req.origin_to_basejoint = odom_to_robot_pose
         req.initial_joint_state = self._get_joint_state()
         req.use_joints = use_joints
-        req.axis.x = axis.x
-        req.axis.y = axis.y
-        req.axis.z = axis.z
+        req.axis.x = axis[0]
+        req.axis.y = axis[1]
+        req.axis.z = axis[2]
         req.local_origin_of_axis = True
         req.ref_frame_id = ref_frame_id
         req.goal_value = distance
