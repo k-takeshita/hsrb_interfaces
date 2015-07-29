@@ -26,7 +26,7 @@ class Image(object):
         self._cv_bridge = CvBridge()
 
     def to_cv(self):
-        return self._cv_bridge.imgmsg_to_cv2(self.data)
+        return self._cv_bridge.imgmsg_to_cv2(self._data)
 
     def to_ros(self):
         return self._data
