@@ -218,7 +218,7 @@ class Robot(object):
         Args:
             name (str):   取得したい ``Item`` の名前
             typ (Types):  取得したい ``Item`` の種類
-            msg (str):  　失敗時のエラーメッセージ
+            msg (str):  　失敗時のエラーメッセージ(Noneなら何も出力しない）
 
         Returns:
             Item: アイテムのインスタンス
@@ -229,6 +229,7 @@ class Robot(object):
         try:
             return self.get(name, typ)
         except (exceptions.ResourceNotFoundError, exceptions.RobotConnectionError):
-            msg = "Failed to get Item({0} : {1}): {2}".format(name, typ.value if typ else "Any", msg)
-            print(msg, file=sys.stderr)
+            if msg is not None:
+                err = "Failed to get Item({0} : {1}): {2}".format(name, typ.value if typ else "Any", msg)
+                print(err, file=sys.stderr)
 
