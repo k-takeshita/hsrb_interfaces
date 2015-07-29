@@ -2,6 +2,40 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add object.get_pose
+* Fix #19
+* Apply pyflakes
+* Fix #23
+* Implement #7
+* Fix #6
+* Fix #10
+* Add HSR-B Interactive Shell (ihsrb)
+* Fix #20
+* Fix #18
+* Fix #14
+* Fix #11
+* Install hsrb_operator.py
+* Fix gripper command
+* Fix #8
+* change method name.
+* Update reference manual
+* add initial pose for autonmous movement.
+* fix end_effector bug.
+  - change arg name distance to angle.
+  - add keyword arg of time.
+* Merge branch 'feature/fix_minor_bugs' of /var/git/repositories/hsr/hsrb_interfaces into develop
+* change map name
+* add ipython script
+* Split MobileBase interface
+* fix minor bugs
+* Make goto method generic
+* add goto_pose test.
+* add description.
+* add pose move interface.
+* Contributors: Akiyoshi Ochiai, 寺田　耕志, 落合　亮吉, 西野 環
+
 0.1.0 (2015-07-20)
 ------------------
 * change pose topic
@@ -19,7 +53,6 @@ Changelog for package hsrb_interface_py
 * Apply catkin_lint
 * Merge branch 'develop' of git.probo:hsr/hsrb_interfaces into develop
 * Update
-* remove .value
 * fix target_pose.header.stamp
 * support install_requires
 * fix member name.
@@ -34,15 +67,6 @@ Changelog for package hsrb_interface_py
 * Remove run_depend
 * Update resource management system
 * Merge branch 'develop' of git.probo:hsr/hsrb_interfaces into develop
-  Conflicts:
-  hsrb_interface_py/src/hsrb_interface/collision_world.py
-  hsrb_interface_py/src/hsrb_interface/exceptions.py
-  hsrb_interface_py/src/hsrb_interface/joint_group.py
-  hsrb_interface_py/src/hsrb_interface/mobile_base.py
-  hsrb_interface_py/src/hsrb_interface/object_detector.py
-  hsrb_interface_py/src/hsrb_interface/robot.py
-  hsrb_interface_py/src/hsrb_interface/sensors.py
-  hsrb_interface_py/src/hsrb_interface/settings.py
 * Add more tests
 * Add tests for sensors, battery, utils
 * Update resource management system
