@@ -5,6 +5,8 @@
 # All rights reserved.
 #
 from __future__ import absolute_import
+from __future__ import print_function
+import sys
 import weakref
 import rospy
 import importlib
@@ -15,7 +17,7 @@ from . import settings
 from . import exceptions
 
 
-class Resource(object):
+class Item(object):
     u"""リソース管理を受けるオブジェクトのベースクラス"""
     def __init__(self):
         if not Robot.connecting():
@@ -38,9 +40,21 @@ class ItemTypes(enum.Enum):
 
 
 class _ConnectionManager(object):
-    u"""ロボットとの接続制御を行うオブジェクト"""
+    u"""ロボットとの接続制御を行うクラス
+
+    基本的に１プロセスに一つだけインスタンス化されるべき。
+    通常は ``Robot``クラスによって生存期間を管理される。
+    ``Resource`` サブクラスのすべてのインスタンスはこのクラスが所有権を持ち、
+    生存期間が同期される。
+
+    """
 
     def __init__(self):
+        try:
+            master = rospy.get_master()
+            uri = master.getUri("hsrb_interface_py")
+        except Exception as e:
+            raise exceptions.RobotConnectionError(e)
         rospy.init_node('hsrb_interface_py', anonymous=True)
         self._tf2_buffer = tf2_ros.Buffer()
         self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
@@ -97,6 +111,12 @@ class _ConnectionManager(object):
             return weakref.proxy(obj)
 
 
+def _get_tf2_buffer():
+    """
+    """
+    return Robot._get_tf2_buffer()
+
+
 class Robot(object):
     u"""ロボットとの接続を管理するハンドル
 
@@ -107,16 +127,19 @@ class Robot(object):
 
     Example:
 
-	from hsrb_interface import Robot, ItemTypes
-        with Robot() as robot:
-            print robot.list(ItemTypes.JOINT_GROUP)
-            whole_body = robot.get("whole_body", ItemTypes.JOINT_GROUP)
+        ::
+
+	        from hsrb_interface import Robot, ItemTypes
+                with Robot() as robot:
+                    print(robot.list(ItemTypes.JOINT_GROUP))
+                    whole_body = robot.get("whole_body", ItemTypes.JOINT_GROUP)
 
     Attributes:
         name (str): ロボット名
     """
     _connection = None
 
+    # 後方互換性のための設定
     Items = ItemTypes
 
     @classmethod
@@ -159,7 +182,11 @@ class Robot(object):
 
     @property
     def name(self):
-        u"""ロボット名を返す"""
+        u"""ロボット名を返す
+
+        Returns:
+            str: ロボット名を表す文字列
+        """
         return settings.get_entry('robot', 'hsrb')['fullname']
 
     def list(self, typ=None):
@@ -178,13 +205,30 @@ class Robot(object):
             typ (Types): 取得したいオブジェクトの種類
 
         Returns:
-            Resource: アイテムのインスタンス
+            Item: アイテムのインスタンス
+
+        Raises:
+            hsrb_interface.exceptions.ResourceNotFoundError
+        """
+        return self._conn.get(name, typ)
+
+    def try_get(self, name, typ=None, msg="Ignored"):
+        u"""利用可能なアイテムを取得する（失敗時はメッセージを``stderr``に出力）
+
+        Args:
+            name (str):   取得したい ``Item`` の名前
+            typ (Types):  取得したい ``Item`` の種類
+            msg (str):  　失敗時のエラーメッセージ
+
+        Returns:
+            Item: アイテムのインスタンス
 
         Raises:
             ResourceNotFoundError
         """
-        return self._conn.get(name, typ)
+        try:
+            return self.get(name, typ)
+        except (exceptions.ResourceNotFoundError, exceptions.RobotConnectionError):
+            msg = "Failed to get Item({0} : {1}): {2}".format(name, typ.value if typ else "Any", msg)
+            print(msg, file=sys.stderr)
 
-
-def _get_tf2_buffer():
-    return Robot._get_tf2_buffer()

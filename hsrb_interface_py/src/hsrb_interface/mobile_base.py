@@ -20,7 +20,7 @@ _ACTION_TIMEOUT = 30.0
 # tf受信待ちタイムアウト[sec]
 _TF_TIMEOUT = 1.0
 
-class MobileBase(robot.Resource):
+class MobileBase(robot.Item):
     u"""移動台車を制御するクラス
 
     Example:

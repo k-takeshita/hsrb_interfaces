@@ -11,7 +11,7 @@ from tmc_manipulation_msgs.srv import (
 from . import robot
 from . import settings
 
-class CollisionWorld(robot.Resource):
+class CollisionWorld(robot.Item):
     u"""衝突検知用の空間
 
     Attributes:

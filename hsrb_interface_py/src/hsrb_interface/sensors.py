@@ -42,7 +42,7 @@ class LaserScan(object):
         return self._data
 
 
-class Camera(robot.Resource):
+class Camera(robot.Item):
     u"""カメラ
 
     Args:
@@ -64,7 +64,7 @@ class Camera(robot.Resource):
         return Image(self._sub.data)
 
 
-class ForceTorque(robot.Resource):
+class ForceTorque(robot.Item):
     u"""6軸力センサー
 
     Args:
@@ -94,7 +94,7 @@ class ForceTorque(robot.Resource):
         return result
 
 
-class IMU(robot.Resource):
+class IMU(robot.Item):
     u"""慣性センサーへのアクセスを提供する
 
     Args:
@@ -122,7 +122,7 @@ class IMU(robot.Resource):
 
 
 
-class Lidar(robot.Resource):
+class Lidar(robot.Item):
     u"""レーザースキャナへのアクセスを提供する"""
     def __init__(self, name):
         super(Lidar, self).__init__()

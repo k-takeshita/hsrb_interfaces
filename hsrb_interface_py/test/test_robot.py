@@ -7,7 +7,7 @@ import hsrb_interface.exceptions
 
 @raises(hsrb_interface.exceptions.RobotConnectionError)
 def test_resource():
-    r = hsrb_interface.robot.Resource()
+    r = hsrb_interface.robot.Item()
 
 
 @patch('tf2_ros.TransformListener')

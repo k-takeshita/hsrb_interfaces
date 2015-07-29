@@ -13,32 +13,34 @@ else:
 
 
 from IPython.terminal.embed import InteractiveShellEmbed
-shell = InteractiveShellEmbed(config=cfg, banner1="HSR-B Interactive Shell 0.1.0" , exit_msg="Leaving HSR-B Interactive Shell")
+shell = InteractiveShellEmbed(config=cfg,
+                              banner1="HSR-B Interactive Shell 0.1.0",
+                              exit_msg="Leaving HSR-B Interactive Shell")
 
 LOGO = r"""
-      ____________  ______  _________       __  _______ ____ 
+      ____________  ______  _________       __  _______ ____
      /_  __/ __ \ \/ / __ \/_  __/   |     / / / / ___// __ \
       / / / / / /\  / / / / / / / /| |    / /_/ /\__ \/ /_/ /
-     / / / /_/ / / / /_/ / / / / ___ |   / __  /___/ / _, _/ 
-    /_/  \____/ /_/\____/ /_/ /_/  |_|  /_/ /_//____/_/ |_|  
+     / / / /_/ / / / /_/ / / / / ___ |   / __  /___/ / _, _/
+    /_/  \____/ /_/\____/ /_/ /_/  |_|  /_/ /_//____/_/ |_|
 """
 
 from hsrb_interface import Robot, ItemTypes
 
 with Robot() as robot:
-    whole_body = robot.get('whole_body')
-    omni_base = robot.get('omni_base')
-    head_r_stereo_camera = robot.get('head_r_stereo_camera', ItemTypes.CAMERA)
-    head_l_stereo_camera = robot.get('head_l_stereo_camera', ItemTypes.CAMERA)
-    head_rgbd_sensor_depth = robot.get('head_rgbd_sensor_depth', ItemTypes.CAMERA)
-    head_rgbd_sensor_rgb = robot.get('head_rgbd_sensor_rgb', ItemTypes.CAMERA)
-    collision_world = robot.get('default', ItemTypes.COLLISION_WORLD)
-    suction = robot.get('suction', ItemTypes.END_EFFECTOR)
-    gripper = robot.get('gripper', ItemTypes.END_EFFECTOR)
-    #wrist_wrench = robot.get('wrist_wrench', ItemTypes.FORCE_TORQUE)
-    #base_imu = robot.get('base_imu', ItemTypes..IMU)
-    base_scan = robot.get('base_scan', ItemTypes.LIDAR)
-    marker = robot.get('marker', ItemTypes.OBJECT_DETECTION)
-    battery = robot.get('battery', ItemTypes.BATTERY)
-    tts = robot.get('default', ItemTypes.TEXT_TO_SPEECH)
+    whole_body = robot.try_get('whole_body')
+    omni_base = robot.try_get('omni_base')
+    head_r_stereo_camera = robot.try_get('head_r_stereo_camera')
+    head_l_stereo_camera = robot.try_get('head_l_stereo_camera')
+    head_rgbd_sensor_depth = robot.try_get('head_rgbd_sensor_depth')
+    head_rgbd_sensor_rgb = robot.try_get('head_rgbd_sensor_rgb')
+    collision_world = robot.try_get('default', ItemTypes.COLLISION_WORLD)
+    suction = robot.try_get('suction')
+    gripper = robot.try_get('gripper')
+    wrist_wrench = robot.try_get('wrist_wrench')
+    base_imu = robot.try_get('base_imu')
+    base_scan = robot.try_get('base_scan')
+    marker = robot.try_get('marker')
+    battery = robot.try_get('battery')
+    tts = robot.try_get('default', ItemTypes.TEXT_TO_SPEECH)
     shell(LOGO)

@@ -16,7 +16,7 @@ from . import exceptions
 _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT = 20.0
 _GRIPPER_GRASP_TIMEOUT = 20.0
 
-class Gripper(robot.Resource):
+class Gripper(robot.Item):
     u"""HRHグリッパーの制御を行うクラス
 
     """

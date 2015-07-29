@@ -237,7 +237,7 @@ class FollowTrajectoryActionClient(object):
         return self._controller_name
 
 
-class JointGroup(robot.Resource):
+class JointGroup(robot.Item):
     u"""関節グループの制御を行うクラス
 
 

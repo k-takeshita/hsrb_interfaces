@@ -53,7 +53,7 @@ class Object(object):
         return self._data.object_id.object_id
 
 
-class ObjectDetector(robot.Resource):
+class ObjectDetector(robot.Item):
     u"""オブジェクト認識機の結果を保持するクラス
 
     Attributes:

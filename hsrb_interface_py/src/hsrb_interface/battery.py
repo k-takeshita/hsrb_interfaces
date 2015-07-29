@@ -7,7 +7,7 @@ from . import utils
 
 from tmc_msgs.msg import BatteryState
 
-class Battery(robot.Resource):
+class Battery(robot.Item):
     u"""バッテリー情報を取得するためのクラス
 
     Attributes:

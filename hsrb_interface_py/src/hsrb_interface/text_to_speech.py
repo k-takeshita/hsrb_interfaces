@@ -10,7 +10,7 @@ from . import exceptions
 from tmc_msgs.msg import Voice
 
 
-class TextToSpeech(robot.Resource):
+class TextToSpeech(robot.Item):
     u"""音声合成サービス
 
     Examples:
