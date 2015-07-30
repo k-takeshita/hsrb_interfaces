@@ -5,6 +5,7 @@ import threading
 import rospy
 import copy
 
+from geometry_msgs.msg import PoseStamped
 from tmc_vision_msgs.msg import RecognizedObject
 
 from . import robot
@@ -37,16 +38,17 @@ class Object(object):
     def get_pose(self, ref_frame_id=None):
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('map')
+        msg = self._data
+
+        camera_to_marker_pose = msg.object_frame
         tf2_buffer = robot._get_tf2_buffer()
-        ref_to_marker_tf = tf2_buffer.lookup_transform(ref_frame_id,
-			                               self._data.header.frame_id,
-			                               rospy.Time(0),
-			                               rospy.Duration(_TF_TIMEOUT))
-       
-        ref_to_marker = geometry.transform_to_tuples(ref_to_marker_tf.transform)
-        marker_to_object_pose = geometry.pose_to_tuples(self._data.object_frame)
-        ref_to_object_pose = geometry.multiply_tuples(ref_to_marker, marker_to_object_pose)
-	return ref_to_object_pose
+        ref_to_camera_tf = tf2_buffer.lookup_transform(ref_frame_id,
+                                                msg.header.frame_id,
+                                                 #      rospy.Time(0),
+                                                msg.header.stamp,
+                                                rospy.Duration(_TF_TIMEOUT))
+        return geometry.multiply_tuples(geometry.transform_to_tuples(ref_to_camera_tf.transform),
+                                        geometry.pose_to_tuples(camera_to_marker_pose))
 
     @property
     def id(self):
@@ -107,5 +109,16 @@ class ObjectDetector(robot.Item):
             objects = copy.deepcopy(self._cache.values())
 
         return [Object(o) for o in objects]
+
+    def get_object_by_id(self, id=None):
+        objects = self.get_objects()
+        filtered = [obj for obj in objects if obj.id == id]
+        if filtered:
+            return filtered[0]
+        else:
+            None
+
+
+
 
 
