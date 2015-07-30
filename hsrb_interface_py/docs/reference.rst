@@ -54,6 +54,12 @@ Suction
 ==========
 
 
+Image
+-----------
+
+.. autoclass:: hsrb_interface.sensors.Image
+   :members:
+
 Camera
 -----------
 
@@ -75,6 +81,11 @@ ForceTorque
 認識機能
 =========
 
+Object
+-----------
+
+.. autoclass:: hsrb_interface.object_detection.Object
+   :members:
 
 ObjectDetector
 ---------------
