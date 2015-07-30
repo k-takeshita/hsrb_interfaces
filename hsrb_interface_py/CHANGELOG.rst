@@ -2,6 +2,14 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.0 (2015-07-30)
+------------------
+* Fix test error
+* Fix Image.to_cv()
+* Fix #25
+* Add try_get method to Robot class
+* Contributors: Akiyoshi Ochiai
+
 0.2.0 (2015-07-29)
 ------------------
 * Add object.get_pose
