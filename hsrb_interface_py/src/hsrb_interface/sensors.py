@@ -3,7 +3,7 @@
 
 
 from cv_bridge import CvBridge
-
+import numpy as np
 
 from sensor_msgs.msg import (
     Image as ROSImage,
@@ -20,16 +20,77 @@ from . import geometry
 
 class Image(object):
     u"""
+
+    Attributes:
+        height (int):
+        width (int):
+        encoding (str):
+
     """
     def __init__(self, data):
         self._data = data
         self._cv_bridge = CvBridge()
 
-    def to_cv(self):
-        return self._cv_bridge.imgmsg_to_cv2(self._data)
+    @property
+    def height(self):
+        return self._data.height
+
+    @property
+    def width(self):
+        return self._data.width
+
+    @property
+    def encoding(self):
+        return self._data.encoding
 
     def to_ros(self):
+        u"""ROS(sensor_msgs/Image)
+        """
         return self._data
+
+    def to_cv(self):
+        u"""
+
+        Returns:
+            cv2.Mat:
+
+        Examples:
+
+            .. sourcecode:: python
+
+               import hsrb_interface
+               import cv2
+
+               with hsrb_interface.Robot() as robot:
+                   camera = robot.get('head_l_stereo_camera')
+                   img = head_l_camera.image
+                   cv2.imshow("camera", img.to_cv())
+                   cv2.waitKey()
+
+        """
+        return self._cv_bridge.imgmsg_to_cv2(self._data)
+
+    def to_numpy(self):
+        u"""
+        Returns:
+            numpy.ndarray:
+
+        Examples::
+
+            .. sourcecode:: python
+
+               import hsrb_interface
+               import numpy as np
+               import matplotlib.pyplot as plt
+
+               with hsrb_interface.Robot() as robot:
+                   camera = robot.get('head_l_stereo_camera')
+                   img = head_l_camera.image
+                   mat = img.to_numpy()
+                   plt.imshow(mat)
+
+        """
+        return np.asarray(self._cv_bridge.imgmsg_to_cv2(self._data))
 
 
 class LaserScan(object):
@@ -39,7 +100,27 @@ class LaserScan(object):
         self._data = data
 
     def to_ros(self):
+        u"""
+
+        Examples:
+
+            .. sourcecode:: python
+
+               pass
+
+        """
         return self._data
+
+    def to_numpy(self):
+        u"""
+
+        Examples:
+
+            .. sourcecode:: python
+
+               pass
+        """
+        return None
 
 
 class Camera(robot.Item):
@@ -62,6 +143,7 @@ class Camera(robot.Item):
     @property
     def image(self):
         return Image(self._sub.data)
+
 
 
 class ForceTorque(robot.Item):
@@ -99,6 +181,9 @@ class IMU(robot.Item):
 
     Args:
         name (str): デバイス名
+
+    Attributes:
+        data (): pass
     """
     def __init__(self, name):
         super(IMU, self).__init__()
@@ -138,5 +223,3 @@ class Lidar(robot.Item):
     def scan(self):
         u"""最新の値を取得する"""
         return LaserScan(self._sub.data)
-
-
