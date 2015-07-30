@@ -12,9 +12,10 @@ def test_resource():
 
 @patch('tf2_ros.TransformListener')
 @patch('tf2_ros.Buffer')
+@patch('rospy.get_master')
 @patch('rospy.signal_shutdown')
 @patch('rospy.init_node')
-def test_robot_lifecycle(init_mock, shutdown_mock, mock_buffer, mock_listner):
+def test_robot_lifecycle(init_mock, shutdown_mock, mock_get_master, mock_buffer, mock_listner):
     r = hsrb_interface.Robot()
     init_mock.assert_called_with('hsrb_interface_py', anonymous=True)
     eq_(r.ok(), True)
@@ -25,9 +26,10 @@ def test_robot_lifecycle(init_mock, shutdown_mock, mock_buffer, mock_listner):
 
 @patch('tf2_ros.TransformListener')
 @patch('tf2_ros.Buffer')
+@patch('rospy.get_master')
 @patch('rospy.signal_shutdown')
 @patch('rospy.init_node')
-def test_robot_with_statement(init_mock, shutdown_mock, mock_buffer, mock_listner):
+def test_robot_with_statement(init_mock, shutdown_mock, mock_get_master, mock_buffer, mock_listner):
     with hsrb_interface.Robot() as r:
         eq_(r.ok(), True)
         init_mock.assert_called_with('hsrb_interface_py', anonymous=True)
