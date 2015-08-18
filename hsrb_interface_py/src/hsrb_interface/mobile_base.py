@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
 
+import math
 import rospy
 import tf
 import actionlib
@@ -19,6 +20,11 @@ _ACTION_TIMEOUT = 30.0
 
 # tf受信待ちタイムアウト[sec]
 _TF_TIMEOUT = 1.0
+
+def _validate_timeout(timeout):
+    if timeout < 0.0 or math.isnan(timeout) or math.isinf(timeout):
+        raise ValueError("Invalid timeout: {0}".format(timeout))
+
 
 class MobileBase(robot.Item):
     u"""移動台車を制御するクラス
@@ -61,6 +67,8 @@ class MobileBase(robot.Item):
                     pose = (Vector3(0.1, 0.2, 0.0), Quaternion(0.0, 0.0, 0.0, 1.0)
                     base.move(pose, 10.0, 'base_footprint')
         """
+        _validate_timeout(timeout)
+
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('map')
 
@@ -95,7 +103,11 @@ class MobileBase(robot.Item):
                 with Robot() as robot:
                     base = robot.get('omni_base', robot.Items.MOBILE_BASE)
                     base.go(0.1, 0.2, 0.0, 10.0)
+        Raises:
+            ValueError: timeout < 0
         """
+        _validate_timeout(timeout)
+
         position = geometry.Vector3(x, y, 0)
         q = tf.transformations.quaternion_from_euler(0, 0, yaw)
         orientation = geometry.Quaternion(*q)
