@@ -25,7 +25,9 @@ LOGO = r"""
     /_/  \____/ /_/\____/ /_/ /_/  |_|  /_/ /_//____/_/ |_|
 """
 
+from math import *
 from hsrb_interface import Robot, ItemTypes
+from hsrb_interface.geometry import *
 
 with Robot() as robot:
     whole_body = robot.try_get('whole_body')
