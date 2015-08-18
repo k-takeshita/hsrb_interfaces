@@ -1,4 +1,4 @@
-# + "/hsrb/omni_base_controllere!/usr/bin/env python
+#!/usr/bin/env python
 # vim: fileencoding=utf-8
 
 class RobotConnectionError(Exception):
