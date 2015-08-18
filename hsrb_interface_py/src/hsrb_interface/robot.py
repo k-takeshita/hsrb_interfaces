@@ -25,7 +25,21 @@ class Item(object):
 
 
 class ItemTypes(enum.Enum):
-    u""""""
+    u"""
+
+    Attributes:
+        JOINT_GROUP:
+        MOBILE_BASE:
+        END_EFFECTOR:
+        CAMERA:
+        FORCE_TORQUE:
+        IMU:
+        LIDAR:
+        BATTERY:
+        OBJECT_DETECTION:
+        COLLISION_WORLD:
+        TEXT_TO_SPEECH:
+    """
     JOINT_GROUP      = 'joint_group'
     MOBILE_BASE      = 'mobile_base'
     END_EFFECTOR     = 'end_effector'
