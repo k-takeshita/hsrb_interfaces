@@ -14,6 +14,7 @@ from geometry_msgs.msg import Pose, Transform
 Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 
+
 def pose(x=0.0, y =0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
     """
     Return pose tuple.
@@ -24,6 +25,8 @@ def pose(x=0.0, y =0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
     vec3 = (x, y, z)
     quaternion = tf.transformations.quaternion_from_euler(ei, ej, ek, axes)
     return (Vector3(*vec3), Quaternion(*quaternion))
+
+create_pose = pose
 
 
 def vector3(x=0.0, y=0.0, z=0.0):
