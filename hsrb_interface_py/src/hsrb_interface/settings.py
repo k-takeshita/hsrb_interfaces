@@ -77,22 +77,22 @@ HSRB = """
         "head_l_stereo_camera": {
             "class":   ["sensors", "Camera"],
             "prefix":  "/hsrb/head_l_stereo_camera",
-            "timeout": 1.0
+            "timeout": 3.0
         },
         "head_r_stereo_camera": {
             "class": ["sensors", "Camera"],
             "prefix":  "/hsrb/head_l_stereo_camera",
-            "timeout": 1.0
+            "timeout": 3.0
         },
         "head_rgbd_sensor_rgb": {
             "class": ["sensors", "Camera"],
             "prefix": "/hsrb/head_rgbd_sensor/rgb",
-            "timeout": 1.0
+            "timeout": 3.0
         },
         "head_rgbd_sensor_depth": {
             "class": ["sensors", "Camera"],
             "prefix": "hsrb/head_rgbd_sensor/depth",
-            "timeout": 1.0
+            "timeout": 3.0
         }
     },
     "imu": {
