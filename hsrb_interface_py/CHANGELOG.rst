@@ -2,6 +2,23 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2015-08-20)
+------------------
+* Update documentation
+* Add keyword arguments to move_to_joint_position
+* Avoid importing math and geometry
+* Add compatibility fuction in geometry.py
+* Import utilities directly in ihsrb
+* Add shebang line
+* Change try_get timeout to 1.0
+* Add image attributes
+* Add geometry constructors
+* Fix #28
+* Fix #27
+* Fix #31
+* Fix get pose method
+* Contributors: Akiyoshi Ochiai
+
 0.3.0 (2015-07-30)
 ------------------
 * Fix test error
