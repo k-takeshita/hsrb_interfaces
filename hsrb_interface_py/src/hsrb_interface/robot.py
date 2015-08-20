@@ -141,7 +141,7 @@ class Robot(object):
 
     Example:
 
-        ::
+        .. sourcecode:: python
 
 	        from hsrb_interface import Robot, ItemTypes
                 with Robot() as robot:
@@ -238,7 +238,7 @@ class Robot(object):
             Item: アイテムのインスタンス
 
         Raises:
-            ResourceNotFoundError
+            hsrb_interface.exceptions.ResourceNotFoundError
         """
         try:
             return self.get(name, typ)

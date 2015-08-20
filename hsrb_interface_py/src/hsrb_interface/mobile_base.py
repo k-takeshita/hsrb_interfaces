@@ -31,12 +31,12 @@ class MobileBase(robot.Item):
 
     Example:
 
-        ::
-            with hsrb_interface.Robot() as robot:
-                omni_base = robot.get('omni_base')
-                omni_base.go(1, 2, math.pi / 2.0)
-                print(omni_base.pose)
+        .. sourcecode:: python
 
+           with hsrb_interface.Robot() as robot:
+               omni_base = robot.get('omni_base')
+               omni_base.go(1, 2, math.pi / 2.0)
+               print(omni_base.pose)
     """
 
     def __init__(self, name):
@@ -59,13 +59,14 @@ class MobileBase(robot.Item):
         Returns:
             None
 
-        Example:
-            Usage::
+        Examples:
 
-                with Robot() as robot:
-                    base = robot.get('omni_base', robot.Items.MOBILE_BASE)
-                    pose = (Vector3(0.1, 0.2, 0.0), Quaternion(0.0, 0.0, 0.0, 1.0)
-                    base.move(pose, 10.0, 'base_footprint')
+            .. sourcecode:: python
+
+               with hsrb_interface.Robot() as robot:
+                   base = robot.get('omni_base', robot.Items.MOBILE_BASE)
+                   pose = (Vector3(0.1, 0.2, 0.0), Quaternion(0.0, 0.0, 0.0, 1.0)
+                   base.move(pose, 10.0, 'base_footprint')
         """
         _validate_timeout(timeout)
 
@@ -98,11 +99,12 @@ class MobileBase(robot.Item):
             None
 
         Example:
-            Usage::
 
-                with Robot() as robot:
-                    base = robot.get('omni_base', robot.Items.MOBILE_BASE)
-                    base.go(0.1, 0.2, 0.0, 10.0)
+            .. sourcecode:: python
+
+               with hsrb_interface.Robot() as robot:
+                   base = robot.get('omni_base', robot.Items.MOBILE_BASE)
+                   base.go(0.1, 0.2, 0.0, 10.0)
         Raises:
             ValueError: timeout < 0
         """
