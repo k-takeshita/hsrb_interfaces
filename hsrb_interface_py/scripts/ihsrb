@@ -25,9 +25,10 @@ LOGO = r"""
     /_/  \____/ /_/\____/ /_/ /_/  |_|  /_/ /_//____/_/ |_|
 """
 
-from math import *
+import math
+from math import radians, degrees
 from hsrb_interface import Robot, ItemTypes
-from hsrb_interface.geometry import *
+from hsrb_interface import geometry
 
 with Robot() as robot:
     whole_body = robot.try_get('whole_body')
