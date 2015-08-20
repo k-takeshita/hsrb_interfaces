@@ -2,8 +2,8 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.4.0 (2015-08-20)
+------------------
 * Update documentation
 * Add keyword arguments to move_to_joint_position
 * Avoid importing math and geometry
