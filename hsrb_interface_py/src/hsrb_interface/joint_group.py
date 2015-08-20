@@ -240,10 +240,6 @@ class FollowTrajectoryActionClient(object):
 class JointGroup(robot.Item):
     u"""関節グループの制御を行うクラス
 
-
-    Attributes:
-        joint_names (List[str]):
-
     """
     def __init__(self, name):
         super(JointGroup, self).__init__()
@@ -267,6 +263,7 @@ class JointGroup(robot.Item):
 
     @property
     def joint_names(self):
+        u"""List[str]: 各関節の名称リスト"""
         return self._get_joint_state().name
 
     @property
@@ -325,15 +322,41 @@ class JointGroup(robot.Item):
             raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(res.error_code.val))
         self._play_trajectory(res.solution)
 
-    def move_to_joint_positions(self, goals):
-        u"""指定の姿勢に遷移する
+    def move_to_joint_positions(self, goals={}, **kwargs):
+        u"""指定の姿勢に遷移する。
 
         Args:
-            positions (Dict[str, float]): 関節名と目標位置の組による辞書
+            positions (Dict[str, float]): 関節名と目標位置[m or rad]の組による辞書
+            **kwargs: 関節名をキーワード、その目標値を引数にして指定できる
 
         Returns:
             None
+
+        See Also:
+            JointGroup.joint_names
+
+        Examples:
+
+            .. sourcecode:: python
+
+               import math
+               import hsrb_interface
+
+               with hsrb_interface.Robot() as robot:
+                   whole_body = robot.get('whole_body')
+                   goals = {
+                       'arm_lift_joint': 0.5,
+                       'arm_flex_joint': math.radians(-90)
+                   }
+                   whole_body.move_to_joint_positions(goals)
+
+                   # The method also accept keyword arguments
+                   whole_body.move_to_joint_positions(head_tilt_joint=math.radians(30))
+
         """
+        goals.update(kwargs)
+        if not goals:
+            return
         goal_state = JointState()
         for k, v in goals.items():
             goal_state.name.append(k)
