@@ -138,7 +138,8 @@ HSRB = """
     "collision_world": {
         "default": {
             "class": ["collision_world", "CollisionWorld"],
-            "service": "/get_collision_environment"
+            "service": "/get_collision_environment",
+            "topic": "/known_object"
         }
     }
 }
@@ -163,7 +164,7 @@ HSR_BEETLE = """
             "frame_id": "base_footprint"
         },
         "hand": {
-            "id": "gripper_palm_link"
+            "id": "hand_palm_link"
         }
     },
     "joint_group": {
