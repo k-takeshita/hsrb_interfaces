@@ -13,6 +13,8 @@ from tmc_manipulation_msgs.msg import (
     CollisionObjectOperation
 )
 
+from tmc_msgs.msg import ObjectIdentifier
+
 from . import robot
 from . import settings
 
@@ -66,7 +68,7 @@ class CollisionWorld(robot.Item):
     u"""衝突検知用の空間から物体を削除
 
     Args:
-        object_id(int): 物体ID
+        object_id(tmc_msgs.msg.ObjectIdentifier): 物体ID
     """
     def delete(self, object_id):
         collision_object = CollisionObject()
