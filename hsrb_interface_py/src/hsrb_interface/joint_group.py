@@ -523,20 +523,27 @@ class JointGroup(robot.Item):
         res.base_solution.header.frame_id = settings.get_frame('odom')
         self._play_trajectory(res.solution, res.base_solution)
 
-    def _play_trajectory(self, joint_trajectory, base_trajectory=None):
+    def play_trajectory(self, joint_trajectory, base_trajectory=None, do_activate_hand=False):
         u"""指定の軌道を再生する
 
         Args:
             joint_trajectory (trajectory_msgs.msg.JointTrajectory): 関節軌道
             base_trajectory (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory): 台車の軌道
+            do_activate_hand (bool): ハンドを動かすかどうか
         Returns:
             None
         """
         if base_trajectory is None:
-            clients = [self._head_client, self._arm_client]
+            if do_activate_hand:
+                clients = [self._head_client, self._arm_client, self._hand_client]
+            else:
+                clients = [self._head_client, self._arm_client]
             return self._execute_trajectory(clients, joint_trajectory)
         else:
-            clients = [self._head_client, self._arm_client, self._base_client]
+            if do_activate_hand:
+                clients = [self._head_client, self._arm_client, self._hand_client, self._base_client]
+            else:
+                clients = [self._head_client, self._arm_client, self._base_client]
             if len(joint_trajectory.points) != len(base_trajectory.points):
                 raise exceptions.TrajectoryLengthError("Uneven joint_trajectory size and base_trajectory size.")
 
