@@ -113,7 +113,7 @@ def _refer_planning_error(error_code):
         エラーの名前
     """
     error_codes = ArmManipulationErrorCodes.__dict__.items()
-    error_names = [k for k, v in error_codes if v == -5 and k.isupper()]
+    error_names = [k for k, v in error_codes if v == error_code and k.isupper()]
     if len(error_names) != 0:
         return error_names[0]
     else:
