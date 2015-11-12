@@ -296,7 +296,17 @@ class JointGroup(robot.Item):
 
         Returns:
             None
+        Raises:
+            ValueError: 引数内にに指定されたジョイント名が見つからない
         """
+        # Validate joint names
+        initial_joint_state = self._get_joint_state()
+        active_joint_set = set(initial_joint_state.name)
+        target_joint_set = set(goal_state.name)
+        if not target_joint_set.issubset(active_joint_set):
+            unknown_set = target_joint_set.difference(active_joint_set)
+            raise ValueError("No such joint(s): [{0}]".format(', '.join(unknown_set)))
+
         origin_to_basejoint = Pose()
         origin_to_basejoint.orientation.w = 1.0
         basejoint_to_base = Pose()
@@ -307,7 +317,7 @@ class JointGroup(robot.Item):
         goal_position.position = goal_state.position
 
         req.origin_to_basejoint = origin_to_basejoint
-        req.initial_joint_state = self._get_joint_state()
+        req.initial_joint_state = initial_joint_state
         req.use_joints = goal_state.name
         req.goal_joint_states.append(goal_position)
         req.goal_basejoint_to_bases.append(basejoint_to_base)
@@ -321,7 +331,7 @@ class JointGroup(robot.Item):
             raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(res.error_code.val))
         self._play_trajectory(res.solution)
 
-    def move_to_joint_positions(self, goals={}, **kwargs):
+    def move_to_joint_positions(self, goals=None, **kwargs):
         u"""指定の姿勢に遷移する。
 
         Args:
@@ -353,6 +363,8 @@ class JointGroup(robot.Item):
                    whole_body.move_to_joint_positions(head_tilt_joint=math.radians(30))
 
         """
+        if goals is None:
+            goals = {}
         goals.update(kwargs)
         if not goals:
             return
