@@ -104,6 +104,20 @@ _TRAJECTORY_FILTER_TIMEOUT = 30.0
 # handのOpenにかかる時間[sec]
 _TIME_OPEN_HAND = 10.0
 
+def _refer_planning_error(error_code):
+    """プラニングのエラーコードを名前に変換する
+
+    Args:
+        error_code (ArmManipulationErrorCodes): エラーコード
+    Returns:
+        エラーの名前
+    """
+    error_codes = ArmManipulationErrorCodes.__dict__.items()
+    error_names = filter(lambda x: x[1] == error_code and x[0].isupper(), error_codes)
+    if len(error_names) != 0:
+        return error_names[0][0]
+    else:
+        return str(error_code)
 
 def _extract_trajectory(joint_trajectory, joint_names, joint_state):
     """関節軌道から指定した関節の軌道のみを抜き出し、残りの関節目標値を現在値で埋める
@@ -318,7 +332,8 @@ class JointGroup(robot.Item):
         plan_service = rospy.ServiceProxy(self._setting['plan_with_joint_goals_service'], PlanWithJointGoals)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(res.error_code.val))
+            error = _refer_planning_error(res.error_code.val)
+            raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(error))
         self._play_trajectory(res.solution)
 
     def move_to_joint_positions(self, goals={}, **kwargs):
@@ -466,7 +481,8 @@ class JointGroup(robot.Item):
         plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_goals_service'], PlanWithHandGoals)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            raise exceptions.PlannerError("Fail to plan move_endpoint: {0}".format(res.error_code.val))
+            error = _refer_planning_error(res.error_code.val)
+            raise exceptions.PlannerError("Fail to plan move_endpoint: {0}".format(error))
         res.base_solution.header.frame_id = settings.get_frame('odom')
         self._play_trajectory(res.solution, res.base_solution)
 
@@ -518,7 +534,8 @@ class JointGroup(robot.Item):
         plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_line_service'], PlanWithHandLine)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            raise exceptions.PlannerError("Fail to plan move_hand_line: {0}".format(res.error_code.val))
+            error = _refer_planning_error(res.error_code.val)
+            raise exceptions.PlannerError("Fail to plan move_hand_line: {0}".format(error))
         res.base_solution.header.frame_id = settings.get_frame('odom')
         self._play_trajectory(res.solution, res.base_solution)
 
@@ -629,4 +646,3 @@ class JointGroup(robot.Item):
                 break
             rate.sleep()
         return (client.get_results() for client in clients)
-
