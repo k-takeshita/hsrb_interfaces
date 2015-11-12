@@ -105,7 +105,6 @@ _TRAJECTORY_FILTER_TIMEOUT = 30.0
 _TIME_OPEN_HAND = 10.0
 
 
-
 def _extract_trajectory(joint_trajectory, joint_names, joint_state):
     """関節軌道から指定した関節の軌道のみを抜き出し、残りの関節目標値を現在値で埋める
 
@@ -523,7 +522,7 @@ class JointGroup(robot.Item):
         res.base_solution.header.frame_id = settings.get_frame('odom')
         self._play_trajectory(res.solution, res.base_solution)
 
-    def play_trajectory(self, joint_trajectory, base_trajectory=None, do_activate_hand=False):
+    def _play_trajectory(self, joint_trajectory, base_trajectory=None):
         u"""指定の軌道を再生する
 
         Args:
@@ -534,16 +533,10 @@ class JointGroup(robot.Item):
             None
         """
         if base_trajectory is None:
-            if do_activate_hand:
-                clients = [self._head_client, self._arm_client, self._hand_client]
-            else:
-                clients = [self._head_client, self._arm_client]
+            clients = [self._head_client, self._arm_client]
             return self._execute_trajectory(clients, joint_trajectory)
         else:
-            if do_activate_hand:
-                clients = [self._head_client, self._arm_client, self._hand_client, self._base_client]
-            else:
-                clients = [self._head_client, self._arm_client, self._base_client]
+            clients = [self._head_client, self._arm_client, self._base_client]
             if len(joint_trajectory.points) != len(base_trajectory.points):
                 raise exceptions.TrajectoryLengthError("Uneven joint_trajectory size and base_trajectory size.")
 
