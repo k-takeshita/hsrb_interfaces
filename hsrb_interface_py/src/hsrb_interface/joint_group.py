@@ -41,6 +41,23 @@ from tmc_planning_msgs.srv import (
     PlanWithHandLineRequest,
 )
 
+from urdf_parser_py.urdf import (
+    JointLimit,
+    xmlr,
+)
+
+# urdf_parser_pyのモンキーパッチ
+# https://github.com/k-okada/urdfdom/commit/9c9e28e9f1de29228def48a4d49315b2f4fbf2d2
+# を含むコードがリリースされたら消してOK
+xmlr.reflect(JointLimit, params = [
+    xmlr.Attribute('effort', float),
+    xmlr.Attribute('lower', float, False, 0),
+    xmlr.Attribute('upper', float, False, 0),
+    xmlr.Attribute('velocity', float)
+    ])
+
+from urdf_parser_py.urdf import Robot as RobotUrdf
+
 from . import exceptions
 from . import settings
 from . import robot
@@ -267,6 +284,8 @@ class JointGroup(robot.Item):
         self._joint_state_sub.wait_for_message(timeout)
         self._tf2_buffer = robot._get_tf2_buffer()
 
+        self._robot_urdf = RobotUrdf.from_parameter_server()
+
     def _get_joint_state(self):
         u"""
         Returns:
@@ -296,6 +315,13 @@ class JointGroup(robot.Item):
     @property
     def collision_world(self):
         return self._collision_world
+
+    @property
+    def joint_limits(self):
+        joint_map = self._robot_urdf.joint_map
+        return {joint_name: (joint_map[joint_name].limit.lower, joint_map[joint_name].limit.upper)
+                for joint_name in self.joint_names}
+
 
     @collision_world.setter
     def collision_world(self, value):
