@@ -83,7 +83,8 @@ class MobileBase(robot.Item):
 
         if self._action_client.wait_for_result(rospy.Duration(timeout)):
             if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
-                raise exceptions.MobileBaseError('Failed to reach goal')
+                error_text = self._action_client.get_goal_status_text()
+                raise exceptions.MobileBaseError('Failed to reach goal ({0})'.format(error_text))
         else:
             self._action_client.cancel_goal()
             raise exceptions.MobileBaseError('Timed out')
