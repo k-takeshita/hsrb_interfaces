@@ -81,9 +81,12 @@ class MobileBase(robot.Item):
         goal.target_pose = target_pose
         self._action_client.send_goal(goal)
 
-        self._action_client.wait_for_result(rospy.Duration(timeout))
-        if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
-            raise exceptions.MobileBaseError('Failed to reach goal')
+        if self._action_client.wait_for_result(rospy.Duration(timeout)):
+            if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
+                raise exceptions.MobileBaseError('Failed to reach goal')
+        else:
+            self._action_client.cancel_goal()
+            raise exceptions.MobileBaseError('Timed out')
 
     def go(self, x, y, yaw, timeout=0.0, relative=False):
         u"""指定した座標まで移動する
