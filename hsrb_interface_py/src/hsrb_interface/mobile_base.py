@@ -5,6 +5,7 @@ import math
 import rospy
 import tf
 import actionlib
+import signal
 
 from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
@@ -47,7 +48,7 @@ class MobileBase(robot.Item):
 
         action_name =self._setting['move_base_action']
         self._action_client = actionlib.SimpleActionClient(action_name, MoveBaseAction)
-
+        signal.signal(signal.SIGINT, self._cancel)
 
     def move(self, pose, timeout=0.0, ref_frame_id=None):
         u"""
@@ -154,3 +155,8 @@ class MobileBase(robot.Item):
                                                       rospy.Time(0),
                                                       rospy.Duration(_TF_TIMEOUT))
         return geometry.transform_to_tuples(transform.transform)
+
+    def _cancel(self, number, frame):
+        u"""自律移動をキャンセルする"""
+        self._action_client.cancel_goal()
+        raise exceptions.MobileBaseError('move_base was canceled from client')
