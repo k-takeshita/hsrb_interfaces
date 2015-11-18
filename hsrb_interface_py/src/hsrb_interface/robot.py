@@ -53,6 +53,25 @@ class ItemTypes(enum.Enum):
     TEXT_TO_SPEECH   = 'text_to_speech'
 
 
+_interactive = False
+def _is_interactive():
+    """True if interactive mode is set.
+
+    Returns:
+        bool: Is interactive mode enabled or not
+    """
+    return _interactive
+
+def enable_interactive():
+    """Enable interactive mode
+
+    Returns:
+        None
+    """
+    global _interactive
+    _interactive = True
+
+
 class _ConnectionManager(object):
     u"""ロボットとの接続制御を行うクラス
 
@@ -69,7 +88,8 @@ class _ConnectionManager(object):
             uri = master.getUri("hsrb_interface_py")
         except Exception as e:
             raise exceptions.RobotConnectionError(e)
-        rospy.init_node('hsrb_interface_py', anonymous=True)
+        disable_signals = _is_interactive()
+        rospy.init_node('hsrb_interface_py', anonymous=True, disable_signals=disable_signals)
         self._tf2_buffer = tf2_ros.Buffer()
         self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
         self._registry = {}

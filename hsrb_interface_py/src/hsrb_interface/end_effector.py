@@ -53,14 +53,24 @@ class Gripper(robot.Item):
         goal = FollowJointTrajectoryGoal()
         goal.trajectory.joint_names = self._joint_names
         goal.trajectory.points = [
-            JointTrajectoryPoint(positions=[open_angle], time_from_start=rospy.Duration(motion_time))
+            JointTrajectoryPoint(positions=[open_angle],
+                                 time_from_start=rospy.Duration(motion_time))
         ]
 
         self._follow_joint_trajectory_client.send_goal(goal)
-        self._follow_joint_trajectory_client.wait_for_result(rospy.Duration(_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT))
-        s = self._follow_joint_trajectory_client.get_state()
-        if s != actionlib.GoalStatus.SUCCEEDED:
-            raise exceptions.GripperError("Failed to follow commanded trajectory")
+        timeout = rospy.Duration(_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT)
+        try:
+            if self._follow_joint_trajectory_client.wait_for_result(timeout):
+                s = self._follow_joint_trajectory_client.get_state()
+                if s != actionlib.GoalStatus.SUCCEEDED:
+                    raise exceptions.GripperError("Failed to follow commanded trajectory")
+            else:
+                self._follow_joint_trajectory_client.cancel_goal()
+                raise exceptions.GripperError("Timed out")
+        except KeyboardInterrupt:
+            self._follow_joint_trajectory_client.cancel_goal()
+
+
 
     def grasp(self, effort):
         u"""グリッパーの握りこみ動作を実行する
@@ -73,11 +83,18 @@ class Gripper(robot.Item):
         goal = GripperApplyEffortGoal()
         goal.effort = effort
         self._grasp_client.send_goal(goal)
-        self._grasp_client.wait_for_result(rospy.Duration(_GRIPPER_GRASP_TIMEOUT))
-        self._grasp_client.get_result()
-        s = self._grasp_client.get_state()
-        if s != actionlib.GoalStatus.SUCCEEDED:
-            raise exceptions.GripperError("Failed to grasp")
+        try:
+            if self._grasp_client.wait_for_result(rospy.Duration(_GRIPPER_GRASP_TIMEOUT)):
+                self._grasp_client.get_result()
+                s = self._grasp_client.get_state()
+                if s != actionlib.GoalStatus.SUCCEEDED:
+                    raise exceptions.GripperError("Failed to grasp")
+            else:
+                self._grasp_client.cancel_goal()
+                raise exceptions.GripperError("Timed out")
+        except KeyboardInterrupt:
+            self._grasp_client.cancel_goal()
+
 
 
 class Suction(object):

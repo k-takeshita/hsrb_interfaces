@@ -5,7 +5,6 @@ import math
 import rospy
 import tf
 import actionlib
-import signal
 
 from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
@@ -48,7 +47,6 @@ class MobileBase(robot.Item):
 
         action_name =self._setting['move_base_action']
         self._action_client = actionlib.SimpleActionClient(action_name, MoveBaseAction)
-        signal.signal(signal.SIGINT, self._cancel)
 
     def move(self, pose, timeout=0.0, ref_frame_id=None):
         u"""
@@ -82,13 +80,17 @@ class MobileBase(robot.Item):
         goal.target_pose = target_pose
         self._action_client.send_goal(goal)
 
-        if self._action_client.wait_for_result(rospy.Duration(timeout)):
-            if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
-                error_text = self._action_client.get_goal_status_text()
-                raise exceptions.MobileBaseError('Failed to reach goal ({0})'.format(error_text))
-        else:
+        try:
+            if self._action_client.wait_for_result(rospy.Duration(timeout)):
+                if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
+                    error_text = self._action_client.get_goal_status_text()
+                    raise exceptions.MobileBaseError('Failed to reach goal ({0})'.format(error_text))
+            else:
+                self._action_client.cancel_goal()
+                raise exceptions.MobileBaseError('Timed out')
+        except KeyboardInterrupt:
             self._action_client.cancel_goal()
-            raise exceptions.MobileBaseError('Timed out')
+
 
     def go(self, x, y, yaw, timeout=0.0, relative=False):
         u"""指定した座標まで移動する
