@@ -2,18 +2,20 @@
 # vim: fileencoding=utf-8
 
 import rospy
-
 from tmc_manipulation_msgs.srv import (
     GetCollisionEnvironment,
     GetCollisionEnvironmentRequest,
 )
-
 from tmc_manipulation_msgs.msg import (
     CollisionObject,
     CollisionObjectOperation
 )
 
 from tmc_msgs.msg import ObjectIdentifier
+
+from tmc_geometric_shapes_msgs.msg import Shape
+from geometry_msgs.msg import Pose
+from hsrb_interface import geometry
 
 from . import robot
 from . import settings
@@ -33,6 +35,9 @@ class CollisionWorld(robot.Item):
         self._collision_object_pub = rospy.Publisher(self._setting['topic'],
                                                      CollisionObject,
                                                      queue_size=1)
+        self._environment = None
+        self._object_pub = rospy.Publisher('known_object', CollisionObject, queue_size=1)
+        self._object_count = 0
 
     @property
     def known_object_only(self):
@@ -75,3 +80,129 @@ class CollisionWorld(robot.Item):
         collision_object.id = object_id
         collision_object.operation.operation = CollisionObjectOperation.REMOVE
         self._collision_object_pub.publish(collision_object)
+
+    @property
+    def environment(self):
+        return self._environment
+
+    def get_environment(self, ref_frame_id='map'):
+        req = GetCollisionEnvironmentRequest()
+        req.known_object_only = self._known_object_only
+        req.origin_frame_id = ref_frame_id
+
+        service = rospy.ServiceProxy(self._setting['service'],
+                                     GetCollisionEnvironment)
+        res = service.call(req)
+        return res.environment
+
+    def add_box(self, x=0.1, y=0.1, z=0.1, pose=geometry.create_pose(), frame_id='map', name='box'):
+        u"""
+        干渉物体の箱を追加する
+
+        Args:
+          x: 縦[m]
+          y: 横[m]
+          z: 高さ[m]
+          pose: frame_id基準の位置姿勢
+          frame_id: 物体が属するframe
+        """
+        box = CollisionObject()
+        shape = Shape()
+        shape.type = Shape.BOX
+        shape.dimensions = [x, y, z]
+        pose = geometry.tuples_to_pose(pose)
+        box.operation.operation = CollisionObjectOperation.ADD
+        box.id.object_id = self._object_count
+        self._object_count = self._object_count + 1
+        box.id.name = name
+        box.shapes = [shape]
+        box.poses = [pose]
+        box.header.frame_id = 'map'
+        box.header.stamp = rospy.Time.now()
+        self._object_pub.publish(box)
+
+    def add_sphere(self, radius=0.1, pose=geometry.create_pose(), frame_id='map', name='sphere'):
+        u"""
+        干渉物体の球を追加する
+
+        Args:
+          radius: 半径[m]
+          pose: frame_id基準の位置姿勢
+          frame_id: 物体が属するframe
+        """
+        sphere = CollisionObject()
+        shape = Shape()
+        shape.type = Shape.SPHERE
+        shape.dimensions = [radius]
+        pose = geometry.tuples_to_pose(pose)
+        sphere.operation.operation = CollisionObjectOperation.ADD
+        sphere.id.object_id = self._object_count
+        self._object_count = self._object_count + 1
+        sphere.id.name = name
+        sphere.shapes = [shape]
+        sphere.poses = [pose]
+        sphere.header.frame_id = 'map'
+        sphere.header.stamp = rospy.Time.now()
+        self._object_pub.publish(sphere)
+
+    def add_cylinder(self, radius=0.1, length=0.1, pose=geometry.create_pose(), frame_id='map', name='cylinder'):
+        u"""
+        干渉物体の円柱を追加する
+
+        Args:
+          radius: 半径[m]
+          length: 高さ[m]
+          pose: frame_id基準の位置姿勢
+          frame_id: 物体が属するframe
+        """
+        cylinder = CollisionObject()
+        shape = Shape()
+        shape.type = Shape.CYLINDER
+        shape.dimensions = [radius, length]
+        pose = geometry.tuples_to_pose(pose)
+        cylinder.operation.operation = CollisionObjectOperation.ADD
+        cylinder.id.object_id = self._object_count
+        self._object_count = self._object_count + 1
+        cylinder.id.name = name
+        cylinder.shapes = [shape]
+        cylinder.poses = [pose]
+        cylinder.header.frame_id = 'map'
+        cylinder.header.stamp = rospy.Time.now()
+        self._object_pub.publish(cylinder)
+
+    def add_mesh(self, stl_file, pose=geometry.create_pose(), frame_id='map', name='mesh'):
+        u"""
+        干渉物体のメッシュを追加する
+
+        Args:
+          stl_file: stlのファイル名。collision_environment_serverが動作しているPCのパスで与える
+                    例：'/home/hoge/mesh.stl'
+          pose: frame_id基準の位置姿勢
+          frame_id: 物体が属するframe
+        """
+        mesh = CollisionObject()
+        shape = Shape()
+        shape.type = Shape.MESH
+        shape.stl_file_name = stl_file
+        pose = geometry.tuples_to_pose(pose)
+        mesh.operation.operation = CollisionObjectOperation.ADD
+        mesh.id.object_id = self._object_count
+        self._object_count = self._object_count + 1
+        mesh.id.name = name
+        mesh.shapes = [shape]
+        mesh.poses = [pose]
+        mesh.header.frame_id = 'map'
+        mesh.header.stamp = rospy.Time.now()
+        self._object_pub.publish(mesh)
+
+    def clear(self):
+        u"""
+        干渉物体をクリアする
+        """
+        clear = CollisionObject()
+        clear.operation.operation = CollisionObjectOperation.REMOVE
+        clear.id.object_id = 0
+        self._object_count = 0
+        clear.id.name = 'all'
+        clear.header.stamp = rospy.Time.now()
+        self._object_pub.publish(clear)

@@ -58,6 +58,11 @@ xmlr.reflect(JointLimit, params = [
 
 from urdf_parser_py.urdf import Robot as RobotUrdf
 
+from tmc_manipulation_msgs.srv import (
+    GetCollisionEnvironment,
+    GetCollisionEnvironmentRequest,
+)
+
 from . import exceptions
 from . import settings
 from . import robot
@@ -328,12 +333,12 @@ class JointGroup(robot.Item):
         self._collision_world = value
 
 
-    def _change_joint_state(self, goal_state):
-        u"""外部干渉を考慮しない指定関節角度までの遷移
+    def _change_joint_state(self, goal_state, use_environment=False):
+        u"""干渉を考慮した指定関節角度までの遷移
 
         Args:
             goal_state (sensor_msgs.msg.JointState): 目標関節状態
-
+            use_environment (bool): 外部環境情報に干渉チェックを利用するか(デフォルトは無し)
         Returns:
             None
         Raises:
@@ -364,6 +369,15 @@ class JointGroup(robot.Item):
         req.timeout = rospy.Duration(_PLANNING_ARM_TIMEOUT)
         req.max_iteration = _PLANNING_MAX_ITERATION
         req.base_movement_type.val = BaseMovementType.NONE
+        if use_environment:
+            creq = GetCollisionEnvironmentRequest()
+            creq.known_object_only = True
+            creq.origin_frame_id = 'odom'
+            service = rospy.ServiceProxy('get_collision_environment',
+                                         GetCollisionEnvironment)
+            cres = service.call(creq)
+            req.environment_before_planning = cres.environment
+
 
         plan_service = rospy.ServiceProxy(self._setting['plan_with_joint_goals_service'], PlanWithJointGoals)
         res = plan_service.call(req)
@@ -372,13 +386,13 @@ class JointGroup(robot.Item):
             raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(error))
         self._play_trajectory(res.solution)
 
-    def move_to_joint_positions(self, goals=None, **kwargs):
+    def move_to_joint_positions(self, goals={}, use_environment=False, **kwargs):
         u"""指定の姿勢に遷移する。
 
         Args:
             positions (Dict[str, float]): 関節名と目標位置[m or rad]の組による辞書
             **kwargs: 関節名をキーワード、その目標値を引数にして指定できる
-
+            use_environment (bool): 環境情報を利用するか(デフォルトは無し)
         Returns:
             None
 
@@ -413,11 +427,12 @@ class JointGroup(robot.Item):
         for k, v in goals.items():
             goal_state.name.append(k)
             goal_state.position.append(v)
-        self._change_joint_state(goal_state)
+        self._change_joint_state(goal_state, use_environment)
 
-    def move_to_neutral(self):
-        u"""外部干渉を考慮せず基準姿勢に遷移する
-
+    def move_to_neutral(self, use_environment=False):
+        u"""干渉を考慮して基準姿勢に遷移する
+        Args:
+            use_environment (bool): 環境情報を利用するか(デフォルトは無し)
         Returns:
             None
         """
@@ -430,11 +445,12 @@ class JointGroup(robot.Item):
             'head_pan_joint': 0.0,
             'head_tilt_joint': 0.0,
         }
-        self.move_to_joint_positions(goals)
+        self.move_to_joint_positions(goals, use_environment=use_environment)
 
-    def move_to_go(self):
-        u"""外部干渉を考慮せず移動向け基準姿勢に遷移する
-
+    def move_to_go(self, use_environment=False):
+        u"""干渉を考慮して移動向け基準姿勢に遷移する
+        Args:
+            use_environment (bool): 環境情報を利用するか(デフォルトは無し)
         Returns:
             None
         """
@@ -447,7 +463,7 @@ class JointGroup(robot.Item):
             'head_pan_joint': 0.0,
             'head_tilt_joint': 0.0
         }
-        self.move_to_joint_positions(goals)
+        self.move_to_joint_positions(goals, use_environment=use_environment)
 
 
     def get_end_effector_pose(self, ref_frame_id=None):
@@ -466,13 +482,13 @@ class JointGroup(robot.Item):
         result = geometry.transform_to_tuples(transform.transform)
         return result
 
-    def move_end_effector_pose(self, pose, ref_frame_id=None):
+    def move_end_effector_pose(self, pose, ref_frame_id=None, use_environment=False):
         u"""指定姿勢まで動かす
 
         Args
             pose (Tuple[Vector3, Quaternion]):
             ref_frame_id (str): 手先の基準座標(デフォルトはロボット座標系)
-
+            use_environment (bool): 環境情報を利用するか(デフォルトは無し)
         Returns:
             None
         """
@@ -515,6 +531,14 @@ class JointGroup(robot.Item):
         req.max_iteration = _PLANNING_MAX_ITERATION
         req.uniform_bound_sampling = False
         req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
+        if use_environment:
+            creq = GetCollisionEnvironmentRequest()
+            creq.known_object_only = True
+            creq.origin_frame_id = 'odom'
+            service = rospy.ServiceProxy('get_collision_environment',
+                                         GetCollisionEnvironment)
+            cres = service.call(creq)
+            req.environment_before_planning = cres.environment
 
         plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_goals_service'], PlanWithHandGoals)
         res = plan_service.call(req)
@@ -524,14 +548,14 @@ class JointGroup(robot.Item):
         res.base_solution.header.frame_id = settings.get_frame('odom')
         self._play_trajectory(res.solution, res.base_solution)
 
-    def move_end_effector_by_line(self, axis, distance, ref_frame_id=None):
+    def move_end_effector_by_line(self, axis, distance, ref_frame_id=None, use_environment=True):
         u"""3次元空間上の直線に沿って手先を動かす
 
         Args:
             axis (Vector3): 動かす軸方向
             distance (float): 移動量[m]
             ref_frame_id (str): 基準となる座標系
-
+            use_environment (bool): 環境情報を利用するか(デフォルトは無し)
         Returns:
             None
         """
@@ -568,6 +592,15 @@ class JointGroup(robot.Item):
         req.uniform_bound_sampling = False
         req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
         req.extra_goal_constraints = []
+        if use_environment:
+            creq = GetCollisionEnvironmentRequest()
+            creq.known_object_only = True
+            creq.origin_frame_id = 'odom'
+            service = rospy.ServiceProxy('get_collision_environment',
+                                         GetCollisionEnvironment)
+            cres = service.call(creq)
+            req.environment_before_planning = cres.environment
+
 
         plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_line_service'], PlanWithHandLine)
         res = plan_service.call(req)
