@@ -482,7 +482,7 @@ class JointGroup(robot.Item):
         result = geometry.transform_to_tuples(transform.transform)
         return result
 
-    def move_end_effector_pose(self, pose, ref_frame_id=None, use_environment=False):
+    def move_end_effector_pose(self, pose, ref_frame_id=None, use_environment=False, linear_weght=3.0, rotational_weight=1.0):
         u"""指定姿勢まで動かす
 
         Args
@@ -531,6 +531,8 @@ class JointGroup(robot.Item):
         req.max_iteration = _PLANNING_MAX_ITERATION
         req.uniform_bound_sampling = False
         req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
+        req.weighted_joints = ['_linear_base', '_rotational_base']
+        req.weight = [linear_weght, rotational_weight]
         if use_environment:
             creq = GetCollisionEnvironmentRequest()
             creq.known_object_only = True
