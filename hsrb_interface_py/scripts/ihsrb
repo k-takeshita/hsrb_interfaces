@@ -30,6 +30,10 @@ from math import radians, degrees
 from hsrb_interface import Robot, ItemTypes
 from hsrb_interface import geometry
 
+from hsrb_interface import robot as _robot
+
+_robot.enable_interactive()
+
 with Robot() as robot:
     whole_body = robot.try_get('whole_body')
     omni_base = robot.try_get('omni_base')

@@ -48,7 +48,6 @@ class MobileBase(robot.Item):
         action_name =self._setting['move_base_action']
         self._action_client = actionlib.SimpleActionClient(action_name, MoveBaseAction)
 
-
     def move(self, pose, timeout=0.0, ref_frame_id=None):
         u"""
         Args:
@@ -81,13 +80,17 @@ class MobileBase(robot.Item):
         goal.target_pose = target_pose
         self._action_client.send_goal(goal)
 
-        if self._action_client.wait_for_result(rospy.Duration(timeout)):
-            if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
-                error_text = self._action_client.get_goal_status_text()
-                raise exceptions.MobileBaseError('Failed to reach goal ({0})'.format(error_text))
-        else:
+        try:
+            if self._action_client.wait_for_result(rospy.Duration(timeout)):
+                if self._action_client.get_state() != actionlib.GoalStatus.SUCCEEDED:
+                    error_text = self._action_client.get_goal_status_text()
+                    raise exceptions.MobileBaseError('Failed to reach goal ({0})'.format(error_text))
+            else:
+                self._action_client.cancel_goal()
+                raise exceptions.MobileBaseError('Timed out')
+        except KeyboardInterrupt:
             self._action_client.cancel_goal()
-            raise exceptions.MobileBaseError('Timed out')
+
 
     def go(self, x, y, yaw, timeout=0.0, relative=False):
         u"""指定した座標まで移動する
@@ -154,3 +157,8 @@ class MobileBase(robot.Item):
                                                       rospy.Time(0),
                                                       rospy.Duration(_TF_TIMEOUT))
         return geometry.transform_to_tuples(transform.transform)
+
+    def _cancel(self, number, frame):
+        u"""自律移動をキャンセルする"""
+        self._action_client.cancel_goal()
+        raise exceptions.MobileBaseError('move_base was canceled from client')
