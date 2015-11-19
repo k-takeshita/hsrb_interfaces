@@ -290,6 +290,7 @@ class JointGroup(robot.Item):
         self._collision_world = None
         self._linear_weight = 3.0
         self._angular_weight = 1.0
+        self._planning_timeout = _PLANNING_ARM_TIMEOUT
 
     def _get_joint_state(self):
         u"""
@@ -335,7 +336,9 @@ class JointGroup(robot.Item):
 
         Noneが設定された場合は干渉検知が無効化。
         """
-        if isinstance(value, collision_world.CollisionWorld):
+        if value is None:
+            self._collision_world = None
+        elif isinstance(value, collision_world.CollisionWorld):
             self._collision_world = value
         else:
             raise TypeError("value should be CollisionWorld instance")
@@ -355,6 +358,15 @@ class JointGroup(robot.Item):
     @angular_weight.setter
     def angular_weight(self, value):
         self._angular_weight = value
+
+    @property
+    def planning_timeout(self):
+        return self._planning_timeout
+
+    @planning_timeout.setter
+    def planning_timeout(self, value):
+        self._planning_timeout = value
+
 
     def _change_joint_state(self, goal_state):
         u"""干渉を考慮した指定関節角度までの遷移
@@ -388,13 +400,11 @@ class JointGroup(robot.Item):
         req.use_joints = goal_state.name
         req.goal_joint_states.append(goal_position)
         req.goal_basejoint_to_bases.append(basejoint_to_base)
-        req.timeout = rospy.Duration(_PLANNING_ARM_TIMEOUT)
+        req.timeout = rospy.Duration(self._planning_timeout)
         req.max_iteration = _PLANNING_MAX_ITERATION
         req.base_movement_type.val = BaseMovementType.NONE
         if self._collision_world is not None:
-            self._coliision_world.origin_frame_id = 'odom'
-            self._collision_world.update()
-            req.environment_before_planning = self._collision_world.environment
+            req.environment_before_planning = self._collision_world.snapshot('odom')
 
         plan_service = rospy.ServiceProxy(self._setting['plan_with_joint_goals_service'], PlanWithJointGoals)
         res = plan_service.call(req)
@@ -538,16 +548,14 @@ class JointGroup(robot.Item):
         req.origin_to_hand_goals.append(odom_to_hand_pose)
         req.ref_frame_id = settings.get_frame('hand')
         req.probability_goal_generate = _PLANNING_GOAL_GENERATION
-        req.timeout = rospy.Duration(_PLANNING_ARM_TIMEOUT)
+        req.timeout = rospy.Duration(self._planning_timeout)
         req.max_iteration = _PLANNING_MAX_ITERATION
         req.uniform_bound_sampling = False
         req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
         req.weighted_joints = ['_linear_base', '_rotational_base']
         req.weight = [self._linear_weight, self._angular_weight]
         if self._collision_world is not None:
-            self._collision_world.origin_frame_id = 'odom'
-            self._collision_world.update()
-            req.environment_before_planning = self._collision_world.environment
+            req.environment_before_planning = self._collision_world.snapshot('odom')
 
         plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_goals_service'], PlanWithHandGoals)
         res = plan_service.call(req)
@@ -595,15 +603,13 @@ class JointGroup(robot.Item):
         req.goal_value = distance
         req.probability_goal_generate = _PLANNING_GOAL_GENERATION
         req.attached_objects = []
-        req.timeout = rospy.Duration(_PLANNING_ARM_TIMEOUT)
+        req.timeout = rospy.Duration(self._planning_timeout)
         req.max_iteration = _PLANNING_MAX_ITERATION
         req.uniform_bound_sampling = False
         req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
         req.extra_goal_constraints = []
         if self._collision_world is not None:
-            self._collision_world.origin_frame_id = 'odom'
-            self._collision_world.update()
-            req.environment_before_planning = self._collision_world.environment
+            req.environment_before_planning = self._collision_world.snapshot('odom')
 
         plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_line_service'], PlanWithHandLine)
         res = plan_service.call(req)

@@ -57,18 +57,24 @@ class CollisionWorld(robot.Item):
 
     @property
     def environment(self):
-        u"""tmc_manipulation_msgs.msg.CollisionEnvironment: 衝突検知用の空間"""
+        u"""tmc_manipulation_msgs.msg.CollisionEnvironment: 最後に取得した衝突検知用の空間"""
         return self._environment
 
-    def update(self, ref_frame_id='map'):
-        u"""衝突検知用の空間を更新
+    def snapshot(self, ref_frame_id=None):
+        u"""現在の衝突検知用の空間を取得する
+
+        Args:
+            ref_frame_id (str):　基準となるframe。ref_frame_id属性よりも引数が優先される。
 
         Returns:
             tmc_manipulation_msgs.msg.CollisionEnvironment: 衝突検知用の空間
         """
         req = GetCollisionEnvironmentRequest()
         req.known_object_only = self._known_object_only
-        req.origin_frame_id = ref_frame_id
+        if ref_frame_id is None:
+            req.origin_frame_id = self._ref_frame_id
+        else:
+            req.origin_frame_id = ref_frame_id
 
         service = rospy.ServiceProxy(self._setting['service'],
                                      GetCollisionEnvironment)
