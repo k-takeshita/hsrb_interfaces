@@ -117,7 +117,7 @@ class CollisionWorld(robot.Item):
         box.id.name = name
         box.shapes = [shape]
         box.poses = [pose]
-        box.header.frame_id = 'map'
+        box.header.frame_id = frame_id
         box.header.stamp = rospy.Time.now()
         self._object_pub.publish(box)
 
@@ -141,7 +141,7 @@ class CollisionWorld(robot.Item):
         sphere.id.name = name
         sphere.shapes = [shape]
         sphere.poses = [pose]
-        sphere.header.frame_id = 'map'
+        sphere.header.frame_id = frame_id
         sphere.header.stamp = rospy.Time.now()
         self._object_pub.publish(sphere)
 
@@ -166,7 +166,7 @@ class CollisionWorld(robot.Item):
         cylinder.id.name = name
         cylinder.shapes = [shape]
         cylinder.poses = [pose]
-        cylinder.header.frame_id = 'map'
+        cylinder.header.frame_id = frame_id
         cylinder.header.stamp = rospy.Time.now()
         self._object_pub.publish(cylinder)
 
@@ -191,7 +191,7 @@ class CollisionWorld(robot.Item):
         mesh.id.name = name
         mesh.shapes = [shape]
         mesh.poses = [pose]
-        mesh.header.frame_id = 'map'
+        mesh.header.frame_id = frame_id
         mesh.header.stamp = rospy.Time.now()
         self._object_pub.publish(mesh)
 
