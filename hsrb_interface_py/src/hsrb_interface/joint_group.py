@@ -711,21 +711,26 @@ class JointGroup(robot.Item):
             client.send_goal(traj)
 
         rate = rospy.Rate(_TRAJECTORY_RATE)
-        while True:
-            ok_set = (
-                actionlib.GoalStatus.PENDING,
-                actionlib.GoalStatus.ACTIVE,
-                actionlib.GoalStatus.SUCCEEDED,
-            )
-            states = [c.get_state() for c in clients]
-            if any(map(lambda s: s not in ok_set, states)):
-                log = []
-                for c in clients:
-                    log.append("{0}={1}".format(c.controller_name, c.get_state()))
-                    c.cancel_goal()
-                text = "Playing trajecotry failed: {0}".format(', '.join(log))
-                raise exceptions.FollowTrajectoryError(text)
-            if all(map(lambda s: s == actionlib.GoalStatus.SUCCEEDED, states)):
-                break
-            rate.sleep()
-        return (client.get_results() for client in clients)
+        try:
+            while True:
+                ok_set = (
+                    actionlib.GoalStatus.PENDING,
+                    actionlib.GoalStatus.ACTIVE,
+                    actionlib.GoalStatus.SUCCEEDED,
+                )
+                states = [c.get_state() for c in clients]
+                if any(map(lambda s: s not in ok_set, states)):
+                    log = []
+                    for c in clients:
+                        log.append("{0}={1}".format(c.controller_name, c.get_state()))
+                        c.cancel_goal()
+                    text = "Playing trajecotry failed: {0}".format(', '.join(log))
+                    raise exceptions.FollowTrajectoryError(text)
+                if all(map(lambda s: s == actionlib.GoalStatus.SUCCEEDED, states)):
+                    break
+                rate.sleep()
+            return (client.get_results() for client in clients)
+        except KeyboardInterrupt:
+            for client in clients:
+                client.cancel_goal()
+
