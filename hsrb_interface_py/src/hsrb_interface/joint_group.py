@@ -386,23 +386,25 @@ class JointGroup(robot.Item):
             unknown_set = target_joint_set.difference(active_joint_set)
             raise ValueError("No such joint(s): [{0}]".format(', '.join(unknown_set)))
 
-        origin_to_basejoint = Pose()
-        origin_to_basejoint.orientation.w = 1.0
-        basejoint_to_base = Pose()
-        basejoint_to_base.orientation.w = 1.0
+        odom_to_robot_transform = self._tf2_buffer.lookup_transform(
+                                    settings.get_frame('odom'),
+                                    settings.get_frame('base'),
+                                    rospy.Time(0),
+                                    rospy.Duration(_TF_TIMEOUT))
+        odom_to_robot_tuples = geometry.transform_to_tuples(odom_to_robot_transform.transform)
+        odom_to_robot_pose = geometry.tuples_to_pose(odom_to_robot_tuples)
 
         req = PlanWithJointGoalsRequest()
         goal_position = JointPosition()
         goal_position.position = goal_state.position
 
-        req.origin_to_basejoint = origin_to_basejoint
+        req.origin_to_basejoint = odom_to_robot_pose
         req.initial_joint_state = initial_joint_state
         req.use_joints = goal_state.name
         req.goal_joint_states.append(goal_position)
-        req.goal_basejoint_to_bases.append(basejoint_to_base)
         req.timeout = rospy.Duration(self._planning_timeout)
         req.max_iteration = _PLANNING_MAX_ITERATION
-        req.base_movement_type.val = BaseMovementType.NONE
+        req.base_movement_type.val = BaseMovementType.ROTATION_Z
         if self._collision_world is not None:
             req.environment_before_planning = self._collision_world.snapshot('odom')
 
@@ -411,7 +413,8 @@ class JointGroup(robot.Item):
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             error = _refer_planning_error(res.error_code.val)
             raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(error))
-        self._play_trajectory(res.solution)
+        res.base_solution.header.frame_id = settings.get_frame('odom')
+        self._play_trajectory(res.solution, res.base_solution)
 
     def move_to_joint_positions(self, goals={}, **kwargs):
         u"""指定の姿勢に遷移する。
@@ -706,26 +709,23 @@ class JointGroup(robot.Item):
         for client in clients:
             traj = _extract_trajectory(filtered_traj, client.joint_names, joint_states)
             client.send_goal(traj)
+
         rate = rospy.Rate(_TRAJECTORY_RATE)
-        try:
-            while True:
-                ok_set = (
-                    actionlib.GoalStatus.PENDING,
-                    actionlib.GoalStatus.ACTIVE,
-                    actionlib.GoalStatus.SUCCEEDED,
-                )
-                states = [c.get_state() for c in clients]
-                if any(map(lambda s: s not in ok_set, states)):
-                    log = []
-                    for c in clients:
-                        log.append("{0}={1}".format(c.controller_name, c.get_state()))
-                        c.cancel_goal()
-                    text = "Playing trajecotry failed: {0}".format(', '.join(log))
-                    raise exceptions.FollowTrajectoryError(text)
-                if all(map(lambda s: s == actionlib.GoalStatus.SUCCEEDED, states)):
-                    break
-                rate.sleep()
-            return (client.get_results() for client in clients)
-        except KeyboardInterrupt:
-            for client in clients:
-                client.cancel_goal()
+        while True:
+            ok_set = (
+                actionlib.GoalStatus.PENDING,
+                actionlib.GoalStatus.ACTIVE,
+                actionlib.GoalStatus.SUCCEEDED,
+            )
+            states = [c.get_state() for c in clients]
+            if any(map(lambda s: s not in ok_set, states)):
+                log = []
+                for c in clients:
+                    log.append("{0}={1}".format(c.controller_name, c.get_state()))
+                    c.cancel_goal()
+                text = "Playing trajecotry failed: {0}".format(', '.join(log))
+                raise exceptions.FollowTrajectoryError(text)
+            if all(map(lambda s: s == actionlib.GoalStatus.SUCCEEDED, states)):
+                break
+            rate.sleep()
+        return (client.get_results() for client in clients)
