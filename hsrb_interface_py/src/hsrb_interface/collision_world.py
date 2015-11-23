@@ -1,29 +1,41 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
 
+import os
 import rospy
-
 from tmc_manipulation_msgs.srv import (
     GetCollisionEnvironment,
     GetCollisionEnvironmentRequest,
 )
-
 from tmc_manipulation_msgs.msg import (
     CollisionObject,
-    CollisionObjectOperation
+    CollisionObjectOperation,
+    CollisionEnvironment,
 )
 
-from tmc_msgs.msg import ObjectIdentifier
+from tmc_msgs.msg import (
+    ObjectIdentifier,
+    ObjectIdentifierArray,
+)
+
+from tmc_geometric_shapes_msgs.msg import Shape
+from hsrb_interface import geometry
 
 from . import robot
+from . import utils
 from . import settings
 
+# トピック受信待ちタイムアウト[sec]
+_WAIT_TOPIC_TIMEOUT = 20.0
+
 class CollisionWorld(robot.Item):
-    u"""衝突検知用の空間
+    u"""衝突検知用環境インターフェース
 
     Attributes:
         known_object_only (bool):
         ref_frame_id (str):
+
+
     """
     def __init__(self, name):
         super(CollisionWorld, self).__init__()
@@ -33,6 +45,16 @@ class CollisionWorld(robot.Item):
         self._collision_object_pub = rospy.Publisher(self._setting['topic'],
                                                      CollisionObject,
                                                      queue_size=1)
+        self._environment = CollisionEnvironment()
+        self._object_pub = rospy.Publisher('known_object', CollisionObject, queue_size=1)
+        # デフォルトではobject_idが10000から始まる
+        self._start_object_id = 10000
+        self._object_count = self._start_object_id
+        self._known_object_ids_sub = utils.CachingSubscriber('known_object_ids', ObjectIdentifierArray, default=ObjectIdentifierArray())
+        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
+
+    def _is_object_id_used(self, id):
+        return id in [x.object_id for x in self._known_object_ids_sub.data.object_ids]
 
     @property
     def known_object_only(self):
@@ -50,28 +72,179 @@ class CollisionWorld(robot.Item):
     def ref_frame_id(self, value):
         self._ref_frame_id = value
 
-    u"""衝突検知用の空間を更新
+    @property
+    def start_object_id(self):
+        return self._start_object_id
 
-    Returns:
-        tmc_manipulation_msgs.msg.CollisionEnvironment: 衝突検知用の空間
-    """
-    def update(self):
+    @start_object_id.setter
+    def start_object_id(self, value):
+        self._start_object_id = value
+        self._object_count = self._start_object_id
+
+    @property
+    def environment(self):
+        u"""tmc_manipulation_msgs.msg.CollisionEnvironment: 最後に取得した衝突検知用の空間"""
+        return self._environment
+
+    def snapshot(self, ref_frame_id=None):
+        u"""現在の衝突検知用の空間を取得する
+
+        Args:
+            ref_frame_id (str):　基準となるframe。ref_frame_id属性よりも引数が優先される。
+
+        Returns:
+            tmc_manipulation_msgs.msg.CollisionEnvironment: 衝突検知用の空間
+        """
         req = GetCollisionEnvironmentRequest()
         req.known_object_only = self._known_object_only
-        req.origin_frame_id = self._ref_frame_id
+        if ref_frame_id is None:
+            req.origin_frame_id = self._ref_frame_id
+        else:
+            req.origin_frame_id = ref_frame_id
 
         service = rospy.ServiceProxy(self._setting['service'],
                                      GetCollisionEnvironment)
         res = service.call(req)
-        return res.environment
+        self._environment = res.environment
+        return self._environment
 
-    u"""衝突検知用の空間から物体を削除
+    def add_box(self, x=0.1, y=0.1, z=0.1, pose=geometry.create_pose(), frame_id='map', name='box'):
+        u"""干渉物体の箱を追加する
 
-    Args:
-        object_id(tmc_msgs.msg.ObjectIdentifier): 物体ID
-    """
-    def delete(self, object_id):
+        Args:
+            x: 縦[m]
+            y: 横[m]
+            z: 高さ[m]
+            pose: frame_id基準の位置姿勢
+            frame_id: 物体が属するframe
+        Returns:
+            Tuple[int, str]: 追加物体のID
+        """
+        box = CollisionObject()
+        shape = Shape()
+        shape.type = Shape.BOX
+        shape.dimensions = [x, y, z]
+        pose = geometry.tuples_to_pose(pose)
+        box.operation.operation = CollisionObjectOperation.ADD
+        while self._is_object_id_used(self._object_count):
+            self._object_count = self._object_count + 1
+        box.id.object_id = self._object_count
+        box.id.name = name
+        box.shapes = [shape]
+        box.poses = [pose]
+        box.header.frame_id = frame_id
+        box.header.stamp = rospy.Time.now()
+        self._object_pub.publish(box)
+        return (box.id.object_id, box.id.name)
+
+    def add_sphere(self, radius=0.1, pose=geometry.create_pose(), frame_id='map', name='sphere'):
+        u"""干渉物体の球を追加する
+
+        Args:
+            radius: 半径[m]
+            pose: frame_id基準の位置姿勢
+            frame_id: 物体が属するframe
+        Returns:
+            Tuple[int, str]: 追加物体のID
+        """
+        sphere = CollisionObject()
+        shape = Shape()
+        shape.type = Shape.SPHERE
+        shape.dimensions = [radius]
+        pose = geometry.tuples_to_pose(pose)
+        sphere.operation.operation = CollisionObjectOperation.ADD
+        while _is_object_id_used(self._object_count):
+            self._object_count = self._object_count + 1
+        sphere.id.object_id = self._object_count
+        sphere.id.name = name
+        sphere.shapes = [shape]
+        sphere.poses = [pose]
+        sphere.header.frame_id = frame_id
+        sphere.header.stamp = rospy.Time.now()
+        self._object_pub.publish(sphere)
+        return (sphere.id.object_id, sphere.id.name)
+
+    def add_cylinder(self, radius=0.1, length=0.1, pose=geometry.create_pose(), frame_id='map', name='cylinder'):
+        u"""干渉物体の円柱を追加する
+
+        Args:
+            radius: 半径[m]
+            length: 高さ[m]
+            pose: frame_id基準の位置姿勢
+            frame_id: 物体が属するframe
+        Returns:
+            Tuple[int, str]: 追加物体のID
+        """
+        cylinder = CollisionObject()
+        shape = Shape()
+        shape.type = Shape.CYLINDER
+        shape.dimensions = [radius, length]
+        pose = geometry.tuples_to_pose(pose)
+        cylinder.operation.operation = CollisionObjectOperation.ADD
+        while _is_object_id_used(self._object_count):
+            self._object_count = self._object_count + 1
+        cylinder.id.object_id = self._object_count
+        cylinder.id.name = name
+        cylinder.shapes = [shape]
+        cylinder.poses = [pose]
+        cylinder.header.frame_id = frame_id
+        cylinder.header.stamp = rospy.Time.now()
+        self._object_pub.publish(cylinder)
+        return (cylinder.id.object_id, cylinder.id.name)
+
+    def add_mesh(self, filename, pose=geometry.create_pose(), frame_id='map', name='mesh'):
+        u"""干渉物体のメッシュを追加する
+
+        Args:
+            filename: stlのファイル名。collision_environment_serverが動作しているPCのパスで与える
+                      例：'/home/hoge/mesh.stl'
+            pose: frame_id基準の位置姿勢
+            frame_id: 物体が属するframe
+        Returns:
+            Tuple[int, str]: 追加物体のID
+        Raises:
+            IOError: ファイルが存在しない
+        """
+        if not os.path.isfile(filename):
+            raise IOError("File '{0}' does not exist.".format(filename))
+        mesh = CollisionObject()
+        shape = Shape()
+        shape.type = Shape.MESH
+        shape.stl_file_name = filename
+        pose = geometry.tuples_to_pose(pose)
+        mesh.operation.operation = CollisionObjectOperation.ADD
+        while _is_object_id_used(self._object_count):
+            self._object_count = self._object_count + 1
+        mesh.id.object_id = self._object_count
+        mesh.id.name = name
+        mesh.shapes = [shape]
+        mesh.poses = [pose]
+        mesh.header.frame_id = frame_id
+        mesh.header.stamp = rospy.Time.now()
+        self._object_pub.publish(mesh)
+        return (mesh.id.object_id, mesh.id.name)
+
+    def remove(self, object_id):
+        u"""衝突検知用の空間から物体を削除
+
+        Args:
+            object_id (Tuple[int, str]): 物体ID
+        Returns:
+            None
+        """
+        number, name = object_id
         collision_object = CollisionObject()
-        collision_object.id = object_id
+        collision_object.id.object_id = number
+        collision_object.id.name = name
         collision_object.operation.operation = CollisionObjectOperation.REMOVE
         self._collision_object_pub.publish(collision_object)
+
+    def remove_all(self):
+        u"""干渉物体をクリアする"""
+        clear = CollisionObject()
+        clear.operation.operation = CollisionObjectOperation.REMOVE
+        clear.id.object_id = 0
+        self._object_count = self._start_object_id
+        clear.id.name = 'all'
+        clear.header.stamp = rospy.Time.now()
+        self._object_pub.publish(clear)
