@@ -22,6 +22,7 @@
   <run_depend>sensor_msgs</run_depend>
   <run_depend>control_msgs</run_depend>
   <run_depend>trajectory_msgs</run_depend>
+  <run_depend>tmc_msgs</run_depend>
   <run_depend>tmc_vision_msgs</run_depend>
   <run_depend>tmc_planning_msgs</run_depend>
   <run_depend>tmc_manipulation_msgs</run_depend>
