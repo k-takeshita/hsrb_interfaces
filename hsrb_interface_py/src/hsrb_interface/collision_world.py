@@ -47,7 +47,8 @@ class CollisionWorld(robot.Item):
                                                      queue_size=1)
         self._environment = CollisionEnvironment()
         self._object_pub = rospy.Publisher('known_object', CollisionObject, queue_size=1)
-        self._start_object_id = 1
+        # デフォルトではobject_idが10000から始まる
+        self._start_object_id = 10000
         self._object_count = self._start_object_id
         self._known_object_ids_sub = utils.CachingSubscriber('known_object_ids', ObjectIdentifierArray, default=ObjectIdentifierArray())
         self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
