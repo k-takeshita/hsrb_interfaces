@@ -14,7 +14,6 @@ from tmc_manipulation_msgs.msg import (
 )
 
 from tmc_msgs.msg import (
-    ObjectIdentifier,
     ObjectIdentifierArray,
 )
 
@@ -73,11 +72,11 @@ class CollisionWorld(robot.Item):
         self._ref_frame_id = value
 
     @property
-    def start_object_id(self):
-        return self._start_object_id
+    def next_object_id(self):
+        return self._object_count
 
-    @start_object_id.setter
-    def start_object_id(self, value):
+    @next_object_id.setter
+    def next_object_id(self, value):
         self._start_object_id = value
         self._object_count = self._start_object_id
 
