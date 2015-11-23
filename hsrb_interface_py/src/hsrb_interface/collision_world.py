@@ -13,11 +13,20 @@ from tmc_manipulation_msgs.msg import (
     CollisionEnvironment,
 )
 
+from tmc_msgs.msg import (
+    ObjectIdentifier,
+    ObjectIdentifierArray,
+)
+
 from tmc_geometric_shapes_msgs.msg import Shape
 from hsrb_interface import geometry
 
 from . import robot
+from . import utils
 from . import settings
+
+# トピック受信待ちタイムアウト[sec]
+_WAIT_TOPIC_TIMEOUT = 20.0
 
 class CollisionWorld(robot.Item):
     u"""衝突検知用環境インターフェース
@@ -38,7 +47,13 @@ class CollisionWorld(robot.Item):
                                                      queue_size=1)
         self._environment = CollisionEnvironment()
         self._object_pub = rospy.Publisher('known_object', CollisionObject, queue_size=1)
-        self._object_count = 0
+        self._start_object_id = 1
+        self._object_count = self._start_object_id
+        self._known_object_ids_sub = utils.CachingSubscriber('known_object_ids', ObjectIdentifierArray, default=ObjectIdentifierArray())
+        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
+
+    def _is_object_id_used(self, id):
+        return id in [x.object_id for x in self._known_object_ids_sub.data.object_ids]
 
     @property
     def known_object_only(self):
@@ -55,6 +70,15 @@ class CollisionWorld(robot.Item):
     @ref_frame_id.setter
     def ref_frame_id(self, value):
         self._ref_frame_id = value
+
+    @property
+    def start_object_id(self):
+        return self._start_object_id
+
+    @start_object_id.setter
+    def start_object_id(self, value):
+        self._start_object_id = value
+        self._object_count = self._start_object_id
 
     @property
     def environment(self):
@@ -101,8 +125,9 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [x, y, z]
         pose = geometry.tuples_to_pose(pose)
         box.operation.operation = CollisionObjectOperation.ADD
+        while self._is_object_id_used(self._object_count):
+            self._object_count = self._object_count + 1
         box.id.object_id = self._object_count
-        self._object_count = self._object_count + 1
         box.id.name = name
         box.shapes = [shape]
         box.poses = [pose]
@@ -127,8 +152,9 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [radius]
         pose = geometry.tuples_to_pose(pose)
         sphere.operation.operation = CollisionObjectOperation.ADD
+        while _is_object_id_used(self._object_count):
+            self._object_count = self._object_count + 1
         sphere.id.object_id = self._object_count
-        self._object_count = self._object_count + 1
         sphere.id.name = name
         sphere.shapes = [shape]
         sphere.poses = [pose]
@@ -154,8 +180,9 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [radius, length]
         pose = geometry.tuples_to_pose(pose)
         cylinder.operation.operation = CollisionObjectOperation.ADD
+        while _is_object_id_used(self._object_count):
+            self._object_count = self._object_count + 1
         cylinder.id.object_id = self._object_count
-        self._object_count = self._object_count + 1
         cylinder.id.name = name
         cylinder.shapes = [shape]
         cylinder.poses = [pose]
@@ -185,8 +212,9 @@ class CollisionWorld(robot.Item):
         shape.stl_file_name = filename
         pose = geometry.tuples_to_pose(pose)
         mesh.operation.operation = CollisionObjectOperation.ADD
+        while _is_object_id_used(self._object_count):
+            self._object_count = self._object_count + 1
         mesh.id.object_id = self._object_count
-        self._object_count = self._object_count + 1
         mesh.id.name = name
         mesh.shapes = [shape]
         mesh.poses = [pose]
@@ -215,7 +243,7 @@ class CollisionWorld(robot.Item):
         clear = CollisionObject()
         clear.operation.operation = CollisionObjectOperation.REMOVE
         clear.id.object_id = 0
-        self._object_count = 0
+        self._object_count = self._start_object_id
         clear.id.name = 'all'
         clear.header.stamp = rospy.Time.now()
         self._object_pub.publish(clear)
