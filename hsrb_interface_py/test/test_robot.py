@@ -17,7 +17,7 @@ def test_resource():
 @patch('rospy.init_node')
 def test_robot_lifecycle(init_mock, shutdown_mock, mock_get_master, mock_buffer, mock_listner):
     r = hsrb_interface.Robot()
-    init_mock.assert_called_with('hsrb_interface_py', anonymous=True)
+    init_mock.assert_called_with('hsrb_interface_py', disable_signals=False, anonymous=True)
     eq_(r.ok(), True)
     r.close()
     shutdown_mock.assert_called_with('shutdown')
@@ -32,7 +32,7 @@ def test_robot_lifecycle(init_mock, shutdown_mock, mock_get_master, mock_buffer,
 def test_robot_with_statement(init_mock, shutdown_mock, mock_get_master, mock_buffer, mock_listner):
     with hsrb_interface.Robot() as r:
         eq_(r.ok(), True)
-        init_mock.assert_called_with('hsrb_interface_py', anonymous=True)
+        init_mock.assert_called_with('hsrb_interface_py', disable_signals=False, anonymous=True)
     shutdown_mock.assert_caleed_with('shutdown')
 
 
