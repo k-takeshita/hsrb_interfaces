@@ -2,7 +2,7 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
+0.5.0 (2015-11-24)
 ------------------
 * Fix #54
 * Support removing collision object by ID
