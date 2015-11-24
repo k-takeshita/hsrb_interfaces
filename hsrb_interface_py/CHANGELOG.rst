@@ -2,6 +2,17 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.0 (2015-11-24)
+------------------
+* Fix #54
+* Support removing collision object by ID
+* Add change base IK weight property
+* Add collision checking
+* Enable Ctrl-C in interactive mode
+* Add joint limits property
+* Display human readable error codes.
+* More friendly error message in WholeBody._change_joint_state()
+
 0.4.0 (2015-08-20)
 ------------------
 * Update documentation
