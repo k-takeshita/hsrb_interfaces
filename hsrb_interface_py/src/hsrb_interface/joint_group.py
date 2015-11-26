@@ -7,6 +7,7 @@ from itertools import repeat
 import tf
 import actionlib
 import rospy
+import urdf_parser_py
 
 from geometry_msgs.msg import Pose
 from sensor_msgs.msg import JointState
@@ -42,19 +43,40 @@ from tmc_planning_msgs.srv import (
 )
 
 from urdf_parser_py.urdf import (
-    JointLimit,
     xmlr,
 )
 
 # urdf_parser_pyのモンキーパッチ
 # https://github.com/k-okada/urdfdom/commit/9c9e28e9f1de29228def48a4d49315b2f4fbf2d2
 # を含むコードがリリースされたら消してOK
-xmlr.reflect(JointLimit, params = [
+xmlr.reflect(urdf_parser_py.urdf.JointLimit, params = [
     xmlr.Attribute('effort', float),
     xmlr.Attribute('lower', float, False, 0),
     xmlr.Attribute('upper', float, False, 0),
     xmlr.Attribute('velocity', float)
     ])
+
+# urdf_parser_pyのモンキーパッチ2
+# http://wiki.ros.org/urdf/XML/link
+# を見るとvisualとcollisionは複数可能になっているのでその対応
+xmlr.reflect(urdf_parser_py.urdf.Link, params = [
+    xmlr.Attribute('name', str),
+    xmlr.Element('origin', urdf_parser_py.urdf.Pose, False),
+    xmlr.Element('inertial', urdf_parser_py.urdf.Inertial, False),
+    xmlr.AggregateElement('visual', urdf_parser_py.urdf.Visual, 'visual'),
+    xmlr.AggregateElement('collision', urdf_parser_py.urdf.Collision, 'collision')
+])
+
+def _get_aggregate_list(self, xml_var):
+    var = self.XML_REFL.paramMap[xml_var].var
+    if not getattr(self, var):
+        self.aggregate_init()
+        setattr(self, var, [])
+    return getattr(self, var)
+
+urdf_parser_py.urdf.Link.get_aggregate_list = _get_aggregate_list
+urdf_parser_py.urdf.Collision.get_aggregate_list = _get_aggregate_list
+urdf_parser_py.urdf.Material.check_valid = lambda self: None
 
 from urdf_parser_py.urdf import Robot as RobotUrdf
 
@@ -733,4 +755,3 @@ class JointGroup(robot.Item):
         except KeyboardInterrupt:
             for client in clients:
                 client.cancel_goal()
-
