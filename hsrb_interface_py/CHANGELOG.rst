@@ -2,6 +2,11 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.1 (2015-11-26)
+------------------
+* Fix empyt id check.
+* utilize resource retriver.
+
 0.5.0 (2015-11-24)
 ------------------
 * Fix #54
