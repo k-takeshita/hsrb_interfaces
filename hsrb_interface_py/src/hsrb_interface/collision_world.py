@@ -152,7 +152,7 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [radius]
         pose = geometry.tuples_to_pose(pose)
         sphere.operation.operation = CollisionObjectOperation.ADD
-        while _is_object_id_used(self._object_count):
+        while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         sphere.id.object_id = self._object_count
         sphere.id.name = name
@@ -180,7 +180,7 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [radius, length]
         pose = geometry.tuples_to_pose(pose)
         cylinder.operation.operation = CollisionObjectOperation.ADD
-        while _is_object_id_used(self._object_count):
+        while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         cylinder.id.object_id = self._object_count
         cylinder.id.name = name
@@ -204,15 +204,13 @@ class CollisionWorld(robot.Item):
         Raises:
             IOError: ファイルが存在しない
         """
-        if not os.path.isfile(filename):
-            raise IOError("File '{0}' does not exist.".format(filename))
         mesh = CollisionObject()
         shape = Shape()
         shape.type = Shape.MESH
         shape.stl_file_name = filename
         pose = geometry.tuples_to_pose(pose)
         mesh.operation.operation = CollisionObjectOperation.ADD
-        while _is_object_id_used(self._object_count):
+        while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         mesh.id.object_id = self._object_count
         mesh.id.name = name
