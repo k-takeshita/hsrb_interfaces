@@ -195,8 +195,8 @@ class CollisionWorld(robot.Item):
         u"""干渉物体のメッシュを追加する
 
         Args:
-            filename: stlのファイル名。collision_environment_serverが動作しているPCのパスで与える
-                      例：'/home/hoge/mesh.stl'
+            filename: stlのファイル名。
+                      例：'http://hoge/mesh.stl, package://your_pkg/mesh/hoge.stl, file:///home/hoge/huge.stl'
             pose: frame_id基準の位置姿勢
             frame_id: 物体が属するframe
         Returns:
