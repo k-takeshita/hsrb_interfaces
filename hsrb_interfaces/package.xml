@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>hsrb_interfaces</name>
-  <version>0.5.1</version>
+  <version>0.5.2</version>
   <description>HSR-B API Libraries</description>
 
   <maintainer email="akiyoshi_ochiai@mail.toyota.co.jp">Akiyoshi Ochiai</maintainer>
