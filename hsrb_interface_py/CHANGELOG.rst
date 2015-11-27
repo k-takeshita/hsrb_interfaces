@@ -2,6 +2,11 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.2 (2015-11-27)
+------------------
+* Add patch to urdf_parser to support multiple visuals and collisions
+* Contributors: 西野 環
+
 0.5.1 (2015-11-26)
 ------------------
 * Fix empyt id check.
