@@ -7,6 +7,10 @@ from sensor_msgs.msg import (
     LaserScan,
 )
 from geometry_msgs.msg import WrenchStamped
+from std_srvs.srv import (
+    Empty,
+    EmptyRequest,
+)
 import hsrb_interface
 import hsrb_interface.sensors
 
@@ -43,21 +47,26 @@ def test_camera(mock_get_entry, mock_connecting, mock_sub_class):
     eq_(image.to_ros(), msg)
 
 
-
+@patch('rospy.ServiceProxy')
 @patch('hsrb_interface.utils.CachingSubscriber')
 @patch('hsrb_interface.Robot.connecting')
 @patch('hsrb_interface.settings.get_entry')
-def test_force_torque(mock_get_entry, mock_connecting, mock_sub_class):
+def test_force_torque(mock_get_entry, mock_connecting,
+                      mock_sub_class, mock_service):
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
-        'name':   "example",
-        'topic': "foo",
+        'name': "example",
+        'raw_topic': "raw_wrench",
+        'compensated_topic': "compensated_wrench",
+        'reset_service': "reset_wrench",
     }
 
     force_torque = hsrb_interface.sensors.ForceTorque('example')
     mock_get_entry.assert_called_with('force_torque', 'example')
 
-    mock_sub_class.assert_called_with("foo", WrenchStamped)
+    mock_sub_class.assert_any_call("raw_wrench", WrenchStamped)
+    mock_sub_class.assert_any_call("compensated_wrench", WrenchStamped)
+
     mock_sub_instance = mock_sub_class.return_value
 
     msg = WrenchStamped()
@@ -69,9 +78,13 @@ def test_force_torque(mock_get_entry, mock_connecting, mock_sub_class):
     msg.wrench.torque.z = 5
     mock_sub_instance.data = msg
 
-    wrench = force_torque.wrench
+    wrench = force_torque.raw
+    eq_(wrench, ((0, 1, 2), (3, 4, 5)))
+    wrench = force_torque.compensated
     eq_(wrench, ((0, 1, 2), (3, 4, 5)))
 
+    force_torque.reset()
+    mock_service.assert_called_with("reset_wrench", Empty)
 
 
 @patch('hsrb_interface.utils.CachingSubscriber')
