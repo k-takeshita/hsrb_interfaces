@@ -175,34 +175,24 @@ class ForceTorque(robot.Item):
 
     @property
     def wrench(self):
-        u"""最新の生値を取得する、廃止予定
+        u"""最新の外力を取得する
 
         Returns:
-            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の生値
+            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の外力[N] or [Nm]
         """
-        warnings.warn("deprecated", DeprecationWarning)
-        return self.raw
+        wrench = self._compensated_sub.data
+        result = (geometry.from_ros_vector3(wrench.wrench.force),
+                  geometry.from_ros_vector3(wrench.wrench.torque))
+        return result
 
     @property
     def raw(self):
         u"""最新の生値を取得する
 
         Returns:
-            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の生値
+            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の生値[N] or [Nm]
         """
         wrench = self._raw_sub.data
-        result = (geometry.from_ros_vector3(wrench.wrench.force),
-                  geometry.from_ros_vector3(wrench.wrench.torque))
-        return result
-
-    @property
-    def compensated(self):
-        u"""最新の自重保証済み値を取得する
-
-        Returns:
-            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の自重保証済み値
-        """
-        wrench = self._compensated_sub.data
         result = (geometry.from_ros_vector3(wrench.wrench.force),
                   geometry.from_ros_vector3(wrench.wrench.torque))
         return result
@@ -215,11 +205,8 @@ class ForceTorque(robot.Item):
         """
         reset_service = rospy.ServiceProxy(self._setting['reset_service'],
                                            Empty)
-        try:
-            res = reset_service(EmptyRequest())
-            return True
-        except rospy.ServiceException:
-            return False
+        reset_service(EmptyRequest())
+        return None
 
 
 class IMU(robot.Item):

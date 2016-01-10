@@ -80,10 +80,10 @@ def test_force_torque(mock_get_entry, mock_connecting,
 
     wrench = force_torque.raw
     eq_(wrench, ((0, 1, 2), (3, 4, 5)))
-    wrench = force_torque.compensated
+    wrench = force_torque.wrench
     eq_(wrench, ((0, 1, 2), (3, 4, 5)))
 
-    force_torque.reset()
+    eq_(None, force_torque.reset())
     mock_service.assert_called_with("reset_wrench", Empty)
 
 
