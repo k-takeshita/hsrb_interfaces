@@ -10,14 +10,11 @@ class ResourceNotFoundError(Exception):
 class TrajectoryLengthError(Exception):
     pass
 
-
 class TrajectoryFilterError(Exception):
     pass
 
-
 class FollowTrajectoryError(Exception):
     pass
-
 
 class PlannerError(Exception):
     pass

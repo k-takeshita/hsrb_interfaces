@@ -1,4 +1,4 @@
-# + "/hsrb/omni_base_controllere!/usr/bin/env python
+#!/usr/bin/env python
 # vim: fileencoding=utf-8
 
 import copy
@@ -26,6 +26,8 @@ from tmc_manipulation_msgs.msg import (
     ArmManipulationErrorCodes,
 )
 from tmc_manipulation_msgs.srv import (
+    SelectConfig,
+    SelectConfigRequest,
     FilterJointTrajectoryWithConstraints,
     FilterJointTrajectoryWithConstraintsRequest,
 )
@@ -153,17 +155,19 @@ def _refer_planning_error(error_code):
         エラーの名前
     """
     error_codes = ArmManipulationErrorCodes.__dict__.items()
-    error_names = [k for k, v in error_codes if v == error_code and k.isupper()]
+    error_names = [k for k, v in error_codes
+                   if v == error_code and k.isupper()]
     if len(error_names) != 0:
         return error_names[0]
     else:
         return str(error_code)
 
 def _extract_trajectory(joint_trajectory, joint_names, joint_state):
-    """関節軌道から指定した関節の軌道のみを抜き出し、残りの関節目標値を現在値で埋める
+    """関節軌道から指定した関節の軌道のみを抜き出し、残りを現在値で埋める
 
     Args:
-        joint_trajectory (trajectory_msgs.msg.JointTrajector): 処理対象のJointTrajectory
+        joint_trajectory (trajectory_msgs.msg.JointTrajector):
+            処理対象のJointTrajectory
         joint_names (List[str]):
         joint_state (sensor_msgs.msg.JointState):
 
@@ -289,6 +293,46 @@ class FollowTrajectoryActionClient(object):
     def controller_name(self):
         return self._controller_name
 
+class ImpedanceControlActionClient(FollowTrajectoryActionClient):
+    u"""インピーダンス制御のクライアント処理ラッパー
+
+    Args:
+        controller_name (str):    接続するROSコントローラの名前
+        joint_names_suffix (str): コントローラ名前空間内の、制御対象関節名パラメータの名前
+
+    """
+    def __init__(self, controller_name, joint_names_suffix="/joint_names"):
+        FollowTrajectoryActionClient.__init__(
+            self, controller_name, joint_names_suffix)
+        self._impedance_config = None
+        self._impedance_config_names =\
+            rospy.get_param(controller_name + "/config_names")
+
+    @property
+    def impedance_config(self):
+        return self._impedance_config
+
+    @impedance_config.setter
+    def impedance_config(self, value):
+        if value is not None:
+            setter_service = rospy.ServiceProxy(
+                self._controller_name + "/select_config", SelectConfig)
+            req = SelectConfigRequest()
+            req.name = value
+            try:
+                res = setter_service.call(req)
+                if not res.is_success:
+                    raise exceptions.FollowTrajectoryError(
+                        "Failed to set impedance config")
+            except rospy.ServiceException:
+                import traceback
+                traceback.print_exc()
+                raise
+        self._impedance_config = value
+
+    @property
+    def impedance_config_names(self):
+        return self._impedance_config_names
 
 class JointGroup(robot.Item):
     u"""関節グループの制御を行うクラス
@@ -297,12 +341,20 @@ class JointGroup(robot.Item):
     def __init__(self, name):
         super(JointGroup, self).__init__()
         self._setting = settings.get_entry('joint_group', name)
-        self._arm_client = FollowTrajectoryActionClient(self._setting['arm_controller_prefix'])
-        self._head_client = FollowTrajectoryActionClient(self._setting['head_controller_prefix'])
-        self._hand_client = FollowTrajectoryActionClient(self._setting["hand_controller_prefix"])
-        self._base_client = FollowTrajectoryActionClient(self._setting["omni_base_controller_prefix"], "/base_coordinates")
+        self._arm_client = FollowTrajectoryActionClient(
+            self._setting['arm_controller_prefix'])
+        self._head_client = FollowTrajectoryActionClient(
+            self._setting['head_controller_prefix'])
+        self._hand_client = FollowTrajectoryActionClient(
+            self._setting["hand_controller_prefix"])
+        self._base_client = FollowTrajectoryActionClient(
+            self._setting["omni_base_controller_prefix"], "/base_coordinates")
+        self._impedance_client = ImpedanceControlActionClient(
+            self._setting["impedance_control"], "/joint_names")
         joint_state_topic = self._setting["joint_states_topic"]
-        self._joint_state_sub = utils.CachingSubscriber(joint_state_topic, JointState, default=JointState())
+        self._joint_state_sub = utils.CachingSubscriber(joint_state_topic,
+                                                        JointState,
+                                                        default=JointState())
         timeout = self._setting.get('timeout', None)
         self._joint_state_sub.wait_for_message(timeout)
         self._tf2_buffer = robot._get_tf2_buffer()
@@ -389,6 +441,17 @@ class JointGroup(robot.Item):
     def planning_timeout(self, value):
         self._planning_timeout = value
 
+    @property
+    def impedance_config(self):
+        return self._impedance_client.impedance_config
+
+    @impedance_config.setter
+    def impedance_config(self, value):
+        self._impedance_client.impedance_config = value
+
+    @property
+    def impedance_config_names(self):
+        return self._impedance_client.impedance_config_names
 
     def _change_joint_state(self, goal_state):
         u"""干渉を考慮した指定関節角度までの遷移
@@ -609,11 +672,13 @@ class JointGroup(robot.Item):
         )
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('hand')
-        odom_to_robot_transform = self._tf2_buffer.lookup_transform(settings.get_frame('odom'),
-                                                                    settings.get_frame('base'),
-                                                                    rospy.Time(0),
-                                                                    rospy.Duration(_TF_TIMEOUT))
-        odom_to_robot_pose = geometry.tuples_to_pose(geometry.transform_to_tuples(odom_to_robot_transform.transform))
+        odom_to_robot_transform = self._tf2_buffer.lookup_transform(
+            settings.get_frame('odom'),
+            settings.get_frame('base'),
+            rospy.Time(0),
+            rospy.Duration(_TF_TIMEOUT))
+        odom_to_robot_pose = geometry.tuples_to_pose(
+            geometry.transform_to_tuples(odom_to_robot_transform.transform))
 
         req = PlanWithHandLineRequest()
         req.base_movement_type.val = BaseMovementType.PLANAR
@@ -644,92 +709,129 @@ class JointGroup(robot.Item):
         res.base_solution.header.frame_id = settings.get_frame('odom')
         self._play_trajectory(res.solution, res.base_solution)
 
-    def _play_trajectory(self, joint_trajectory, base_trajectory=None):
+    def _play_trajectory(self, joint_trajectory, base_trajectory):
         u"""指定の軌道を再生する
 
         Args:
             joint_trajectory (trajectory_msgs.msg.JointTrajectory): 関節軌道
             base_trajectory (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory): 台車の軌道
-            do_activate_hand (bool): ハンドを動かすかどうか
         Returns:
             None
         """
-        if base_trajectory is None:
-            clients = [self._head_client, self._arm_client]
-            return self._execute_trajectory(clients, joint_trajectory)
+        whole_body_trajectory = self._build_whole_body_trajectory(
+            joint_trajectory, base_trajectory)
+        constrained_trajectory = self._constrain_trajectory(
+            whole_body_trajectory)
+
+        clients = []
+        if self._impedance_client.impedance_config is not None:
+            clients.append(self._impedance_client)
         else:
-            clients = [self._head_client, self._arm_client, self._base_client]
-            if len(joint_trajectory.points) != len(base_trajectory.points):
-                raise exceptions.TrajectoryLengthError("Uneven joint_trajectory size and base_trajectory size.")
+            clients.extend([self._arm_client, self._base_client])
+        for joint in constrained_trajectory.joint_names:
+            if joint in self._head_client.joint_names:
+                clients.append(self._head_client)
+                break
+        self._execute_trajectory(clients, constrained_trajectory)
 
-            odom_to_frame_transform = self._tf2_buffer.lookup_transform(_BASE_TRAJECTORY_ORIGIN,
-                                                                        base_trajectory.header.frame_id,
-                                                                        rospy.Time(0),
-                                                                        rospy.Duration(_TF_TIMEOUT))
-            odom_to_frame = geometry.transform_to_tuples(odom_to_frame_transform.transform)
 
-            num_points = len(joint_trajectory.points)
-            odom_base_trajectory = JointTrajectory()
-            odom_base_trajectory.points = list(utils.iterate(JointTrajectoryPoint, num_points))
-            odom_base_trajectory.header = base_trajectory.header
-            odom_base_trajectory.joint_names = self._base_client.joint_names
+    def _build_whole_body_trajectory(self, joint_trajectory, base_trajectory):
+        u"""関節軌道と台車軌道を組み合わせて全身軌道を生成する
 
-            # 各ポイントをodom座標系に変換する
-            previous_theta = 0.0
-            for i in range(num_points):
-                t = base_trajectory.points[i].transforms[0]
-                frame_to_base = geometry.transform_to_tuples(t)
+        Args:
+            joint_trajectory (trajectory_msgs.msg.JointTrajectory): 関節軌道
+            base_trajectory (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory): 台車の軌道
+        Returns:
+            trajectory_msgs.msg.JointTrajectory: 全身軌道
+        """
+        if len(joint_trajectory.points) != len(base_trajectory.points):
+            raise exceptions.TrajectoryLengthError(
+                "Uneven joint_trajectory size and base_trajectory size.")
 
-                # odom_to_base = odom_to_frame * frame_to_base
-                (odom_to_base_trans, odom_to_base_rot) = geometry.multiply_tuples(odom_to_frame, frame_to_base)
+        odom_to_frame_transform = self._tf2_buffer.lookup_transform(
+            _BASE_TRAJECTORY_ORIGIN,
+            base_trajectory.header.frame_id,
+            rospy.Time(0),
+            rospy.Duration(_TF_TIMEOUT))
+        odom_to_frame = geometry.transform_to_tuples(
+            odom_to_frame_transform.transform)
 
-                odom_base_trajectory.points[i].positions = [0, 0, 0]
-                odom_base_trajectory.points[i].positions[0] = odom_to_base_trans[0]
-                odom_base_trajectory.points[i].positions[1] = odom_to_base_trans[1]
+        num_points = len(joint_trajectory.points)
+        odom_base_trajectory = JointTrajectory()
+        odom_base_trajectory.points = list(
+            utils.iterate(JointTrajectoryPoint, num_points))
+        odom_base_trajectory.header = base_trajectory.header
+        odom_base_trajectory.joint_names = self._base_client.joint_names
 
-                roll, pitch, yaw = tf.transformations.euler_from_quaternion(odom_to_base_rot)
-                theta = previous_theta + geometry.shortest_angular_distance(previous_theta, yaw)
+        # 各ポイントをodom座標系に変換する
+        previous_theta = 0.0
+        for i in range(num_points):
+            t = base_trajectory.points[i].transforms[0]
+            frame_to_base = geometry.transform_to_tuples(t)
 
-                odom_base_trajectory.points[i].positions[2] = theta
-                previous_theta = theta
-            # 台車と腕の軌道をマージ
-            merged_trajectory = _merge_trajectory(joint_trajectory, odom_base_trajectory)
+            # odom_to_base = odom_to_frame * frame_to_base
+            (odom_to_base_trans, odom_to_base_rot) =\
+                geometry.multiply_tuples(odom_to_frame, frame_to_base)
 
-            # 軌道を再生
-            return self._execute_trajectory(clients, merged_trajectory)
+            odom_base_trajectory.points[i].positions = [0, 0, 0]
+            odom_base_trajectory.points[i].positions[0] =\
+                odom_to_base_trans[0]
+            odom_base_trajectory.points[i].positions[1] =\
+                odom_to_base_trans[1]
 
+            roll, pitch, yaw = tf.transformations.euler_from_quaternion(
+                odom_to_base_rot)
+            theta = previous_theta +\
+                    geometry.shortest_angular_distance(previous_theta, yaw)
+
+            odom_base_trajectory.points[i].positions[2] = theta
+            previous_theta = theta
+        # 台車と腕の軌道をマージ
+        return _merge_trajectory(joint_trajectory, odom_base_trajectory)
+    
+    def _constrain_trajectory(self, trajectory):
+        u"""軌道に制約を課す
+
+        Parameters:
+            trajectory (trajectory_msgs.msg.JointTrajectory): 関節軌道
+        Returns:
+            trajectory_msgs.msg.JointTrajectory: 制約された関節軌道
+        Raises:
+            TrajectoryFilterError: 関節軌道フィルタが失敗した
+        """
+        filter_service = rospy.ServiceProxy(
+            self._setting["trajectory_filter_service"],
+            FilterJointTrajectoryWithConstraints)
+        req = FilterJointTrajectoryWithConstraintsRequest()
+        req.trajectory = trajectory
+        req.allowed_time = rospy.Duration(_TRAJECTORY_FILTER_TIMEOUT)
+        try:
+            res = filter_service.call(req)
+            if res.error_code.val != res.error_code.SUCCESS:
+                raise exceptions.TrajectoryFilterError(
+                    "Failed to filter trajectory: {0}".fomrat(
+                        res.error_code.val))
+        except rospy.ServiceException:
+            import traceback
+            traceback.print_exc()
+            raise
+        return res.trajectory
 
     def _execute_trajectory(self, clients, joint_trajectory):
         u"""軌道再生を実行する
 
         Parameters:
             clients (List[FollowTrajectoryActionClient]):
-            joint_trajectory (trajectory_msgs.msg.JointTrajectory): 再生する関節軌道
-            interrupt (callable):
+            joint_trajectory (trajectory_msgs.msg.JointTrajectory):
+                再生する関節軌道
         Returns:
             None
-        Raises:
-            TrajectoryFilterError: 関節軌道フィルタが失敗した
         """
-        filter_service = rospy.ServiceProxy(self._setting["trajectory_filter_service"],
-                                            FilterJointTrajectoryWithConstraints)
-        req = FilterJointTrajectoryWithConstraintsRequest()
-        req.trajectory = joint_trajectory
-        req.allowed_time = rospy.Duration(_TRAJECTORY_FILTER_TIMEOUT)
-        try:
-            res = filter_service.call(req)
-            if res.error_code.val != res.error_code.SUCCESS:
-                raise exceptions.TrajectoryFilterError("Failed to filter trajectory: {0}".fomrat(res.error_code.val))
-        except rospy.ServiceException:
-            import traceback
-            traceback.print_exc()
-            raise
-        filtered_traj = res.trajectory
-
         joint_states = self._get_joint_state()
 
         for client in clients:
-            traj = _extract_trajectory(filtered_traj, client.joint_names, joint_states)
+            traj = _extract_trajectory(
+                joint_trajectory, client.joint_names, joint_states)
             client.send_goal(traj)
 
         rate = rospy.Rate(_TRAJECTORY_RATE)
@@ -744,14 +846,14 @@ class JointGroup(robot.Item):
                 if any(map(lambda s: s not in ok_set, states)):
                     log = []
                     for c in clients:
-                        log.append("{0}={1}".format(c.controller_name, c.get_state()))
+                        log.append("{0}={1}".format(c.controller_name,
+                                                    c.get_state()))
                         c.cancel_goal()
                     text = "Playing trajecotry failed: {0}".format(', '.join(log))
                     raise exceptions.FollowTrajectoryError(text)
                 if all(map(lambda s: s == actionlib.GoalStatus.SUCCEEDED, states)):
                     break
                 rate.sleep()
-            return (client.get_results() for client in clients)
         except KeyboardInterrupt:
             for client in clients:
                 client.cancel_goal()

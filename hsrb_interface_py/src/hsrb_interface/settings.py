@@ -42,6 +42,7 @@ HSRB = """
             "head_controller_prefix":         "/hsrb/head_trajectory_controller",
             "hand_controller_prefix":         "/hsrb/gripper_controller",
             "omni_base_controller_prefix":    "/hsrb/omni_base_controller",
+            "impedance_control":              "/hsrb/impedance_control",
             "trajectory_filter_service":      "/trajectory_filter/filter_trajectory_with_constraints",
             "plan_with_constraints_service":  "/plan_with_constraints",
             "plan_with_hand_goals_service":   "/plan_with_hand_goals",
