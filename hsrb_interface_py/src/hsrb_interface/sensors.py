@@ -4,6 +4,8 @@
 
 from cv_bridge import CvBridge
 import numpy as np
+import warnings
+import rospy
 
 from sensor_msgs.msg import (
     Image as ROSImage,
@@ -12,6 +14,11 @@ from sensor_msgs.msg import (
 )
 
 from geometry_msgs.msg import WrenchStamped
+
+from std_srvs.srv import (
+    Empty,
+    EmptyRequest,
+)
 
 from . import robot
 from . import utils
@@ -156,24 +163,50 @@ class ForceTorque(robot.Item):
     def __init__(self, name):
         super(ForceTorque, self).__init__()
         self._setting = settings.get_entry('force_torque', name)
-        topic = self._setting['topic']
-        self._name = name
-        self._sub = utils.CachingSubscriber(topic, WrenchStamped)
+        raw_topic = self._setting['raw_topic']
+        self._raw_sub = utils.CachingSubscriber(raw_topic, WrenchStamped)
+        compensated_topic = self._setting['compensated_topic']
+        self._compensated_sub = utils.CachingSubscriber(compensated_topic,
+                                                        WrenchStamped)
 
         timeout = self._setting.get('timeout', None)
-        self._sub.wait_for_message(timeout)
+        self._raw_sub.wait_for_message(timeout)
+        self._compensated_sub.wait_for_message(timeout)
 
     @property
     def wrench(self):
-        u"""最新の値を取得する
+        u"""最新の外力を取得する
 
         Returns:
-            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の取得値
+            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の外力[N] or [Nm]
         """
-        wrench = self._sub.data
+        wrench = self._compensated_sub.data
         result = (geometry.from_ros_vector3(wrench.wrench.force),
                   geometry.from_ros_vector3(wrench.wrench.torque))
         return result
+
+    @property
+    def raw(self):
+        u"""最新の生値を取得する
+
+        Returns:
+            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の生値[N] or [Nm]
+        """
+        wrench = self._raw_sub.data
+        result = (geometry.from_ros_vector3(wrench.wrench.force),
+                  geometry.from_ros_vector3(wrench.wrench.torque))
+        return result
+
+    def reset(self):
+        u"""自重補償のオフセットをリセットする
+
+        Returns:
+            Bool: リセット指令の送信に成功した場合Trueを返す
+        """
+        reset_service = rospy.ServiceProxy(self._setting['reset_service'],
+                                           Empty)
+        reset_service(EmptyRequest())
+        return None
 
 
 class IMU(robot.Item):

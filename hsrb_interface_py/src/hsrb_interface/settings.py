@@ -105,7 +105,9 @@ HSRB = """
     "force_torque": {
         "wrist_wrench": {
             "class": ["sensors", "ForceTorque"],
-            "topic": "/hsrb/wrist_wrench",
+            "raw_topic": "/hsrb/wrist_wrench/raw",
+            "compensated_topic": "/hsrb/wrist_wrench/compensated",
+            "reset_service": "/hsrb/wrist_wrench/readjust_offset",
             "timeout": 1.0
         }
     },
