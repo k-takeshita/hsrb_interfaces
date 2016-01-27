@@ -302,18 +302,17 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
 
     """
     def __init__(self, controller_name, joint_names_suffix="/joint_names"):
-        FollowTrajectoryActionClient.__init__(
+        super(ImpedanceControlActionClient, self).__init__(
             self, controller_name, joint_names_suffix)
-        self._impedance_config = None
-        self._impedance_config_names =\
-            rospy.get_param(controller_name + "/config_names")
+        self._config = None
+        self._config_names = rospy.get_param(controller_name + "/config_names")
 
     @property
-    def impedance_config(self):
-        return self._impedance_config
+    def config(self):
+        return self._config
 
-    @impedance_config.setter
-    def impedance_config(self, value):
+    @config.setter
+    def config(self, value):
         if value is not None:
             setter_service = rospy.ServiceProxy(
                 self._controller_name + "/select_config", SelectConfig)
@@ -328,11 +327,11 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
                 import traceback
                 traceback.print_exc()
                 raise
-        self._impedance_config = value
+        self._config = value
 
     @property
-    def impedance_config_names(self):
-        return self._impedance_config_names
+    def config_names(self):
+        return self._config_names
 
 class JointGroup(robot.Item):
     u"""関節グループの制御を行うクラス
@@ -443,15 +442,15 @@ class JointGroup(robot.Item):
 
     @property
     def impedance_config(self):
-        return self._impedance_client.impedance_config
+        return self._impedance_client.config
 
     @impedance_config.setter
     def impedance_config(self, value):
-        self._impedance_client.impedance_config = value
+        self._impedance_client.config = value
 
     @property
     def impedance_config_names(self):
-        return self._impedance_client.impedance_config_names
+        return self._impedance_client.config_names
 
     def _change_joint_state(self, goal_state):
         u"""干渉を考慮した指定関節角度までの遷移
@@ -724,7 +723,7 @@ class JointGroup(robot.Item):
             whole_body_trajectory)
 
         clients = []
-        if self._impedance_client.impedance_config is not None:
+        if self._impedance_client.config is not None:
             clients.append(self._impedance_client)
         else:
             clients.extend([self._arm_client, self._base_client])
@@ -773,12 +772,9 @@ class JointGroup(robot.Item):
             (odom_to_base_trans, odom_to_base_rot) =\
                 geometry.multiply_tuples(odom_to_frame, frame_to_base)
 
-            odom_base_trajectory.points[i].positions = [0, 0, 0]
-            odom_base_trajectory.points[i].positions[0] =\
-                odom_to_base_trans[0]
-            odom_base_trajectory.points[i].positions[1] =\
-                odom_to_base_trans[1]
-
+            odom_base_trajectory.points[i].positions = [odom_to_base_trans[0],
+                                                        odom_to_base_trans[1],
+                                                        0]
             roll, pitch, yaw = tf.transformations.euler_from_quaternion(
                 odom_to_base_rot)
             theta = previous_theta +\
