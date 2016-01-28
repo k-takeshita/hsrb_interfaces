@@ -303,21 +303,17 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
     """
     def __init__(self, controller_name, joint_names_suffix="/joint_names"):
         super(ImpedanceControlActionClient, self).__init__(
-            self, controller_name, joint_names_suffix)
+            controller_name, joint_names_suffix)
         self._config = None
         self._config_names = rospy.get_param(controller_name + "/config_names")
 
-    @property
-    def config(self):
-        return self._config
-
-    @config.setter
-    def config(self, value):
-        if value is not None:
+    def send_goal(self, trajectory):
+        u"""ゴールをコントローラに送る"""
+        if self._config is not None:
             setter_service = rospy.ServiceProxy(
                 self._controller_name + "/select_config", SelectConfig)
             req = SelectConfigRequest()
-            req.name = value
+            req.name = self._config
             try:
                 res = setter_service.call(req)
                 if not res.is_success:
@@ -327,7 +323,26 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
                 import traceback
                 traceback.print_exc()
                 raise
-        self._config = value
+        else:
+            raise exceptions.FollowTrajectoryError(
+                "Impedance config is None. But impedance control is called.")
+        goal = FollowJointTrajectoryGoal()
+        goal.trajectory = trajectory
+        self._client.send_goal(goal)
+
+    @property
+    def config(self):
+        return self._config
+
+    @config.setter
+    def config(self, value):
+        if value in self._config_names:
+            self._config = value
+        elif value is None:
+            self._config = None
+        else:
+            raise exceptions.FollowTrajectoryError(
+                "Failed to set impedance config")
 
     @property
     def config_names(self):
