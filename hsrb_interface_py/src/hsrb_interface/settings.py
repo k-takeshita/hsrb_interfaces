@@ -129,7 +129,7 @@ HSRB = """
         "battery": {
             "class": ["battery", "Battery"],
             "topic": "/hsrb/battery_state",
-            "timeout": 1.0
+            "timeout": 2.0
         }
     },
     "text_to_speech": {
