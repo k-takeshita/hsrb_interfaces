@@ -305,7 +305,8 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
         super(ImpedanceControlActionClient, self).__init__(
             controller_name, joint_names_suffix)
         self._config = None
-        self._config_names = rospy.get_param(controller_name + "/config_names")
+        self._config_names = rospy.get_param(
+            controller_name + "/config_names", [])
 
     def send_goal(self, trajectory):
         u"""ゴールをコントローラに送る"""
@@ -346,6 +347,8 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
 
     @property
     def config_names(self):
+        self._config_names = rospy.get_param(
+            controller_name + "/config_names", [])
         return self._config_names
 
 class JointGroup(robot.Item):
