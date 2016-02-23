@@ -261,7 +261,7 @@ def get_entry_by_name(name):
         for key, config in entries.items():
             if name == key:
                 return section, config
-    raise exceptions.ResourceNotFoundError("Item {0} is not found".format(section, name))
+    raise exceptions.ResourceNotFoundError("Item {0} is not found".format(name))
 
 
 def get_section(section):
