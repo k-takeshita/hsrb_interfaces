@@ -506,11 +506,11 @@ class JointGroup(robot.Item):
         return self._impedance_client.config_names
 
     @property
-    u"""最短時間制御を使うかのフラグ。Trueだと台車が最短時間制御で動く。"""
     def use_base_timeopt(self):
+        u"""最短時間制御を使うかのフラグ。Trueだと台車が最短時間制御で動く。"""
         return self._use_base_timeopt
 
-    @base_timeopt.setter
+    @use_base_timeopt.setter
     def use_base_timeopt(self, value):
         self._use_base_timeopt = value
 
