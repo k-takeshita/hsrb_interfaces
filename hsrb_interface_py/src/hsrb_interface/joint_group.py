@@ -252,6 +252,7 @@ def _adjust_trajectory_time(trajectory1, trajectory2):
     """
     trajectory2の経由点の時間をtrajectory1の方に合わせる
     速度、加速度は差分で作りなおす
+    それぞれの軌道のtime_from_startは揃っている必要がある。
     """
     if len(trajectory1.points) != len(trajectory2.points):
         raise ValueError
@@ -264,14 +265,15 @@ def _adjust_trajectory_time(trajectory1, trajectory2):
         dt = trajectory2.points[index+1].time_from_start.to_sec() - trajectory2.points[index].time_from_start.to_sec()
         trajectory2.points[index].velocities = [(x1-x0)/dt for (x0, x1) in zip(trajectory2.points[index].positions,
                                                                            trajectory2.points[index+1].positions)]
-    trajectory2.points[-1].velocities = [0]*len(trajectory2.joint_names)
+    zero_vector2 = [0]*len(trajectory2.joint_names)
+    trajectory2.points[-1].velocities = zero_vector2
     # trajecotry2の加速度を差分で作りなおす
-    trajectory2.points[0].accelerations = [0]*len(trajectory2.joint_names)
+    trajectory2.points[0].accelerations = zero_vector2
     for index in range(1, num_points-1):
         dt = trajectory2.points[index+1].time_from_start.to_sec() - trajectory2.points[index-1].time_from_start.to_sec()
         trajectory2.points[index].accelerations = [(x1-x0)/dt for (x0, x1) in zip(trajectory2.points[index-1].velocities,
                                                                               trajectory2.points[index+1].velocities)]
-    trajectory2.points[-1].accelerations = [0]*len(trajectory2.joint_names)
+    trajectory2.points[-1].accelerations = zero_vector2
 
 class FollowTrajectoryActionClient(object):
     u"""関節軌道追従アクションのクライアント処理ラッパー
@@ -414,7 +416,7 @@ class JointGroup(robot.Item):
         self._linear_weight = 3.0
         self._angular_weight = 1.0
         self._planning_timeout = _PLANNING_ARM_TIMEOUT
-        self._base_timeopt = True
+        self._use_base_timeopt = True
 
     def _get_joint_state(self):
         u"""
@@ -504,12 +506,13 @@ class JointGroup(robot.Item):
         return self._impedance_client.config_names
 
     @property
-    def base_timeopt(self):
-        return self._base_timeopt
+    u"""最短時間制御を使うかのフラグ。Trueだと台車が最短時間制御で動く。"""
+    def use_base_timeopt(self):
+        return self._use_base_timeopt
 
     @base_timeopt.setter
-    def base_timeopt(self, value):
-        self._base_timeopt = value
+    def use_base_timeopt(self, value):
+        self._use_base_timeopt = value
 
     def _change_joint_state(self, goal_state):
         u"""干渉を考慮した指定関節角度までの遷移
@@ -795,7 +798,7 @@ class JointGroup(robot.Item):
 
         Args:
             joint_trajectory (trajectory_msgs.msg.JointTrajectory): 関節軌道
-            base_trajectory (trajectory_msgs.msg.JointTrajectory): odom基準の台車の軌道
+            odom_base_trajectory (trajectory_msgs.msg.JointTrajectory): odom基準の台車の軌道
         Returns:
             trajectory_msgs.msg.JointTrajectory: 全身軌道
         """
@@ -881,8 +884,7 @@ class JointGroup(robot.Item):
             raise
         filtered_merged_trajectory = res.trajectory
         all_joint_time = filtered_merged_trajectory.points[-1].time_from_start.to_sec()
-        # print "all_joint_time: %f" % all_joint_time
-        if not self._base_timeopt:
+        if not self._use_base_timeopt:
             return filtered_merged_trajectory
         # 台車と腕の軌道をそれぞれ時系列軌道に変換
         filtered_joint_trajectory = self._filter_arm_trajectory(joint_trajectory)
@@ -890,13 +892,10 @@ class JointGroup(robot.Item):
         arm_joint_time = filtered_joint_trajectory.points[-1].time_from_start.to_sec()
         base_timeopt_time = filtered_base_trajectory.points[-1].time_from_start.to_sec()
 
-        # print "arm_joint_time: %f" % arm_joint_time
-        # print "base_timeopt_time: %f" % base_timeopt_time
         # 軌道を再生
         # 台車の軌道が遅い場合のみ腕の軌道を遅らせる
         # (1) arm_joint_time < base_timeopt_time: use timeopt trajectory
         if arm_joint_time < base_timeopt_time:
-            # print "using timeopt trajectory..."
             # 腕の各経由点を台車の方に(できるだけ)合わせる
             _adjust_trajectory_time(filtered_base_trajectory, filtered_joint_trajectory)
             return _merge_trajectory(filtered_joint_trajectory, filtered_base_trajectory)
@@ -969,7 +968,7 @@ class JointGroup(robot.Item):
     def _filter_base_trajectory(self, base_trajectory):
         u"""全方位台車の軌道をtimeoptフィルタで時系列軌道に変換する
         """
-        filter_service = rospy.ServiceProxy(self._setting["omni_base_timeopt_filter"], FilterJointTrajectory)
+        filter_service = rospy.ServiceProxy(self._setting["omni_base_timeopt_service"], FilterJointTrajectory)
         req = FilterJointTrajectoryRequest()
         req.trajectory = base_trajectory
         try:
