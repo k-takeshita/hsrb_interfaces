@@ -28,6 +28,8 @@ from tmc_manipulation_msgs.msg import (
 from tmc_manipulation_msgs.srv import (
     SelectConfig,
     SelectConfigRequest,
+    FilterJointTrajectory,
+    FilterJointTrajectoryRequest,
     FilterJointTrajectoryWithConstraints,
     FilterJointTrajectoryWithConstraintsRequest,
 )
@@ -241,6 +243,38 @@ def _merge_trajectory(original_trajectory, additional_trajectory):
     return merged
 
 
+def _shift_trajectory_time(trajectory, index, time):
+    """trajectoryのindex番目の経由点以降のtime_from_startにtimeを追加する"""
+    for x in trajectory.points[index:]:
+        x.time_from_start += time
+
+def _adjust_trajectory_time(trajectory1, trajectory2):
+    """
+    trajectory2の経由点の時間をtrajectory1の方に合わせる
+    速度、加速度は差分で作りなおす
+    それぞれの軌道のtime_from_startは揃っている必要がある。
+    """
+    if len(trajectory1.points) != len(trajectory2.points):
+        raise ValueError
+    num_points = len(trajectory1.points)
+    # trajectory2の各点のtime_from_startをtrajectory1に合わせる
+    for (point1, point2) in zip(trajectory1.points, trajectory2.points):
+        point2.time_from_start = point1.time_from_start
+    # trajecotry2の速度を差分で作りなおす
+    for index in range(num_points-1):
+        dt = trajectory2.points[index+1].time_from_start.to_sec() - trajectory2.points[index].time_from_start.to_sec()
+        trajectory2.points[index].velocities = [(x1-x0)/dt for (x0, x1) in zip(trajectory2.points[index].positions,
+                                                                           trajectory2.points[index+1].positions)]
+    zero_vector2 = [0]*len(trajectory2.joint_names)
+    trajectory2.points[-1].velocities = zero_vector2
+    # trajecotry2の加速度を差分で作りなおす
+    trajectory2.points[0].accelerations = zero_vector2
+    for index in range(1, num_points-1):
+        dt = trajectory2.points[index+1].time_from_start.to_sec() - trajectory2.points[index-1].time_from_start.to_sec()
+        trajectory2.points[index].accelerations = [(x1-x0)/dt for (x0, x1) in zip(trajectory2.points[index-1].velocities,
+                                                                              trajectory2.points[index+1].velocities)]
+    trajectory2.points[-1].accelerations = zero_vector2
+
 class FollowTrajectoryActionClient(object):
     u"""関節軌道追従アクションのクライアント処理ラッパー
 
@@ -382,6 +416,7 @@ class JointGroup(robot.Item):
         self._linear_weight = 3.0
         self._angular_weight = 1.0
         self._planning_timeout = _PLANNING_ARM_TIMEOUT
+        self._use_base_timeopt = True
 
     def _get_joint_state(self):
         u"""
@@ -469,6 +504,15 @@ class JointGroup(robot.Item):
     @property
     def impedance_config_names(self):
         return self._impedance_client.config_names
+
+    @property
+    def use_base_timeopt(self):
+        u"""最短時間制御を使うかのフラグ。Trueだと台車が最短時間制御で動く。"""
+        return self._use_base_timeopt
+
+    @use_base_timeopt.setter
+    def use_base_timeopt(self, value):
+        self._use_base_timeopt = value
 
     def _change_joint_state(self, goal_state):
         u"""干渉を考慮した指定関節角度までの遷移
@@ -735,10 +779,7 @@ class JointGroup(robot.Item):
         Returns:
             None
         """
-        whole_body_trajectory = self._build_whole_body_trajectory(
-            joint_trajectory, base_trajectory)
-        constrained_trajectory = self._constrain_trajectory(
-            whole_body_trajectory)
+        constrained_trajectory = self._constrain_trajectory(joint_trajectory, base_trajectory)
 
         clients = []
         if self._impedance_client.config is not None:
@@ -752,19 +793,28 @@ class JointGroup(robot.Item):
         self._execute_trajectory(clients, constrained_trajectory)
 
 
-    def _build_whole_body_trajectory(self, joint_trajectory, base_trajectory):
+    def _build_whole_body_trajectory(self, joint_trajectory, odom_base_trajectory):
         u"""関節軌道と台車軌道を組み合わせて全身軌道を生成する
 
         Args:
             joint_trajectory (trajectory_msgs.msg.JointTrajectory): 関節軌道
-            base_trajectory (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory): 台車の軌道
+            odom_base_trajectory (trajectory_msgs.msg.JointTrajectory): odom基準の台車の軌道
         Returns:
             trajectory_msgs.msg.JointTrajectory: 全身軌道
         """
-        if len(joint_trajectory.points) != len(base_trajectory.points):
+        if len(joint_trajectory.points) != len(odom_base_trajectory.points):
             raise exceptions.TrajectoryLengthError(
                 "Uneven joint_trajectory size and base_trajectory size.")
+        # 台車と腕の軌道をマージ
+        return _merge_trajectory(joint_trajectory, odom_base_trajectory)
 
+    def _transform_base_trajectory(self, base_trajectory):
+        u"""" 台車軌道をodom座標系に変換する。
+        Args:
+            base_trajectory (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory): 台車の軌道
+        Returns:
+            trajectory_msgs.msg.JointTrajectory: x,y,yawで記述された台車軌道
+        """
         odom_to_frame_transform = self._tf2_buffer.lookup_transform(
             _BASE_TRAJECTORY_ORIGIN,
             base_trajectory.header.frame_id,
@@ -773,7 +823,7 @@ class JointGroup(robot.Item):
         odom_to_frame = geometry.transform_to_tuples(
             odom_to_frame_transform.transform)
 
-        num_points = len(joint_trajectory.points)
+        num_points = len(base_trajectory.points)
         odom_base_trajectory = JointTrajectory()
         odom_base_trajectory.points = list(
             utils.iterate(JointTrajectoryPoint, num_points))
@@ -800,10 +850,9 @@ class JointGroup(robot.Item):
 
             odom_base_trajectory.points[i].positions[2] = theta
             previous_theta = theta
-        # 台車と腕の軌道をマージ
-        return _merge_trajectory(joint_trajectory, odom_base_trajectory)
-    
-    def _constrain_trajectory(self, trajectory):
+        return odom_base_trajectory
+
+    def _constrain_trajectory(self, joint_trajectory, base_trajectory):
         u"""軌道に制約を課す
 
         Parameters:
@@ -813,6 +862,10 @@ class JointGroup(robot.Item):
         Raises:
             TrajectoryFilterError: 関節軌道フィルタが失敗した
         """
+        odom_base_trajectory = self._transform_base_trajectory(base_trajectory)
+        trajectory = self._build_whole_body_trajectory(
+            joint_trajectory, odom_base_trajectory)
+
         filter_service = rospy.ServiceProxy(
             self._setting["trajectory_filter_service"],
             FilterJointTrajectoryWithConstraints)
@@ -829,7 +882,25 @@ class JointGroup(robot.Item):
             import traceback
             traceback.print_exc()
             raise
-        return res.trajectory
+        filtered_merged_trajectory = res.trajectory
+        all_joint_time = filtered_merged_trajectory.points[-1].time_from_start.to_sec()
+        if not self._use_base_timeopt:
+            return filtered_merged_trajectory
+        # 台車と腕の軌道をそれぞれ時系列軌道に変換
+        filtered_joint_trajectory = self._filter_arm_trajectory(joint_trajectory)
+        filtered_base_trajectory = self._filter_base_trajectory(odom_base_trajectory)
+        arm_joint_time = filtered_joint_trajectory.points[-1].time_from_start.to_sec()
+        base_timeopt_time = filtered_base_trajectory.points[-1].time_from_start.to_sec()
+
+        # 軌道を再生
+        # 台車の軌道が遅い場合のみ腕の軌道を遅らせる
+        # (1) arm_joint_time < base_timeopt_time: use timeopt trajectory
+        if arm_joint_time < base_timeopt_time:
+            # 腕の各経由点を台車の方に(できるだけ)合わせる
+            _adjust_trajectory_time(filtered_base_trajectory, filtered_joint_trajectory)
+            return _merge_trajectory(filtered_joint_trajectory, filtered_base_trajectory)
+        else:
+            filtered_merged_trajectory
 
     def _execute_trajectory(self, clients, joint_trajectory):
         u"""軌道再生を実行する
@@ -871,3 +942,43 @@ class JointGroup(robot.Item):
         except KeyboardInterrupt:
             for client in clients:
                 client.cancel_goal()
+
+    def _filter_arm_trajectory(self, joint_trajectory):
+        u"""腕の軌道を関節軌道フィルタで時系列軌道に変換する
+        """
+        filter_service = rospy.ServiceProxy(self._setting["trajectory_filter_service"],
+                                            FilterJointTrajectoryWithConstraints)
+        req = FilterJointTrajectoryWithConstraintsRequest()
+        req.trajectory = joint_trajectory
+
+
+        req.allowed_time = rospy.Duration(_TRAJECTORY_FILTER_TIMEOUT)
+        try:
+            res = filter_service.call(req)
+            if res.error_code.val != res.error_code.SUCCESS:
+                raise exceptions.TrajectoryFilterError("Failed to filter trajectory: {0}".fomrat(res.error_code.val))
+        except rospy.ServiceException:
+            import traceback
+            traceback.print_exc()
+            raise
+        filtered_traj = res.trajectory
+
+        return filtered_traj
+
+    def _filter_base_trajectory(self, base_trajectory):
+        u"""全方位台車の軌道をtimeoptフィルタで時系列軌道に変換する
+        """
+        filter_service = rospy.ServiceProxy(self._setting["omni_base_timeopt_service"], FilterJointTrajectory)
+        req = FilterJointTrajectoryRequest()
+        req.trajectory = base_trajectory
+        try:
+            res = filter_service.call(req)
+            if res.error_code.val != res.error_code.SUCCESS:
+                raise exceptions.TrajectoryFilterError("Failed to filter trajectory: {0}".fomrat(res.error_code.val))
+        except rospy.ServiceException:
+            import traceback
+            traceback.print_exc()
+            raise
+        filtered_traj = res.trajectory
+
+        return filtered_traj

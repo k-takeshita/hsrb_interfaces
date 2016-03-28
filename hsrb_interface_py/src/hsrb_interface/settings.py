@@ -44,6 +44,7 @@ HSRB = """
             "omni_base_controller_prefix":    "/hsrb/omni_base_controller",
             "impedance_control":              "/hsrb/impedance_control",
             "trajectory_filter_service":      "/trajectory_filter/filter_trajectory_with_constraints",
+            "omni_base_timeopt_service":      "/hsrb/omni_base_timeopt_filter",
             "plan_with_constraints_service":  "/plan_with_constraints",
             "plan_with_hand_goals_service":   "/plan_with_hand_goals",
             "plan_with_hand_line_service":    "/plan_with_hand_line",
