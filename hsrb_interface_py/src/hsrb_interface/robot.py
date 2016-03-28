@@ -1,11 +1,14 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
-#
-# Copyright (c) 2015, TOYOTA MOTOR CORPORATION
-# All rights reserved.
-#
+"""
+:copyright: (c) 2015 Toyota Motor Corporation
+:license: TMC Proprietary License
+
+"""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
+
 import sys
 import weakref
 import rospy
@@ -18,14 +21,14 @@ from . import exceptions
 
 
 class Item(object):
-    u"""リソース管理を受けるオブジェクトのベースクラス"""
+    """A base class to be under resource management"""
     def __init__(self):
         if not Robot.connecting():
             raise exceptions.RobotConnectionError("No robot connection")
 
 
 class ItemTypes(enum.Enum):
-    u"""
+    """Types of resources
 
     Attributes:
         JOINT_GROUP:
@@ -73,12 +76,12 @@ def enable_interactive():
 
 
 class _ConnectionManager(object):
-    u"""ロボットとの接続制御を行うクラス
+    """This class manage connection with a robot.
 
-    基本的に１プロセスに一つだけインスタンス化されるべき。
-    通常は ``Robot``クラスによって生存期間を管理される。
-    ``Resource`` サブクラスのすべてのインスタンスはこのクラスが所有権を持ち、
-    生存期間が同期される。
+    Basically, only 1 instance should be created at 1 process.
+    Usually ``Robot`` instances manage this object.
+    All of ``Resource`` subclass instances are owned by this class and
+    synchronize their lifecycle.
 
     """
 
@@ -104,7 +107,7 @@ class _ConnectionManager(object):
         return weakref.proxy(self._tf2_buffer)
 
     def list(self, typ=None):
-        u"""利用可能なアイテムを列挙する"""
+        """List available items"""
         if typ is None:
             targets = [x for x in ItemTypes]
         else:
@@ -119,11 +122,17 @@ class _ConnectionManager(object):
         return results
 
     def get(self, name, typ=None):
-        u"""利用可能なアイテムのハンドルを生成する
+        """Get an item if available.
 
-        Attributes:
-            name (str): リソース名
-            typ (ItemTypes): アイテムカテゴリ
+        Args:
+            name (str):   A name of ``Item`` to get.
+            typ (Types):  A type of ``Item`` to get.
+
+        Returns:
+            Item: An instance with a specified name
+
+        Raises:
+            hsrb_interface.exceptions.ResourceNotFoundError
         """
         if typ is None:
             section, config = settings.get_entry_by_name(name)
@@ -146,18 +155,17 @@ class _ConnectionManager(object):
 
 
 def _get_tf2_buffer():
-    """
-    """
+    """Get global tf2 buffer."""
     return Robot._get_tf2_buffer()
 
 
 class Robot(object):
-    u"""ロボットとの接続を管理するハンドル
+    """A hand to manage a robot connection.
 
-    複数のインスタンスを作ることができ、その場合最後のインスタンスで`close`が
-    呼び出されるか、すべてのインスタンスが破壊されると接続が切断される。
+    This class allow multiple instances. In that case, the connection is closed
+    if all instances are destroyed or invoke ``close`` method.
 
-    新たに接続を確立するには、新しいインスタンスを生成する必要がある。
+    In order to establish a new connection, you need to create a new instance.
 
     Example:
 
@@ -167,13 +175,10 @@ class Robot(object):
                 with Robot() as robot:
                     print(robot.list(ItemTypes.JOINT_GROUP))
                     whole_body = robot.get("whole_body", ItemTypes.JOINT_GROUP)
-
-    Attributes:
-        name (str): ロボット名
     """
     _connection = None
 
-    # 後方互換性のための設定
+    # For backward compatibility
     Items = ItemTypes
 
     @classmethod
@@ -199,47 +204,48 @@ class Robot(object):
             self._conn = Robot._connection()
 
     def close(self):
-        u"""直ちに接続を閉じる"""
+        """Shutdown immediately."""
         self.__exit__(None, None, None)
 
     def __enter__(self):
-        u"""ContextManagerインターフェースの一部"""
+        """A part of ContextManager interface"""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        u"""ContextManagerインターフェースの一部"""
+        """A part of ContextManager interface"""
         self._conn = None
 
     def ok(self):
-        u"""初期化されていれば``True``"""
+        """``True`` if initialization succeeded."""
         return self._conn is not None
 
     @property
     def name(self):
-        u"""ロボット名を返す
+        """A name of a connecting robot.
 
         Returns:
-            str: ロボット名を表す文字列
+            str: A robot name
         """
         return settings.get_entry('robot', 'hsrb')['fullname']
 
     def list(self, typ=None):
-        u"""利用可能なアイテムをリストアップする。
+        """List available items up.
 
         Returns:
-            List[str]: 利用可能なリスト
+            List[str]: A list of available items.
         """
         return self._conn.list(typ)
 
 
     def get(self, name, typ=None):
-        u"""利用可能なアイテムを取得する。
+        """Get an item if available.
+
         Args:
-            name (str): 取得したいオブジェクトの名前
-            typ (Types): 取得したいオブジェクトの種類
+            name (str):   A name of ``Item`` to get.
+            typ (Types):  A type of ``Item`` to get.
 
         Returns:
-            Item: アイテムのインスタンス
+            Item: An instance with a specified name
 
         Raises:
             hsrb_interface.exceptions.ResourceNotFoundError
@@ -247,15 +253,18 @@ class Robot(object):
         return self._conn.get(name, typ)
 
     def try_get(self, name, typ=None, msg="Ignored"):
-        u"""利用可能なアイテムを取得する（失敗時はメッセージを``stderr``に出力）
+        """Try to get an item if available.
+
+        If trial failed, error messsage is printed to ``stderr`` instead of
+        raising exception.
 
         Args:
-            name (str):   取得したい ``Item`` の名前
-            typ (Types):  取得したい ``Item`` の種類
-            msg (str):  　失敗時のエラーメッセージ(Noneなら何も出力しない）
+            name (str):   A name of ``Item`` to get.
+            typ (Types):  A type of ``Item`` to get.
+            msg (str):  A error message (If msg is None, output nothing）
 
         Returns:
-            Item: アイテムのインスタンス
+            Item: An instance with a specified name
 
         Raises:
             hsrb_interface.exceptions.ResourceNotFoundError

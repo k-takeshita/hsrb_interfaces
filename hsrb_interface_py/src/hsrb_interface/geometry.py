@@ -1,56 +1,76 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
-#
-# Copyright (c) 2015, TOYOTA MOTOR CORPORATION
-# All rights reserved.
+"""Simple Geometry Library.
 
-import math
+Copyright (c) 2015, TOYOTA MOTOR CORPORATION All rights reserved.
+"""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import collections
+import math
 
-import tf
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Transform
 import numpy as np
-from geometry_msgs.msg import Pose, Transform
+import tf
+
 
 Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 
 
-def pose(x=0.0, y =0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
-    """
-    Return pose tuple.
-    Args: x, y, z : Linear translation.
-          ei, ej, ek, axes : Rotation in euler form. default ei ej ek are roll pitch yaw.
+def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
+    """Create pose tuple.
 
+    Return pose tuple.
+    Args:
+        x, y, z: Linear translation.
+        ei, ej, ek, axes: Rotation in euler form.
+        By default, (ei, ej, ek) are correspond to (roll, pitch, yaw).
     """
     vec3 = (x, y, z)
     quaternion = tf.transformations.quaternion_from_euler(ei, ej, ek, axes)
     return (Vector3(*vec3), Quaternion(*quaternion))
 
+# For backward compatibility
 create_pose = pose
 
 
 def vector3(x=0.0, y=0.0, z=0.0):
+    """Construct a Vector3 instance."""
     return Vector3(x, y, z)
 
 
 def quaterion(x=0.0, y=0.0, z=0.0, w=1.0):
+    """Construct a Quaternion instance."""
     return Quaternion(x, y, z, w)
 
 
 def from_ros_vector3(msg):
+    """
+    """
     return Vector3(msg.x, msg.y, msg.z)
 
 
 def from_ros_quaternion(msg):
+    """
+    """
     return Quaternion(msg.x, msg.y, msg.z, msg.w)
 
 
 def normalize_angle_positive(angle):
+    """
+    """
     twopi = 2.0 * math.pi
     return math.fmod(math.fmod(angle, twopi) + twopi, twopi)
 
 
 def normalize_angle(angle):
+    """
+    """
     a = normalize_angle_positive(angle)
     if a > math.pi:
         a -= 2.0 * math.pi
@@ -58,10 +78,14 @@ def normalize_angle(angle):
 
 
 def shortest_angular_distance(_from, to):
+    """
+    """
     return normalize_angle(to - _from)
 
 
 def tuples_to_pose(tuples):
+    """
+    """
     trans, rot = tuples
     pose = Pose()
     pose.position.x = trans[0]
@@ -75,6 +99,8 @@ def tuples_to_pose(tuples):
 
 
 def pose_to_tuples(pose):
+    """
+    """
     x = pose.position.x
     y = pose.position.y
     z = pose.position.z
@@ -86,6 +112,8 @@ def pose_to_tuples(pose):
 
 
 def tuples_to_transform(tuples):
+    """
+    """
     trans, rot = tuples
     transform = Transform()
     transform.translation.x = trans[0]
@@ -99,6 +127,8 @@ def tuples_to_transform(tuples):
 
 
 def transform_to_tuples(transform):
+    """
+    """
     x = transform.translation.x
     y = transform.translation.y
     z = transform.translation.z
@@ -110,6 +140,8 @@ def transform_to_tuples(transform):
 
 
 def multiply_tuples(t1, t2):
+    """
+    """
     trans1, rot1 = t1
     trans1_mat = tf.transformations.translation_matrix(trans1)
     rot1_mat = tf.transformations.quaternion_matrix(rot1)
@@ -125,5 +157,3 @@ def multiply_tuples(t1, t2):
     rot3 = tf.transformations.quaternion_from_matrix(mat3)
 
     return (Vector3(*trans3), Quaternion(*rot3))
-
-

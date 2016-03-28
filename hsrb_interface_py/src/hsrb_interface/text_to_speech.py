@@ -1,54 +1,67 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
+"""Text-to-speech interface"""
+
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+    unicode_lietrals,
+)
 
 import rospy
 
+from tmc_msgs.msg import Voice
+
+from . import exceptions
 from . import robot
 from . import settings
-from . import exceptions
-
-from tmc_msgs.msg import Voice
 
 
 class TextToSpeech(robot.Item):
-    u"""音声合成サービス
+    """Abstract interface for text-to-speech service
 
     Examples:
 
-        ::
+        .. sourcecode:: python
+
             with Robot() as robot:
                 tts = robot.get("default", Items.TEXT_TO_SPEECH)
                 tts.language = tts.JAPANESE
                 tts.say(u"Hello, World!")
-
-    Attributes:
-        language (int): 音声合成エンジンの言語モード
-
     """
+
     JAPANESE = Voice.kJapanese
-    ENGLISH  = Voice.kEnglish
+    ENGLISH = Voice.kEnglish
 
     def __init__(self, name):
+        """Initialize an instance
+
+        Args:
+            name (str): A resource name
+        """
         super(TextToSpeech, self).__init__()
         self._setting = settings.get_entry('text_to_speech', name)
-        self._pub = rospy.Publisher(self._setting['topic'], Voice, queue_size=0)
+        topic = self._setting['topic']
+        self._pub = rospy.Publisher(topic, Voice, queue_size=0)
         self._language = TextToSpeech.JAPANESE
 
     @property
     def language(self):
+        """(int): Language of speech"""
         return self._language
 
     @language.setter
     def language(self, value):
         if value not in (Voice.kJapanese, Voice.kEnglish):
-            raise exceptions.InvalidLanguageError("Language code {0} is not supported".format(value))
+            msg = "Language code {0} is not supported".format(value)
+            raise exceptions.InvalidLanguageError(msg)
         self._language = value
 
     def say(self, text):
-        u"""文字列を発声する
+        """Speak a given text
 
         Args:
-            text (str): 音声に変換するテキスト(UTF-8)
+            text (str): A text to be converted to voice sound (UTF-8)
         Returns:
             None
         """

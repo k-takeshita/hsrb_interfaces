@@ -1,5 +1,13 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
+"""Utility classes and functions"""
+
+from __future__ import (
+    absolute_import,
+    division,
+    print_function,
+    unicode_literals,
+)
+
 import copy
 import threading
 
@@ -7,20 +15,21 @@ import rospy
 
 from . import exceptions
 
-class CachingSubscriber(object):
-    u"""指定したトピックを購読し、指定時間最新の値を保持するクラス
 
-    Args:
-        topic (str):                       トピック名
-        msg_type (rospy.Message):          ROSメッセージ
-        time_to_live (double):             生存期間[sec]
-        default (msg_type):  値が無効化した時の値
-        
-        kwargs (Dict[str, object]):        rospy.Subscriberのオプション
-    Attributes:
-        data (msg_type): 保持する最新の値
-    """
-    def __init__(self, topic, msg_type, time_to_live=0.0, default=None, **kwargs):
+class CachingSubscriber(object):
+    """Subscribe a topic and keep its latest message for given period"""
+
+    def __init__(self, topic, msg_type, time_to_live=0.0, default=None,
+                 **kwargs):
+        """Initialize a instance
+
+        Args:
+            topic (str):                ROS topic name
+            msg_type (rospy.Message):   ROS message type
+            time_to_live (double):      Time to live of a latest message [sec]
+            default (msg_type):         Default value for :py:attr:`.data`
+            kwargs (Dict[str, object]): Options passed to rospy.Subscriber
+        """
         self._lock = threading.Lock()
         self._time_to_live = rospy.Duration(time_to_live)
         self._latest_stamp = rospy.Time.now()
@@ -32,12 +41,20 @@ class CachingSubscriber(object):
         self._sub = rospy.Subscriber(topic, msg_type, **kwargs)
 
     def wait_for_message(self, timeout=None):
+        """Wait for a new meesage until elapsed time exceeds ``timeout`` [sec].
+
+        If ``timeout`` is None, a instance wait infinitely.
+
+        Returns:
+            None
+        """
         try:
             rospy.client.wait_for_message(self._topic, self._msg_type, timeout)
         except rospy.ROSException as e:
             raise exceptions.RobotConnectionError(e)
 
     def _callback(self, msg):
+        """Subscriber callback"""
         if self._lock.acquire(False):
             try:
                 self._msg = msg
@@ -47,6 +64,7 @@ class CachingSubscriber(object):
 
     @property
     def data(self):
+        """(Message Type): Latest topic value"""
         with self._lock:
             if not self._time_to_live.is_zero():
                 now = rospy.Time.now()
@@ -55,17 +73,14 @@ class CachingSubscriber(object):
             return copy.deepcopy(self._msg)
 
 
-
-
-
 def iterate(func, times=None):
-    """funcを繰り返し呼び出した結果を返すジェネレータを返す
+    """Create a generator that yields result of ``func`` calls ``times``-times.
 
     Args:
-        func (callable): 繰り返し呼ばれるcallableオブジェクト
-        times (int): 呼び出し回数。Noneで無限。
+        func (callable): a callable object repeatedly invoked
+        times (int): Number of calls (Infinte if None)
     Returns:
-        funcを繰り返し呼び出した結果を返すジェネレータオブジェクト
+        A generator object
     """
     if times is None:
         while True:
@@ -73,4 +88,3 @@ def iterate(func, times=None):
     else:
         for i in range(times):
             yield func()
-

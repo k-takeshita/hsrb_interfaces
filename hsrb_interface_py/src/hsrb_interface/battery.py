@@ -1,21 +1,27 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
+"""Provide abstract battery interface."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_funcition
+from __future__ import unicode_literals
+
+from tmc_msgs.msg import BatteryState
 
 from . import robot
 from . import settings
 from . import utils
 
-from tmc_msgs.msg import BatteryState
 
 class Battery(robot.Item):
-    u"""バッテリー情報を取得するためのクラス
+    """Abstract interface to get battery status."""
 
-    Attributes:
-        charge (float):      バッテリーチャージ残量[%]
-        temperature (float): バッテリー温度[deg C]
-
-    """
     def __init__(self, name):
+        """Initialize an instance.
+
+        Args:
+            name (str): Name of an exptected resource
+        """
         super(Battery, self).__init__()
         self._setting = settings.get_entry('power_supply', name)
         topic = self._setting['topic']
@@ -26,20 +32,10 @@ class Battery(robot.Item):
 
     @property
     def charge(self):
-        u"""充電残量(0.0 to 100.0)
-
-        Returns:
-            float: hoge
-        """
+        """(float): Remaining battery charge [%]."""
         return self._sub.data.power
 
     @property
     def temperature(self):
-        u"""バッテリーの温度[deg C]
-
-        Returns:
-            int: hoge
-        """
+        """(int):  Battery temperature [deg C]."""
         return self._sub.data.temperature
-
-

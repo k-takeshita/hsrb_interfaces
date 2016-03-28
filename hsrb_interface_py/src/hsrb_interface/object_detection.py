@@ -1,30 +1,52 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
 from __future__ import absolute_import
-import threading
-import rospy
-import copy
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
-from geometry_msgs.msg import PoseStamped
+import copy
+import rospy
+import threading
+
 from tmc_vision_msgs.msg import RecognizedObject
 
-from . import robot
 from . import geometry
+from . import robot
 from . import settings
 
 _TF_TIMEOUT = 1.0
 
-def _expired(now, expiration, obj):
-    return (now - obj.header.stamp) > expiration
 
-class Object(object):
-    u"""認識された物体"""
+def _expired(now, expiration, stamped):
+    """Check a given object is outdated or not.
+
+    Args:
+        now (rospy.Time):
+            A current time stamp
+        expiration (rospy.Duration):
+            The time to live
+        stamped (Stamped Message Type):
+            A ROS message type that has a header(stamped)
+    Returns:
+        bool: True if the object is outdated.
+    """
+    return (now - stanmped.header.stamp) > expiration
+
+
+class KnownObject(object):
+    """Abstract representation of a recognized object"""
 
     def __init__(self, data):
+        """Initialize from a ROS message
+
+        Args:
+            data (tmc_vision_msgs.msg.RecognizedObject):
+                A ROS message of a recognized object
+        """
         self._data = data
 
     def to_ros(self):
-        u"""
+        """Convert ot ROS message type
         """
         return copy.deepcopy(self._data)
 
@@ -32,42 +54,46 @@ class Object(object):
         return "<{0}: id={1} name={2}>".format(self.__class__.__name__,
                                                self._data.object_id.object_id,
                                                self._data.object_id.name)
+
     def __eq__(self, other):
         return self._data.object_id == other._data.object_id
 
     def get_pose(self, ref_frame_id=None):
+        """
+        """
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('map')
         msg = self._data
 
         camera_to_marker_pose = msg.object_frame
         tf2_buffer = robot._get_tf2_buffer()
-        ref_to_camera_tf = tf2_buffer.lookup_transform(ref_frame_id,
-                                                msg.header.frame_id,
-                                                 #      rospy.Time(0),
-                                                msg.header.stamp,
-                                                rospy.Duration(_TF_TIMEOUT))
-        return geometry.multiply_tuples(geometry.transform_to_tuples(ref_to_camera_tf.transform),
-                                        geometry.pose_to_tuples(camera_to_marker_pose))
+        ref_to_camera_tf = tf2_buffer.lookup_transform(
+            ref_frame_id,
+            msg.header.frame_id,
+            msg.header.stamp,
+            rospy.Duration(_TF_TIMEOUT))
+        return geometry.multiply_tuples(
+            geometry.transform_to_tuples(ref_to_camera_tf.transform),
+            geometry.pose_to_tuples(camera_to_marker_pose))
 
     @property
     def id(self):
+        """A ID of this object"""
         return self._data.object_id.object_id
+
+Object = KnownObject
 
 
 class ObjectDetector(robot.Item):
-    u"""オブジェクト認識機の結果を保持するクラス
-
-    Attributes:
-        expiration (float): オブジェクトを検知してから、無効になるまでの時間[sec]
-            デフォルトは１０秒。
+    """This object collect and hold results of object detection.
 
     Examples:
 
-        Usage::
-            with Robot() as robot:
-                detector = robot.get("marker", Items.OBJECT_DETECTION)
-                objects = detector.get_objects()
+        .. sourcecode:: python
+
+           with Robot() as robot:
+               detector = robot.get("marker", Items.OBJECT_DETECTION)
+               objects = detector.get_objects()
 
     """
     def __init__(self, name):
@@ -89,14 +115,16 @@ class ObjectDetector(robot.Item):
 
     @property
     def expiration(self):
+        """Duration to hold newly detected objects [sec]"""
         return self._expiration.to_sec()
 
     @expiration.setter
     def expiration(self, value):
+        """Set a value of :py:attr:`expiration` ."""
         self._expiration = rospy.Duration(value)
 
     def get_objects(self):
-        u"""認識しているオブジェクトを返す
+        """Get all objects currently detecting.
 
         Returns:
             Dict[str, Any]:
@@ -111,14 +139,15 @@ class ObjectDetector(robot.Item):
         return [Object(o) for o in objects]
 
     def get_object_by_id(self, id=None):
+        """Get a object from current detection pool which has given ID.
+
+        Returns:
+            A recognized object.
+            If ID is not found in the pool, it returns None.
+        """
         objects = self.get_objects()
         filtered = [obj for obj in objects if obj.id == id]
         if filtered:
             return filtered[0]
         else:
-            None
-
-
-
-
-
+            return None

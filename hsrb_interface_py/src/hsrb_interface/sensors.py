@@ -1,32 +1,29 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
+"""Sensor interfaces"""
 
+from __future__ import abosolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 from cv_bridge import CvBridge
 import numpy as np
-import warnings
 import rospy
 
-from sensor_msgs.msg import (
-    Image as ROSImage,
-    Imu,
-    LaserScan as ROSLaserScan,
-)
+import numpy as np
 
 from geometry_msgs.msg import WrenchStamped
 
-from std_srvs.srv import (
-    Empty,
-    EmptyRequest,
-)
+from std_srvs.srv import Empty
+from std_srvs.srv import EmptyRequest
 
 from . import robot
-from . import utils
 from . import settings
-from . import geometry
+from . import utils
+
 
 class Image(object):
-    u"""
+    """
 
     Attributes:
         height (int):
@@ -34,7 +31,13 @@ class Image(object):
         encoding (str):
 
     """
+
     def __init__(self, data):
+        """Intialize an object.
+
+        Args:
+            data (sensor_msgs.msg.Image): An original image
+        """
         self._data = data
         self._cv_bridge = CvBridge()
 
@@ -51,12 +54,15 @@ class Image(object):
         return self._data.encoding
 
     def to_ros(self):
-        u"""ROS(sensor_msgs/Image)
+        """Convert an internal image to sensor_msgs/Image format.
+
+        Returns:
+            sensor_msgs.msg.Image
         """
         return self._data
 
     def to_cv(self):
-        u"""
+        """Convert an internal image to cv2.Mat format
 
         Returns:
             cv2.Mat:
@@ -73,12 +79,12 @@ class Image(object):
                    img = head_l_camera.image
                    cv2.imshow("camera", img.to_cv())
                    cv2.waitKey()
-
         """
         return self._cv_bridge.imgmsg_to_cv2(self._data)
 
     def to_numpy(self):
-        u"""
+        """Convert an internal image to numpy.ndarray format
+
         Returns:
             numpy.ndarray:
 
@@ -95,14 +101,13 @@ class Image(object):
                    img = head_l_camera.image
                    mat = img.to_numpy()
                    plt.imshow(mat)
-
         """
         return np.asarray(self._cv_bridge.imgmsg_to_cv2(self._data))
 
 
 class LaserScan(object):
-    u"""
-    """
+    """Laser scan data object"""
+
     def __init__(self, data):
         self._data = data
 
@@ -131,10 +136,10 @@ class LaserScan(object):
 
 
 class Camera(robot.Item):
-    u"""カメラ
+    """Provide access to a camera-like device.
 
     Args:
-        name (str): デバイス名
+        name (str): A name of a device
     """
     def __init__(self, name):
         super(Camera, self).__init__()
@@ -154,11 +159,10 @@ class Camera(robot.Item):
 
 
 class ForceTorque(robot.Item):
-    u"""6軸力センサー
+    """Provide access to a 6-axis force-torque sensor.
 
     Args:
-        name (str): デバイス名
-
+        name (str): A name of a device
     """
     def __init__(self, name):
         super(ForceTorque, self).__init__()
@@ -175,10 +179,11 @@ class ForceTorque(robot.Item):
 
     @property
     def wrench(self):
-        u"""最新の外力を取得する
+        """Get a latest (compensated) wrench from sensor.
 
         Returns:
-            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の外力[N] or [Nm]
+            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)):
+                Latest sensor value [N] or [Nm]
         """
         wrench = self._compensated_sub.data
         result = (geometry.from_ros_vector3(wrench.wrench.force),
@@ -187,10 +192,11 @@ class ForceTorque(robot.Item):
 
     @property
     def raw(self):
-        u"""最新の生値を取得する
+        """Get a latest raw wrench from sensor.
 
         Returns:
-            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)): 最新の生値[N] or [Nm]
+            (Vector3(fx, fy, fz), Vectro3(tx, ty, tz)):
+                Latest raw sensor value [N] or [Nm]
         """
         wrench = self._raw_sub.data
         result = (geometry.from_ros_vector3(wrench.wrench.force),
@@ -198,10 +204,10 @@ class ForceTorque(robot.Item):
         return result
 
     def reset(self):
-        u"""自重補償のオフセットをリセットする
+        """Reset gravity compensation offset
 
         Returns:
-            Bool: リセット指令の送信に成功した場合Trueを返す
+            None
         """
         reset_service = rospy.ServiceProxy(self._setting['reset_service'],
                                            Empty)
@@ -210,10 +216,10 @@ class ForceTorque(robot.Item):
 
 
 class IMU(robot.Item):
-    u"""慣性センサーへのアクセスを提供する
+    """Provide accces to an IMU device.
 
     Args:
-        name (str): デバイス名
+        name (str): A name of a device
 
     Attributes:
         data (): pass
@@ -230,18 +236,20 @@ class IMU(robot.Item):
 
     @property
     def data(self):
-        u"""最新の値を取得する
-        """
+        """Get the latest value"""
         imu = self._sub.data
         ori = geometry.from_ros_quaternion(imu.orientation)
         angvel = geometry.from_ros_vector3(imu.angular_velocity)
-        accel  = geometry.from_ros_vector3(imu.linear_acceleration)
+        accel = geometry.from_ros_vector3(imu.linear_acceleration)
         return (ori, angvel, accel)
 
 
 
 class Lidar(robot.Item):
-    u"""レーザースキャナへのアクセスを提供する"""
+    """Provide acces to a LIDER.
+
+    """
+
     def __init__(self, name):
         super(Lidar, self).__init__()
         self._setting = settings.get_entry('lidar', name)
@@ -254,5 +262,5 @@ class Lidar(robot.Item):
 
     @property
     def scan(self):
-        u"""最新の値を取得する"""
+        """Get the latest value"""
         return LaserScan(self._sub.data)
