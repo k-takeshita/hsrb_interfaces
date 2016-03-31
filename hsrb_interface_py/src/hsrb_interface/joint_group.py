@@ -900,7 +900,7 @@ class JointGroup(robot.Item):
             _adjust_trajectory_time(filtered_base_trajectory, filtered_joint_trajectory)
             return _merge_trajectory(filtered_joint_trajectory, filtered_base_trajectory)
         else:
-            filtered_merged_trajectory
+            return filtered_merged_trajectory
 
     def _execute_trajectory(self, clients, joint_trajectory):
         u"""軌道再生を実行する
