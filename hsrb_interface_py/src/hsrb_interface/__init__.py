@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 from . import robot
 from . import geometry
 
-Robot = robot.Robota
+Robot = robot.Robot
 ItemTypes = robot.ItemTypes
 
 Vector3 = geometry.Vector3

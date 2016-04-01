@@ -1,7 +1,7 @@
 # vim: fileencoding=utf-8
 """This module contains classes and functions to move joints."""
 
-from __future__ import absolute_impmort
+from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
@@ -11,43 +11,34 @@ from itertools import repeat
 import traceback
 
 import actionlib
+from control_msgs.msg import FollowJointTrajectoryAction
+from control_msgs.msg import FollowJointTrajectoryGoal
+from control_msgs.msg import FollowJointTrajectoryResult
 import rospy
 import tf
+
 from sensor_msgs.msg import JointState
-from trajectory_msgs.msg import (
-    JointTrajectory,
-    JointTrajectoryPoint,
-)
-from control_msgs.msg import (
-    FollowJointTrajectoryAction,
-    FollowJointTrajectoryGoal,
-    FollowJointTrajectoryResult,
-)
 
-from tmc_manipulation_msgs.msg import (
-    BaseMovementType,
-    ArmManipulationErrorCodes,
-)
-from tmc_manipulation_msgs.srv import (
-    SelectConfig,
-    SelectConfigRequest,
-    FilterJointTrajectory,
-    FilterJointTrajectoryRequest,
-    FilterJointTrajectoryWithConstraints,
-    FilterJointTrajectoryWithConstraintsRequest,
-)
+from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
+from tmc_manipulation_msgs.msg import BaseMovementType
 
-from tmc_planning_msgs.msg import (
-    JointPosition,
-)
-from tmc_planning_msgs.srv import (
-    PlanWithJointGoals,
-    PlanWithJointGoalsRequest,
-    PlanWithHandGoals,
-    PlanWithHandGoalsRequest,
-    PlanWithHandLine,
-    PlanWithHandLineRequest,
-)
+from tmc_manipulation_msgs.srv import FilterJointTrajectory
+from tmc_manipulation_msgs.srv import FilterJointTrajectoryRequest
+from tmc_manipulation_msgs.srv import FilterJointTrajectoryWithConstraints
+from tmc_manipulation_msgs.srv import FilterJointTrajectoryWithConstraintsRequest
+from tmc_manipulation_msgs.srv import SelectConfig
+from tmc_manipulation_msgs.srv import SelectConfigRequest
+
+from tmc_planning_msgs.msg import JointPosition
+
+from tmc_planning_msgs.srv import PlanWithHandGoals
+from tmc_planning_msgs.srv import PlanWithHandGoalsRequest
+from tmc_planning_msgs.srv import PlanWithHandLine
+from tmc_planning_msgs.srv import PlanWithHandLineRequest
+from tmc_planning_msgs.srv import PlanWithJointGoals
+from tmc_planning_msgs.srv import PlanWithJointGoalsRequest
+from trajectory_msgs.msg import JointTrajectory
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import xmlr
@@ -200,7 +191,7 @@ def _merge_trajectory(target, source):
     """Merge two trajectories into single trajectory.
 
     Those trajectories should have exactly same number of trajectory points.
-    Result trajectory's ``time_from_start`` is set as same as ``target`` .
+    Result trajectory's ``time_from_start`` is set as same as `target` .
 
     Args:
         target(trajectory_msgs.msg.JointTrajectory):
@@ -375,7 +366,7 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
         return self._config_names
 
 class JointGroup(robot.Item):
-    """Abstract interface to control a group of joints. """
+    """Abstract interface to control a group of joints."""
 
     def __init__(self, name):
         super(JointGroup, self).__init__()
@@ -556,14 +547,14 @@ class JointGroup(robot.Item):
         self._play_trajectory(res.solution, res.base_solution)
 
     def move_to_joint_positions(self, goals={}, **kwargs):
-        """Move joints to a specified positions.
+        """Move joints to a specified goal positions.
 
         Args:
             goals (Dict[str, float]):
                 A dict of pair of joint name and target position [m or rad].
             **kwargs:
                 Use keyword arguments to specify joint_name/posiion pairs.
-                The keyword arguments overwrite goals argument.
+                The keyword arguments overwrite `goals` argument.
 
 
         Returns:
@@ -661,7 +652,7 @@ class JointGroup(robot.Item):
         Args
             pose (Tuple[Vector3, Quaternion]):
             ref_frame_id (str): A base frame of an end effector.
-                The default is the robot frame(`base_footprint`).
+                The default is the robot frame(```base_footprint``).
         Returns:
             None
         """

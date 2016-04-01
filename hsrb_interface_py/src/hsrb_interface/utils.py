@@ -1,12 +1,10 @@
 # vim: fileencoding=utf-8
 """Utility classes and functions"""
 
-from __future__ import (
-    absolute_import,
-    division,
-    print_function,
-    unicode_literals,
-)
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import copy
 import threading
@@ -17,7 +15,7 @@ from . import exceptions
 
 
 class CachingSubscriber(object):
-    """Subscribe a topic and keep its latest message for given period"""
+    """Subscribe a topic and keep its latest message for given period."""
 
     def __init__(self, topic, msg_type, time_to_live=0.0, default=None,
                  **kwargs):
@@ -50,8 +48,8 @@ class CachingSubscriber(object):
         """
         try:
             rospy.client.wait_for_message(self._topic, self._msg_type, timeout)
-        except rospy.ROSException as e:
-            raise exceptions.RobotConnectionError(e)
+        except rospy.ROSException as exc:
+            raise exceptions.RobotConnectionError(exc)
 
     def _callback(self, msg):
         """Subscriber callback"""
@@ -86,5 +84,5 @@ def iterate(func, times=None):
         while True:
             yield func()
     else:
-        for i in range(times):
+        for _ in range(times):
             yield func()

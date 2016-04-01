@@ -1,12 +1,10 @@
 # vim: fileencoding=utf-8
 """Text-to-speech interface"""
 
-from __future__ import (
-    absolute_import,
-    division,
-    print_function,
-    unicode_lietrals,
-)
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_lietrals
 
 import rospy
 

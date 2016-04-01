@@ -1,19 +1,22 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
-u"""ROS Graph 名のマッピングテーブル
+"""Mapping table of ROS Graph names.
 
-仕様変更を吸収するための名前対応付けを行うテーブル。
-今は単純な名前のルックアップのみのため、複雑な仕様変更には耐えられない。
-今後大きな仕様変更がありうるので注意。
+This module is intended to internal use only.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import json
+
 from . import exceptions
 
 VERSION = "1.0.0"
 
 
-HSRB = """
+_HSRB_SETTINGS = """
 {
     "robot": {
         "hsrb": {
@@ -36,20 +39,21 @@ HSRB = """
     },
     "joint_group": {
         "whole_body": {
-            "class": ["joint_group", "JointGroup"],
-            "joint_states_topic":             "/hsrb/joint_states",
-            "arm_controller_prefix":          "/hsrb/arm_trajectory_controller",
-            "head_controller_prefix":         "/hsrb/head_trajectory_controller",
-            "hand_controller_prefix":         "/hsrb/gripper_controller",
-            "omni_base_controller_prefix":    "/hsrb/omni_base_controller",
-            "impedance_control":              "/hsrb/impedance_control",
-            "trajectory_filter_service":      "/trajectory_filter/filter_trajectory_with_constraints",
-            "omni_base_timeopt_service":      "/hsrb/omni_base_timeopt_filter",
-            "plan_with_constraints_service":  "/plan_with_constraints",
-            "plan_with_hand_goals_service":   "/plan_with_hand_goals",
-            "plan_with_hand_line_service":    "/plan_with_hand_line",
-            "plan_with_joint_goals_service":  "/plan_with_joint_goals",
-            "timeout":                        1.0
+            "class":                        ["joint_group", "JointGroup"],
+            "joint_states_topic":           "/hsrb/joint_states",
+            "arm_controller_prefix":        "/hsrb/arm_trajectory_controller",
+            "head_controller_prefix":       "/hsrb/head_trajectory_controller",
+            "hand_controller_prefix":       "/hsrb/gripper_controller",
+            "omni_base_controller_prefix":  "/hsrb/omni_base_controller",
+            "impedance_control":            "/hsrb/impedance_control",
+            "trajectory_filter_service":
+                "/trajectory_filter/filter_trajectory_with_constraints",
+            "omni_base_timeopt_service":    "/hsrb/omni_base_timeopt_filter",
+            "plan_with_constraints_service":"/plan_with_constraints",
+            "plan_with_hand_goals_service": "/plan_with_hand_goals",
+            "plan_with_hand_line_service":  "/plan_with_hand_line",
+            "plan_with_joint_goals_service":"/plan_with_joint_goals",
+            "timeout":                       1.0
         }
     },
     "end_effector": {
@@ -137,10 +141,19 @@ HSRB = """
         "default": {
             "class": ["text_to_speech", "TextToSpeech"],
             "topic": "/talk_request"
+        },
+        "default_tts": {
+            "class": ["text_to_speech", "TextToSpeech"],
+            "topic": "/talk_request"
         }
     },
     "collision_world": {
         "default": {
+            "class": ["collision_world", "CollisionWorld"],
+            "service": "/get_collision_environment",
+            "topic": "/known_object"
+        },
+        "global_collision_world": {
             "class": ["collision_world", "CollisionWorld"],
             "service": "/get_collision_environment",
             "topic": "/known_object"
@@ -149,135 +162,71 @@ HSRB = """
 }
 """
 
+_SETTINGS = json.loads(_HSRB_SETTINGS)
 
-HSR_BEETLE = """
-{
-    "robot": {
-        "hsrb": {
-            "fullname": "HSR-Beetle"
-        }
-    },
-    "frame": {
-        "map": {
-            "frame_id": "map"
-        },
-        "odom": {
-            "frame_id": "odom"
-        },
-        "base": {
-            "frame_id": "base_footprint"
-        },
-        "hand": {
-            "id": "hand_palm_link"
-        }
-    },
-    "joint_group": {
-        "whole_body": {
-            "joint_states_topic":             "/joint_states",
-            "arm_controller_prefix":          "/hsr_beetle/arm_controller",
-            "head_controller_prefix":         "/hsr_beetle/head_controller",
-            "hand_controller_prefix":         "/hsr_beetle/gripper_controller",
-            "omni_base_controller_prefix":    "/hsr_beetle/omni_base_controller",
-            "trajectory_filter_service":      "/trajectory_filter/filter_trajectory_with_constraints",
-            "plan_with_constraints_service":  "/plan_with_constraints",
-            "plan_with_hand_goals_service":   "/plan_with_hand_goals",
-            "plan_with_hand_line_service":    "/plan_with_hand_line",
-            "plan_with_joint_goals_service":  "/plan_with_joint_goals"
-        }
-    },
-    "end_effector": {
-        "gripper": {
-            "joint_names":  ["motor_proximal_joint"],
-            "prefix":       "/hsr_beetle/gripper_controller"
-        },
-        "suction": {
-            "action":                         "/suction_control",
-            "suction_topic":                  "/suction_on",
-            "pressure_sensor_topic":          "/pressure_sensor"
-        }
-    },
-    "mobile_base": {
-        "omni_base": {
-            "move_base_action":  "/move_base/move",
-            "pose_topic":        "/global_pose",
-            "goal_topic":        "/base_goal"
-        }
-    },
-    "camera": {
-        "head_l_stereo_camera": {
-            "prefix": "/stereo_camera/left"
-        },
-        "head_r_stereo_camera": {
-            "prefix":  "/stereo_camera/right"
-        },
-        "head_rgbd_sensor_rgb": {
-            "prefix": "/camera/rgb/image_raw"
-        },
-        "head_rgbd_sensor_depth": {
-            "prefix": "/camera/depth/image_raw"
-        },
-    },
-    "imu": {
-        "base_imu": {
-            "topic": "/imu/data"
-        }
-    },
-    "force_torque": {
-        "wrist_wrench": {
-            "topic": "/wrench_state"
-        }
-    },
-    "lidar": {
-        "base_scan": {
-            "topic": "/scan"
-        }
-    },
-    "object_detection": {
-        "marker": {
-            "topic": "/recognized_object"
-        }
-    },
-    "power_supply": {
-        "battery": {
-            "topic": "/battery_state"
-        }
-    },
-    "text_to_speech": {
-        "default": {
-            "topic": "/talk_request"
-        }
-    },
-    "collision_world": {
-        "default": {
-            "service": "/get_collision_environment"
-        }
-    }
-}
-"""
-
-_settings = json.loads(HSRB)
 
 def get_entry_by_name(name):
-    for section, entries in _settings.items():
+    """Get a resource configuration by `name` from a robot setting dictionary.
+
+    Args:
+        name (str): A target resource name.
+
+    Returns:
+
+
+    Raises:
+        hsrb_interface.exceptions.ResourceNotFoundError: No such resource.
+    """
+    for section, entries in _SETTINGS.items():
         for key, config in entries.items():
             if name == key:
                 return section, config
-    raise exceptions.ResourceNotFoundError("Item {0} is not found".format(name))
+    msg = "Item {0} is not found".format(name)
+    raise exceptions.ResourceNotFoundError(msg)
 
 
 def get_section(section):
-    return _settings.get(section, None)
+    """Get a `section` from a robot setting dictionary.
+
+    Returns:
+        Dict[str, JSON Data]: A section data.
+    """
+    return _SETTINGS.get(section, None)
 
 
 def get_entry(section, name):
-    if section in _settings:
-        result = _settings[section].get(name, None)
+    """Get an entry in robot setting dictionary.
+
+    Args:
+        section (str): A section name.
+        name (str): A resource name.
+
+    Returns:
+        Dict[str, JSON Data]: A corresponding settings.
+
+    Raises:
+        hsrb_interface.exceptions.ResourceNotFoundError:
+            A resource which has name `name` does not exist.
+    """
+    if section in _SETTINGS:
+        result = _SETTINGS[section].get(name, None)
         if result is None:
-            raise exceptions.ResourceNotFoundError("{0}({1}) is not found".format(section, name))
+            msg = "{0}({1}) is not found".format(section, name)
+            raise exceptions.ResourceNotFoundError()
         else:
             return result
     else:
-        raise exceptions.ResourceNotFoundError("{0}({1}) is not found".format(section, name))
+        msg = "{0}({1}) is not found".format(section, name)
+        raise exceptions.ResourceNotFoundError(msg)
+
 
 def get_frame(name):
+    """Get an acutal frame id from user-friendly `name`.
+
+    Args:
+        name (str): Target frame name.
+
+    Returns:
+        str: An actual frame id.
+    """
     return get_entry('frame', name)['frame_id']

@@ -33,13 +33,11 @@ class Gripper(robot.Item):
     """This class controls 2-finger gripper."""
 
     def __init__(self, name):
-        """Controls a suction nozzle.
+        """Initialize.
 
         Args:
             name (str): A name of a suction device file.
-        Returns:
         """
-        None
         super(Gripper, self).__init__()
         self._setting = settings.get_entry('end_effector', name)
         if self._setting is None:
@@ -63,14 +61,17 @@ class Gripper(robot.Item):
         Args:
             open_angle (float): How much angle to open[rad]
             motion_time (float): Time to execute command[s]
+
         Returns:
             None
-        Example:
-            Usage::
 
-                robot = hsrb_interface.Robot()
-                gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
-                gripper.command(1.2, 2.0)
+        Example:
+
+            .. sourcecode:: python
+
+               robot = hsrb_interface.Robot()
+               gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
+               gripper.command(1.2, 2.0)
 
         """
         goal = FollowJointTrajectoryGoal()
@@ -99,6 +100,7 @@ class Gripper(robot.Item):
 
         Args:
             effort (float): Force applied to grasping [?]
+
         Returns:
             None
         """
@@ -109,8 +111,8 @@ class Gripper(robot.Item):
             timeout = rospy.Duration(_GRIPPER_GRASP_TIMEOUT)
             if self._grasp_client.wait_for_result(timeout):
                 self._grasp_client.get_result()
-                s = self._grasp_client.get_state()
-                if s != actionlib.GoalStatus.SUCCEEDED:
+                state = self._grasp_client.get_state()
+                if state != actionlib.GoalStatus.SUCCEEDED:
                     raise exceptions.GripperError("Failed to grasp")
             else:
                 self._grasp_client.cancel_goal()
@@ -124,6 +126,7 @@ class Suction(object):
 
     Args:
         name (str): A name of a suction device file.
+
     Returns:
         None
     """
@@ -153,6 +156,7 @@ class Suction(object):
 
         Args:
             command (bool): On if command is ``True``, Off otherwise
+
         Returns:
             None
         """
@@ -165,6 +169,6 @@ class Suction(object):
         """Get a sensor value (On/Off) of a suction-nozzle sensor.
 
         Returns:
-            bool:
+            bool: True if ON.
         """
         return self._sub.data.data

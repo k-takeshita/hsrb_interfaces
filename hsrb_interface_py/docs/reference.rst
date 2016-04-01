@@ -1,56 +1,50 @@
-リファレンスマニュアル
+API Reference
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. contents:: 目次
+.. contents:: Table of contents
    :local:
 
-ロボット管理
-==============
+Robot Management
+================
 
 Robot
 ----------
 
 .. autoclass:: hsrb_interface.Robot
-   :members:
 
-電源
-===========
+Power Supply
+=============
 
 Battery
 ------------------
 
 .. autoclass:: hsrb_interface.battery.Battery
-   :members:
 
-動作
+Motion
 =========
 
 JointGroup
 ----------------
 
 .. autoclass:: hsrb_interface.joint_group.JointGroup
-   :members:
 
 MobileBase
 ----------------
 
 .. autoclass:: hsrb_interface.mobile_base.MobileBase
-   :members:
 
 Gripper
 ----------------
 
 .. autoclass:: hsrb_interface.end_effector.Gripper
-   :members:
 
 Suction
 ----------------
 
 .. autoclass:: hsrb_interface.end_effector.Suction
-   :members:
 
 
-センサー
+Sensors
 ==========
 
 
@@ -58,43 +52,50 @@ Image
 -----------
 
 .. autoclass:: hsrb_interface.sensors.Image
-   :members:
+
+LaserScan
+-----------
+
+.. autoclass:: hsrb_interface.sensors.LaserScan
 
 Camera
 -----------
 
 .. autoclass:: hsrb_interface.sensors.Camera
-   :members:
 
 IMU
 -------------
 
 .. autoclass:: hsrb_interface.sensors.IMU
-   :members:
+
 
 ForceTorque
 --------------------
 
 .. autoclass:: hsrb_interface.sensors.ForceTorque
-   :members:
 
-認識機能
-=========
+
+Lidar
+--------------------
+
+.. autoclass:: hsrb_interface.sensors.Lidar
+
+Perception
+============
 
 Object
 -----------
 
 .. autoclass:: hsrb_interface.object_detection.Object
-   :members:
+
 
 ObjectDetector
 ---------------
 
 .. autoclass:: hsrb_interface.object_detection.ObjectDetector
-   :members:
+
 
 CollisionWorld
 ------------------------
 
 .. autoclass:: hsrb_interface.collision_world.CollisionWorld
-   :members:

@@ -82,11 +82,12 @@ class CollisionWorld(robot.Item):
 
     @property
     def known_object_only(self):
-        """bool: If True :py:method:`.snapshot()` exclude unknown objects."""
+        """bool: If True :py:meth:`.snapshot` exclude unknown objects."""
         return self._known_object_only
 
     @known_object_only.setter
     def known_object_only(self, value):
+        """Setter for :py:attr:`known_object_only`."""
         self._known_object_only = value
 
     @property
@@ -106,13 +107,13 @@ class CollisionWorld(robot.Item):
 
     @next_object_id.setter
     def next_object_id(self, value):
+        """Setter for :py:attr:`next_object_id`."""
         self._start_object_id = value
         self._object_count = self._start_object_id
 
     @property
     def environment(self):
-        """tmc_manipulation_msgs.msg.CollisionEnvironment: The latest snapshot
-        of the collision environment."""
+        """CollisionEnvironment: A latest snapshot of a collision world."""
         return self._environment
 
     def snapshot(self, ref_frame_id=None):

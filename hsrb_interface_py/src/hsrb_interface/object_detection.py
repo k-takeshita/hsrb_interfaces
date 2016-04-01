@@ -33,8 +33,13 @@ def _expired(now, expiration, stamped):
     return (now - stanmped.header.stamp) > expiration
 
 
-class KnownObject(object):
-    """Abstract representation of a recognized object"""
+class Object(object):
+    """Abstract representation of a recognized object.
+
+
+    Attributes:
+        id (int): A ID of this object
+    """
 
     def __init__(self, data):
         """Initialize from a ROS message
@@ -47,6 +52,9 @@ class KnownObject(object):
 
     def to_ros(self):
         """Convert ot ROS message type
+
+        Returns:
+
         """
         return copy.deepcopy(self._data)
 
@@ -59,7 +67,7 @@ class KnownObject(object):
         return self._data.object_id == other._data.object_id
 
     def get_pose(self, ref_frame_id=None):
-        """
+        """Get a pose of this object based onf `ref_frame_id`.
         """
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('map')
@@ -76,16 +84,16 @@ class KnownObject(object):
             geometry.transform_to_tuples(ref_to_camera_tf.transform),
             geometry.pose_to_tuples(camera_to_marker_pose))
 
-    @property
-    def id(self):
-        """A ID of this object"""
+    def _get_id(self):
         return self._data.object_id.object_id
-
-Object = KnownObject
+    id = property(_get_id)
 
 
 class ObjectDetector(robot.Item):
     """This object collect and hold results of object detection.
+
+    Attributes:
+        expiration (float): Duration to hold newly detected objects [sec].
 
     Examples:
 
@@ -113,15 +121,14 @@ class ObjectDetector(robot.Item):
             finally:
                 self._lock.release()
 
-    @property
-    def expiration(self):
-        """Duration to hold newly detected objects [sec]"""
+    def _get_expiration(self):
         return self._expiration.to_sec()
 
-    @expiration.setter
-    def expiration(self, value):
-        """Set a value of :py:attr:`expiration` ."""
+    def _set_expiration(self, value):
         self._expiration = rospy.Duration(value)
+
+    expiration = property(_get_expiration, _set_expiration,
+                          "Duration to hold newly detected objects [sec]")
 
     def get_objects(self):
         """Get all objects currently detecting.
@@ -140,6 +147,9 @@ class ObjectDetector(robot.Item):
 
     def get_object_by_id(self, id=None):
         """Get a object from current detection pool which has given ID.
+
+        Args:
+            id (int): if `id` is  ``None``,
 
         Returns:
             A recognized object.

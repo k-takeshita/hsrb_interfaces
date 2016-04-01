@@ -25,11 +25,13 @@ Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
     """Create pose tuple.
 
-    Return pose tuple.
     Args:
         x, y, z: Linear translation.
         ei, ej, ek, axes: Rotation in euler form.
-        By default, (ei, ej, ek) are correspond to (roll, pitch, yaw).
+            By default, (ei, ej, ek) are correspond to (roll, pitch, yaw).
+
+    Returns:
+        Tuple[Vector3, Quaternion]: A new pose.
     """
     vec3 = (x, y, z)
     quaternion = tf.transformations.quaternion_from_euler(ei, ej, ek, axes)
@@ -50,7 +52,10 @@ def quaterion(x=0.0, y=0.0, z=0.0, w=1.0):
 
 
 def from_ros_vector3(msg):
-    """
+    """Convert ``geometry_msgs/Vector3`` to a :py:class:`Vector3`.
+
+    Args:
+        msg (geometry_msgs.msg.Vector3): A ROS message.
     """
     return Vector3(msg.x, msg.y, msg.z)
 

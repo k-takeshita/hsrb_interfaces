@@ -3,7 +3,7 @@
 
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_funcition
+from __future__ import print_function
 from __future__ import unicode_literals
 
 from tmc_msgs.msg import BatteryState
@@ -14,7 +14,12 @@ from . import utils
 
 
 class Battery(robot.Item):
-    """Abstract interface to get battery status."""
+    """Abstract interface to get battery status.
+
+    Attributes:
+        charge (float): Remaining battery charge [%].
+        temperature (int):  Battery temperature [deg C].
+    """
 
     def __init__(self, name):
         """Initialize an instance.
@@ -30,12 +35,10 @@ class Battery(robot.Item):
         timeout = self._setting.get('timeout', None)
         self._sub.wait_for_message(timeout)
 
-    @property
-    def charge(self):
-        """(float): Remaining battery charge [%]."""
+    def _get_charge(self):
         return self._sub.data.power
+    charge = property(_get_charge)
 
-    @property
-    def temperature(self):
-        """(int):  Battery temperature [deg C]."""
+    def _get_temperature(self):
         return self._sub.data.temperature
+    temperature = property(_get_temperature)
