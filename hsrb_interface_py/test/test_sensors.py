@@ -15,7 +15,7 @@ import hsrb_interface
 import hsrb_interface.sensors
 
 @patch('hsrb_interface.utils.CachingSubscriber')
-@patch('hsrb_interface.Robot.connecting')
+@patch('hsrb_interface.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_camera(mock_get_entry, mock_connecting, mock_sub_class):
     mock_connecting.return_value = True
@@ -49,7 +49,7 @@ def test_camera(mock_get_entry, mock_connecting, mock_sub_class):
 
 @patch('rospy.ServiceProxy')
 @patch('hsrb_interface.utils.CachingSubscriber')
-@patch('hsrb_interface.Robot.connecting')
+@patch('hsrb_interface.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_force_torque(mock_get_entry, mock_connecting,
                       mock_sub_class, mock_service):
@@ -88,7 +88,7 @@ def test_force_torque(mock_get_entry, mock_connecting,
 
 
 @patch('hsrb_interface.utils.CachingSubscriber')
-@patch('hsrb_interface.Robot.connecting')
+@patch('hsrb_interface.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_imu(mock_get_entry, mock_connecting, mock_sub_class):
     mock_connecting.return_value = True
@@ -123,7 +123,7 @@ def test_imu(mock_get_entry, mock_connecting, mock_sub_class):
     eq_(linear_acc, (7, 8, 9))
 
 @patch('hsrb_interface.utils.CachingSubscriber')
-@patch('hsrb_interface.robot.Robot.connecting')
+@patch('hsrb_interface.robot.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_lidar(mock_get_entry, mock_connecting, mock_sub_class):
     mock_connecting.return_value = True

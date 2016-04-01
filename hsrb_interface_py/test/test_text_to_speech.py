@@ -7,7 +7,7 @@ import hsrb_interface.text_to_speech
 
 from tmc_msgs.msg import Voice
 
-@patch.object(hsrb_interface.Robot, 'connecting')
+@patch.object(hsrb_interface.Robot, '_connecting')
 @patch('hsrb_interface.settings.get_entry')
 @patch('rospy.Publisher')
 def test_text_to_speech(mock_pub_class, mock_get_entry, mock_connecting):
@@ -34,7 +34,7 @@ def test_text_to_speech(mock_pub_class, mock_get_entry, mock_connecting):
 
 
 @raises(hsrb_interface.exceptions.InvalidLanguageError)
-@patch.object(hsrb_interface.Robot, 'connecting')
+@patch.object(hsrb_interface.Robot, '_connecting')
 @patch('hsrb_interface.settings.get_entry')
 @patch('rospy.Publisher')
 def test_invalid_language_error(mock_pub_class, mock_get_entry, mock_connecting):

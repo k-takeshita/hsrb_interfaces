@@ -5,7 +5,7 @@ import hsrb_interface
 from hsrb_interface import object_detection
 
 
-@patch.object(hsrb_interface.Robot, 'connecting')
+@patch.object(hsrb_interface.Robot, '_connecting')
 @patch('hsrb_interface.settings.get_entry')
 @patch('rospy.Time')
 @patch('rospy.Duration')
