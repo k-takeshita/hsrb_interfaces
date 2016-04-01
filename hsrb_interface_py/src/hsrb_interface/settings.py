@@ -138,21 +138,12 @@ _HSRB_SETTINGS = """
         }
     },
     "text_to_speech": {
-        "default": {
-            "class": ["text_to_speech", "TextToSpeech"],
-            "topic": "/talk_request"
-        },
         "default_tts": {
             "class": ["text_to_speech", "TextToSpeech"],
             "topic": "/talk_request"
         }
     },
     "collision_world": {
-        "default": {
-            "class": ["collision_world", "CollisionWorld"],
-            "service": "/get_collision_environment",
-            "topic": "/known_object"
-        },
         "global_collision_world": {
             "class": ["collision_world", "CollisionWorld"],
             "service": "/get_collision_environment",

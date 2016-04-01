@@ -1,8 +1,7 @@
 # vim: fileencoding=utf-8
-"""
-:copyright: (c) 2015 Toyota Motor Corporation
-:license: TMC Proprietary License
+"""This module provides classes and functions to manage connections to robots.
 
+Copyright (c) 2015-2016 Toyota Motor Corporation
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -15,24 +14,25 @@ import weakref
 
 import enum
 import importlib
-import tf2_ros
+
 import rospy
+import tf2_ros
 
 from . import exceptions
 from . import settings
 
 
 class Item(object):
-    """A base class to be under resource management."""
+    """A base class to be under resource management.
+
+    Raises:
+        hsrb_interface.exceptions.RobotConnectionError:
+            Not connected to a robot.
+    """
 
     def __init__(self):
-        """Initialize an instance.
-
-        Raises:
-            hsrb_interface.exceptions.RobotConnectionError:
-                Not connected to a robot.
-        """
-        if not Robot.connecting():
+        """See class docstring."""
+        if not Robot._connecting():
             raise exceptions.RobotConnectionError("No robot connection")
 
 
@@ -51,6 +51,9 @@ class ItemTypes(enum.Enum):
         OBJECT_DETECTION:
         COLLISION_WORLD:
         TEXT_TO_SPEECH:
+
+    Warnings:
+        This class is deprecated.
     """
 
     JOINT_GROUP = 'joint_group'
@@ -64,6 +67,19 @@ class ItemTypes(enum.Enum):
     OBJECT_DETECTION = 'object_detection'
     COLLISION_WORLD = 'collision_world'
     TEXT_TO_SPEECH = 'text_to_speech'
+
+
+def _type_deprecation_warning(name, typ):
+    """Warn uses of ItemType feature."""
+    if typ is not None:
+        msg = "A feature specifying an item by ItemType is deprecated."
+        warnings.warn(msg, exceptions.DeprecationWarning)
+    if name == "default":
+        if typ is ItemTypes.TEXT_TO_SPEECH:
+            return "default_tts"
+        elif typ is ItemTypes.COLLISION_WORLD:
+            return "global_collision_world"
+    return name
 
 
 _interactive = False
@@ -103,12 +119,14 @@ class _ConnectionManager(object):
     """
 
     def __init__(self):
-        """Initialize an instance."""
-        master = rospy.get_master()
-        if master is None:
+        """See class docstring."""
+        try:
+            master = rospy.get_master()
+            master.getUri()  # Examine a master connection
+        except Exception as e:
             raise exceptions.RobotConnectionError(e)
         disable_signals = _is_interactive()
-        rospy.init_node('hsrb_interface_py', anonymous=True,
+        rospy.init_node(b'hsrb_interface_py', anonymous=True,
                         disable_signals=disable_signals)
         self._tf2_buffer = tf2_ros.Buffer()
         self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
@@ -162,14 +180,16 @@ class _ConnectionManager(object):
             if types:
                 typ = types[0]
             else:
-                raise exceptions.ResourceNotFoundError("No such category ({0})".format(section))
+                msg = "No such category ({0})".format(section)
+                raise exceptions.ResourceNotFoundError(msg)
         key = (name, typ)
         if key in self._registry:
             return self._registry.get(key, None)
         else:
             config = settings.get_entry(typ.value, name)
             module_name, class_name = config["class"]
-            module = importlib.import_module(".{0}".format(module_name), "hsrb_interface")
+            module = importlib.import_module(".{0}".format(module_name),
+                                             "hsrb_interface")
             cls = getattr(module, class_name)
             obj = cls(name)
             self._registry[key] = obj
@@ -182,14 +202,14 @@ def _get_tf2_buffer():
 
 
 class Robot(object):
-    """A hand to manage a robot connection.
+    """A handle object to manage a robot connection.
 
     Args:
         *args: Reserved for future use.
         **kwargs: Reserved for future use.
 
     This class allow multiple instances. In that case, the connection is closed
-    if all instances are destroyed or invoke ``close`` method.
+    if all instances are destroyed or invoke :py:meth:`.close()` method.
 
     In order to establish a new connection, you need to create a new instance.
 
@@ -201,16 +221,21 @@ class Robot(object):
 
            from hsrb_interface import Robot, ItemTypes
                 with Robot() as robot:
-                    print(robot.list(ItemTypes.JOINT_GROUP))
-                    whole_body = robot.get("whole_body", ItemTypes.JOINT_GROUP)
+                    print(robot.list())
+                    whole_body = robot.get("whole_body")
     """
 
     _connection = None
 
-    # For backward compatibility
     @property
     def Items(self):
-        warnings.warn("depreacated", warnings.DeprecationWarning)
+        """Repesent types of resource items.
+
+        Warnings:
+            This class is deprecated. It will be removed in future release.
+        """
+        msg = "A feature specifying a resource item by ItemType is deprecated."
+        warnings.warn(msg, exceptions.DeprecationWarning)
         return ItemTypes
 
     @classmethod
@@ -220,7 +245,8 @@ class Robot(object):
     @classmethod
     def connecting(cls):
         """Check whether the connection to a robot is valid."""
-        warnings.warn("depreacated", warnings.DeprecationWarning)
+        warnings.warn("Robot.connectiong() is depreacated",
+                      exceptions.DeprecationWarning)
         return cls._connecting()
 
     @classmethod
@@ -235,12 +261,7 @@ class Robot(object):
             return None
 
     def __init__(self, *args, **kwargs):
-        """Initialize a handle to a robot.
-
-        Args:
-            *args: Reserved for future use.
-            **kwargs: Reserved for future use.
-        """
+        """See class docstring."""
         if Robot._connection is None or Robot._connection() is None:
             self._conn = _ConnectionManager()
             Robot._connection = weakref.ref(self._conn)
@@ -280,15 +301,22 @@ class Robot(object):
 
         Returns:
             List[str]: A list of available items.
+
+        Warnings:
+            `typ` parameter is deprecated.
+            It will be removed in future release.
         """
+        if typ is not None:
+            msg = """A feature specifying an item by ItemType is deprecated."""
+            warnings.warn(msg, exceptions.DeprecationWarning)
         return self._conn.list(typ)
 
     def get(self, name, typ=None):
         """Get an item if available.
 
         Args:
-            name (str):   A name of ``Item`` to get.
-            typ (Types):  A type of ``Item`` to get.
+            name (str):   A name of an item to get.
+            typ (Types):  A type of an item to get.
 
         Returns:
             Item: An instance with a specified name.
@@ -296,8 +324,13 @@ class Robot(object):
         Raises:
             hsrb_interface.exceptions.ResourceNotFoundError:
                 A resource that named as `name` is not found.
+
+        Warnings:
+            `typ` parameter is deprecated.
+            It will be removed in future release.
         """
-        return self._conn.get(name, typ)
+        name = _type_deprecation_warning(name, typ)
+        return self._conn.get(name)
 
     def try_get(self, name, typ=None, msg="Ignored"):
         """Try to get an item if available.
@@ -316,11 +349,16 @@ class Robot(object):
         Raises:
             hsrb_interface.exceptions.ResourceNotFoundError:
                 A resource that named as `name` is not found.
-        """
-        try:
-            return self.get(name, typ)
-        except (exceptions.ResourceNotFoundError, exceptions.RobotConnectionError):
-            if msg is not None:
-                err = "Failed to get Item({0} : {1}): {2}".format(name, typ.value if typ else "Any", msg)
-                print(err, file=sys.stderr)
 
+        Warnings:
+            `typ` parameter is deprecated.
+            It will be removed in future release.
+        """
+        name = _type_deprecation_warning(name, typ)
+        try:
+            return self.get(name, None)
+        except (exceptions.ResourceNotFoundError,
+                exceptions.RobotConnectionError):
+            if msg is not None:
+                err = "Failed to get Item({0}): {1}".format(name, msg)
+                print(err, file=sys.stderr)

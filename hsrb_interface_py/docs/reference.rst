@@ -12,6 +12,8 @@ Robot
 
 .. autoclass:: hsrb_interface.Robot
 
+.. autoclass:: hsrb_interface.ItemTypes
+
 Power Supply
 =============
 
@@ -19,30 +21,6 @@ Battery
 ------------------
 
 .. autoclass:: hsrb_interface.battery.Battery
-
-Motion
-=========
-
-JointGroup
-----------------
-
-.. autoclass:: hsrb_interface.joint_group.JointGroup
-
-MobileBase
-----------------
-
-.. autoclass:: hsrb_interface.mobile_base.MobileBase
-
-Gripper
-----------------
-
-.. autoclass:: hsrb_interface.end_effector.Gripper
-
-Suction
-----------------
-
-.. autoclass:: hsrb_interface.end_effector.Suction
-
 
 Sensors
 ==========
@@ -79,6 +57,33 @@ Lidar
 --------------------
 
 .. autoclass:: hsrb_interface.sensors.Lidar
+Navigation
+============
+
+MobileBase
+----------------
+
+.. autoclass:: hsrb_interface.mobile_base.MobileBase
+
+Manipulation
+============
+
+JointGroup
+----------------
+
+.. autoclass:: hsrb_interface.joint_group.JointGroup
+
+Gripper
+----------------
+
+.. autoclass:: hsrb_interface.end_effector.Gripper
+
+Suction
+----------------
+
+.. autoclass:: hsrb_interface.end_effector.Suction
+
+
 
 Perception
 ============
@@ -99,3 +104,9 @@ CollisionWorld
 ------------------------
 
 .. autoclass:: hsrb_interface.collision_world.CollisionWorld
+
+
+Geometry
+==================
+
+.. automodule:: hsrb_interface.geometry

@@ -1,12 +1,17 @@
 # vim: fileencoding=utf-8
+"""Provides object detection elements.
+
+Copyright (c) 2016 Toyota Motor Corporation.
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
 import copy
-import rospy
 import threading
+
+import rospy
 
 from tmc_vision_msgs.msg import RecognizedObject
 
@@ -30,12 +35,11 @@ def _expired(now, expiration, stamped):
     Returns:
         bool: True if the object is outdated.
     """
-    return (now - stanmped.header.stamp) > expiration
+    return (now - stamped.header.stamp) > expiration
 
 
 class Object(object):
     """Abstract representation of a recognized object.
-
 
     Attributes:
         id (int): A ID of this object
@@ -54,20 +58,28 @@ class Object(object):
         """Convert ot ROS message type
 
         Returns:
-
+            tmc_vision_msgs.msg.RecognizedObject: A ROS message reresentation.
         """
         return copy.deepcopy(self._data)
 
     def __repr__(self):
+        """Human friendly object representation."""
         return "<{0}: id={1} name={2}>".format(self.__class__.__name__,
                                                self._data.object_id.object_id,
                                                self._data.object_id.name)
 
     def __eq__(self, other):
+        """Equality is checked by only ``object_id`` ."""
         return self._data.object_id == other._data.object_id
 
     def get_pose(self, ref_frame_id=None):
         """Get a pose of this object based onf `ref_frame_id`.
+
+        Args:
+            ref_frame_id (str): A reference frame of a pose to be returned.
+
+        Returns:
+            Tuple[Vector3, Quaternion]: A pose of this object.
         """
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('map')
@@ -96,7 +108,6 @@ class ObjectDetector(robot.Item):
         expiration (float): Duration to hold newly detected objects [sec].
 
     Examples:
-
         .. sourcecode:: python
 
            with Robot() as robot:
@@ -104,7 +115,16 @@ class ObjectDetector(robot.Item):
                objects = detector.get_objects()
 
     """
+
     def __init__(self, name):
+        """Initialize with a resource of a given `name`.
+
+        Notes:
+            This class is not intended to be created by user directly.
+
+        Args:
+            name (str): A name of a resource.
+        """
         super(ObjectDetector, self).__init__()
         self._setting = settings.get_entry('object_detection', name)
         self._lock = threading.Lock()
@@ -149,7 +169,7 @@ class ObjectDetector(robot.Item):
         """Get a object from current detection pool which has given ID.
 
         Args:
-            id (int): if `id` is  ``None``,
+            id (int): if `id` is  ``None`` .
 
         Returns:
             A recognized object.

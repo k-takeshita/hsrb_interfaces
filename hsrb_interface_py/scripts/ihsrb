@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from IPython.config.loader import Config
+from traitlets.config import Config
 try:
     get_ipython
 except NameError:
@@ -14,7 +14,7 @@ else:
 
 from IPython.terminal.embed import InteractiveShellEmbed
 shell = InteractiveShellEmbed(config=cfg,
-                              banner1="HSR-B Interactive Shell 0.1.0",
+                              banner1="HSR-B Interactive Shell 0.2.0",
                               exit_msg="Leaving HSR-B Interactive Shell")
 
 LOGO = r"""
@@ -41,7 +41,7 @@ with Robot() as robot:
     head_l_stereo_camera = robot.try_get('head_l_stereo_camera')
     head_rgbd_sensor_depth = robot.try_get('head_rgbd_sensor_depth')
     head_rgbd_sensor_rgb = robot.try_get('head_rgbd_sensor_rgb')
-    collision_world = robot.try_get('default', ItemTypes.COLLISION_WORLD)
+    collision_world = robot.try_get('global_collision_world')
     suction = robot.try_get('suction')
     gripper = robot.try_get('gripper')
     wrist_wrench = robot.try_get('wrist_wrench')
@@ -49,5 +49,5 @@ with Robot() as robot:
     base_scan = robot.try_get('base_scan')
     marker = robot.try_get('marker')
     battery = robot.try_get('battery')
-    tts = robot.try_get('default', ItemTypes.TEXT_TO_SPEECH)
+    tts = robot.try_get('default_tts')
     shell(LOGO)

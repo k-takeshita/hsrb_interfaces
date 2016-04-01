@@ -295,7 +295,7 @@ napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 napoleon_include_private_with_doc = False
 napoleon_include_special_with_doc = True
-napoleon_use_ivar = True
+napoleon_use_ivar = False
 napoleon_use_param = True
 napoleon_use_rtype = True
 
@@ -308,5 +308,5 @@ def skip(app, what, name, obj, skip, options):
         return False
     return skip
 
-def setup(app):
-    app.connect("autodoc-skip-member", skip)
+#def setup(app):
+#    app.connect("autodoc-skip-member", skip)

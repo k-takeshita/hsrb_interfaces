@@ -45,3 +45,7 @@ class InvalidLanguageError(HsrbInterfaceError):
 
 class MobileBaseError(HsrbInterfaceError):
     """Something wrong in a mobile base."""
+
+
+class DeprecationWarning(Warning):
+    """Indicate a feature is deprecated."""

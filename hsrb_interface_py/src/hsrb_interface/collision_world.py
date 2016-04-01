@@ -38,6 +38,15 @@ class CollisionWorld(robot.Item):
     """Abstract interface that represents collision space.
 
     The collision space is usually unique and global.
+
+
+    Attributes:
+        known_object_only (bool):
+            If True :py:meth:`.snapshot` exclude unknown objects.
+        ref_frame_id (str):
+            A reference frame ID for a snapshot.
+        next_object_id (int):
+            Next ID that may be given to a newly added collision object.
     """
 
     def __init__(self, name):
@@ -80,36 +89,33 @@ class CollisionWorld(robot.Item):
                 return False
             rospy.sleep(0.1)
 
-    @property
-    def known_object_only(self):
-        """bool: If True :py:meth:`.snapshot` exclude unknown objects."""
+    def _get_known_object_only(self):
+        """Getter for :py:attr:`known_object_only`."""
         return self._known_object_only
 
-    @known_object_only.setter
-    def known_object_only(self, value):
+    def _set_known_object_only(self, value):
         """Setter for :py:attr:`known_object_only`."""
         self._known_object_only = value
 
-    @property
-    def ref_frame_id(self):
-        """A reference frame ID for a snapshot"""
+    known_object_only = property(_get_known_object_only,
+                                 _set_known_object_only)
+
+    def _get_ref_frame_id(self):
         return self._ref_frame_id
 
-    @ref_frame_id.setter
-    def ref_frame_id(self, value):
-        """Set a reference frame ID"""
+    def _set_ref_frame_id(self, value):
         self._ref_frame_id = value
 
-    @property
-    def next_object_id(self):
-        """int: Next ID that may be given to a newly added collision object."""
+    ref_frame_id = property(_get_ref_frame_id, _set_ref_frame_id)
+
+    def _get_next_object_id(self):
         return self._object_count
 
-    @next_object_id.setter
-    def next_object_id(self, value):
-        """Setter for :py:attr:`next_object_id`."""
+    def _set_next_object_id(self, value):
         self._start_object_id = value
         self._object_count = self._start_object_id
+
+    next_object_id = property(_get_next_object_id, _set_next_object_id)
 
     @property
     def environment(self):
@@ -125,7 +131,7 @@ class CollisionWorld(robot.Item):
 
         Returns:
             tmc_manipulation_msgs.msg.CollisionEnvironment:
-                A snapshot of collision space
+                A snapshot of collision space.
         """
         req = GetCollisionEnvironmentRequest()
         req.known_object_only = self._known_object_only
@@ -140,7 +146,7 @@ class CollisionWorld(robot.Item):
         self._environment = res.environment
         return self._environment
 
-    def add_box(self, x=0.1, y=0.1, z=0.1, pose=geometry.create_pose(),
+    def add_box(self, x=0.1, y=0.1, z=0.1, pose=geometry.pose(),
                 frame_id='map', name='box'):
         """Add a box object to the collision space.
 
@@ -150,6 +156,7 @@ class CollisionWorld(robot.Item):
             z: Length along with Z-axis [m]
             pose: A pose of a new object from the frame ``frame_id`` .
             frame_id: A reference frame of a new object.
+
         Returns:
             Tuple[int, str]: An ID of an added object.
         """
@@ -175,7 +182,7 @@ class CollisionWorld(robot.Item):
         else:
             return None
 
-    def add_sphere(self, radius=0.1, pose=geometry.create_pose(),
+    def add_sphere(self, radius=0.1, pose=geometry.pose(),
                    frame_id='map', name='sphere'):
         """Add a sphere object to the collision space.
 
@@ -183,6 +190,7 @@ class CollisionWorld(robot.Item):
             radius: Radius [m]
             pose: A pose of a new object from the frame ``frame_id`` .
             frame_id: A reference frame of a new object.
+
         Returns:
             Tuple[int, str]: An ID of an added object.
         """
@@ -217,6 +225,7 @@ class CollisionWorld(robot.Item):
             length: Height [m]
             pose: A pose of a new object from the frame ``frame_id`` .
             frame_id: A reference frame of a new object.
+
         Returns:
             Tuple[int, str]: An ID of an added object.
         """
@@ -261,6 +270,7 @@ class CollisionWorld(robot.Item):
 
         Returns:
             Tuple[int, str]: An ID of an added object.
+
         Raises:
             IOError: A file does not exist.
         """
@@ -290,6 +300,7 @@ class CollisionWorld(robot.Item):
 
         Args:
             object_id (Tuple[int, str]): A known object ID
+
         Returns:
             None
         """

@@ -8,29 +8,31 @@ from __future__ import unicode_literals
 
 import math
 
+import actionlib
 import rospy
 import tf
-import actionlib
 
 from geometry_msgs.msg import PoseStamped
-from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
+from move_base_msgs.msg import MoveBaseAction
+from move_base_msgs.msg import MoveBaseGoal
 
-from . import robot
-from . import settings
 from . import exceptions
 from . import geometry
+from . import robot
+from . import settings
 
 # Timeout to receve enough tf transform [sec]
 _TF_TIMEOUT = 1.0
 
 
 def _validate_timeout(timeout):
+    """Validate a given timeout value is meaning time value."""
     if timeout < 0.0 or math.isnan(timeout) or math.isinf(timeout):
         raise ValueError("Invalid timeout: {0}".format(timeout))
 
 
 class MobileBase(robot.Item):
-    """Abstract interface to control a mobile base
+    """Abstract interface to control a mobile base.
 
     Example:
 
@@ -43,6 +45,11 @@ class MobileBase(robot.Item):
     """
 
     def __init__(self, name):
+        """Initialize an instance with a resource which has given `name`.
+
+        Args:
+            name (str): A name of a target resource.
+        """
         super(MobileBase, self).__init__()
         self._setting = settings.get_entry('mobile_base', name)
 
@@ -53,18 +60,15 @@ class MobileBase(robot.Item):
                                                            MoveBaseAction)
 
     def move(self, pose, timeout=0.0, ref_frame_id=None):
-        """Move to a specified pose
+        """Move to a specified pose.
 
         Args:
-            pose (Tuple[Vector3[m], Quaternion]):
+            pose (Tuple[Vector3, Quaternion]):
                 A pose from a ``ref_frame_id`` coordinate
             timeout (float): Timeout to movement [sec].
-                If not specified, timeout is 0 and wait forever.
+                If not specified, deafult is 0 and wait forever.
             ref_frame_id (str):
                 A reference frame of a goal. Default is ``map`` frame.
-
-        Returns:
-            None
 
         Examples:
 
@@ -72,7 +76,7 @@ class MobileBase(robot.Item):
 
                with hsrb_interface.Robot() as robot:
                    base = robot.get('omni_base', robot.Items.MOBILE_BASE)
-                   pose = (Vector3(0.1, 0.2, 0.0), Quaternion(0.0, 0.0, 0.0, 1.0)
+                   pose = (Vector3(0.1, 0.2, 0.0), Quaternion())
                    base.move(pose, 10.0, 'base_footprint')
         """
         _validate_timeout(timeout)
@@ -102,7 +106,7 @@ class MobileBase(robot.Item):
             self._action_client.cancel_goal()
 
     def go(self, x, y, yaw, timeout=0.0, relative=False):
-        """Move base to a specified pose
+        """Move base to a specified pose.
 
         Args:
             x   (float): X-axis position on ``map`` frame [m]
@@ -113,8 +117,8 @@ class MobileBase(robot.Item):
             relative (bool): If ``True``, a robot move on robot frame.
                 Otherwise a robot move on ``map`` frame.
 
-        Returns:
-            None
+        Raises:
+            ValueError: `timeout` < 0.
 
         Example:
 
@@ -123,14 +127,12 @@ class MobileBase(robot.Item):
                with hsrb_interface.Robot() as robot:
                    base = robot.get('omni_base', robot.Items.MOBILE_BASE)
                    base.go(0.1, 0.2, 0.0, 10.0)
-        Raises:
-            ValueError: timeout < 0
         """
         _validate_timeout(timeout)
 
         position = geometry.Vector3(x, y, 0)
-        q = tf.transformations.quaternion_from_euler(0, 0, yaw)
-        orientation = geometry.Quaternion(*q)
+        quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
+        orientation = geometry.Quaternion(*quat)
         pose = (position, orientation)
 
         if relative:
@@ -144,11 +146,11 @@ class MobileBase(robot.Item):
         """Estimated pose of a robot on ``map`` frame.
 
         Returns:
-            List[float]: (x[m], y[m], yaw[rad])
+            List[float]: A pose value structured as (x[m], y[m], yaw[rad]).
         """
         pos, ori = self.get_pose()
-        q = [ori.x, ori.y, ori.z, ori.w]
-        euler_angles = tf.transformations.euler_from_quaternion(q)
+        quat = [ori.x, ori.y, ori.z, ori.w]
+        euler_angles = tf.transformations.euler_from_quaternion(quat)
         yaw = euler_angles[2]
         return [pos.x, pos.y, yaw]
 
@@ -159,8 +161,8 @@ class MobileBase(robot.Item):
              ref_frame_id (str):
                  A reference frame of estimated pose. (Default ``map`` frame)
         Returns:
-             (Vector3, Quaternion):
-                 A pose of ``base_footprint`` frame from ``ref_frame_id`` frame.
+             Tuple[Vector3, Quaternion]:
+                 A pose of ``base_footprint`` frame from ``ref_frame_id``.
         """
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('map')
@@ -171,7 +173,7 @@ class MobileBase(robot.Item):
                                                   rospy.Duration(_TF_TIMEOUT))
         return geometry.transform_to_tuples(trans.transform)
 
-    def _cancel(self, number, frame):
-        """Cancel autonomous driving"""
+    def _cancel(self):
+        """Cancel autonomous driving."""
         self._action_client.cancel_goal()
         raise exceptions.MobileBaseError('move_base was canceled from client')

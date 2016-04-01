@@ -55,6 +55,7 @@ xmlr.reflect(urdf.JointLimit, params=[
     xmlr.Attribute('velocity', float)
 ])
 
+
 # Monkeypatching urdf_parser_py (2)
 # URDF specification allow multiple <visual> and <collision> elements.
 # http://wiki.ros.org/urdf/XML/link
@@ -66,13 +67,14 @@ xmlr.reflect(urdf.Link, params=[
     xmlr.AggregateElement('collision', urdf.Collision, 'collision')
 ])
 
+
 def _get_aggregate_list(self, xml_var):
-    """Get """
     var = self.XML_REFL.paramMap[xml_var].var
     if not getattr(self, var):
         self.aggregate_init()
         setattr(self, var, [])
     return getattr(self, var)
+
 
 urdf.Link.get_aggregate_list = _get_aggregate_list
 urdf.Collision.get_aggregate_list = _get_aggregate_list
@@ -80,12 +82,12 @@ urdf.Material.check_valid = lambda self: None
 
 from urdf_parser_py.urdf import Robot as RobotUrdf
 
-from . import exceptions
-from . import settings
-from . import robot
-from . import utils
-from . import geometry
 from . import collision_world
+from . import exceptions
+from . import geometry
+from . import robot
+from . import settings
+from . import utils
 
 
 # Rate to check trajectory action hz]
@@ -119,6 +121,7 @@ _BASE_TRAJECTORY_ORIGIN = "odom"
 # Duration to open hand [sec]
 _TIME_OPEN_HAND = 10.0
 
+
 def _refer_planning_error(error_code):
     """Translate a motion planning error code to a human readable text.
 
@@ -134,6 +137,7 @@ def _refer_planning_error(error_code):
         return error_names[0]
     else:
         return str(error_code)
+
 
 def _extract_trajectory(trajectory, joint_names, joint_state):
     """Extract trajectories of specified joints from a given trajectory.
@@ -156,28 +160,32 @@ def _extract_trajectory(trajectory, joint_names, joint_state):
     index_map = list(repeat(0, num_joints))
     for joint_index in range(num_joints):
         index_map[joint_index] = -1
-        for input_joint_index in range(len(trajectory.joint_names)):
-            if joint_names[joint_index] == trajectory.joint_names[input_joint_index]:
-                index_map[joint_index] = input_joint_index
+        for input_index in range(len(trajectory.joint_names)):
+            if joint_names[joint_index] == trajectory.joint_names[input_index]:
+                index_map[joint_index] = input_index
     trajectory_out = JointTrajectory()
     trajectory_out.joint_names = joint_names
-    trajectory_out.points = list(utils.iterate(JointTrajectoryPoint, num_points))
+    trajectory_out.points = list(utils.iterate(JointTrajectoryPoint,
+                                               num_points))
     for point_index in range(num_points):
         target = trajectory_out.points[point_index]
         source = trajectory.points[point_index]
         target.positions = list(repeat(0, num_joints))
         target.velocities = list(repeat(0, num_joints))
-        target.accelerations= list(repeat(0, num_joints))
+        target.accelerations = list(repeat(0, num_joints))
         target.time_from_start = source.time_from_start
         has_velocities = len(source.velocities)
         has_accelerations = len(source.accelerations)
         for joint_index in range(num_joints):
             if index_map[joint_index] != -1:
-                target.positions[joint_index] = source.positions[index_map[joint_index]]
+                pos = source.positions[index_map[joint_index]]
+                target.positions[joint_index] = pos
                 if has_velocities:
-                    target.velocities[joint_index] = source.velocities[index_map[joint_index]]
+                    vel = source.velocities[index_map[joint_index]]
+                    target.velocities[joint_index] = vel
                 if has_accelerations:
-                    target.accelerations[joint_index] = source.accelerations[index_map[joint_index]]
+                    acc = source.accelerations[index_map[joint_index]]
+                    target.accelerations[joint_index] = acc
             else:
                 i = joint_state.name.index(joint_names[joint_index])
                 angle = joint_state.position[i]
@@ -235,18 +243,26 @@ def _adjust_trajectory_time(trajectory1, trajectory2):
     for (point1, point2) in zip(trajectory1.points, trajectory2.points):
         point2.time_from_start = point1.time_from_start
     # Re-compute velocities in trajecotry2 from difference of positions
-    for index in range(num_points-1):
-        dt = trajectory2.points[index+1].time_from_start.to_sec() - trajectory2.points[index].time_from_start.to_sec()
-        trajectory2.points[index].velocities = [(x1-x0)/dt for (x0, x1) in zip(trajectory2.points[index].positions,
-                                                                           trajectory2.points[index+1].positions)]
-    zero_vector2 = [0]*len(trajectory2.joint_names)
+    for index in range(num_points - 1):
+        t_to = trajectory2.points[index + 1].time_from_start.to_sec()
+        t_from = trajectory2.points[index].time_from_start.to_sec()
+        dt = t_to - t_from
+        p_to = trajectory2.points[index + 1].positions
+        p_from = trajectory2.points[index].positions,
+        new_vels = [(x1 - x0) / dt for (x0, x1) in zip(p_from, p_to)]
+        trajectory2.points[index].velocities = new_vels
+    zero_vector2 = [0] * len(trajectory2.joint_names)
     trajectory2.points[-1].velocities = zero_vector2
     # Re-compute accelerations in trajecotry2 from difference of velocties
     trajectory2.points[0].accelerations = zero_vector2
-    for index in range(1, num_points-1):
-        dt = trajectory2.points[index+1].time_from_start.to_sec() - trajectory2.points[index-1].time_from_start.to_sec()
-        trajectory2.points[index].accelerations = [(x1-x0)/dt for (x0, x1) in zip(trajectory2.points[index-1].velocities,
-                                                                              trajectory2.points[index+1].velocities)]
+    for index in range(1, num_points - 1):
+        t_to = trajectory2.points[index + 1].time_from_start.to_sec()
+        t_from = trajectory2.points[index - 1].time_from_start.to_sec()
+        dt = t_to - t_from
+        p_to = trajectory2.points[index + 1].velocities
+        p_from = trajectory2.points[index - 1].velocities
+        new_accs = [(x1 - x0) / dt for (x0, x1) in zip(p_from, p_to)]
+        trajectory2.points[index].accelerations = new_accs
     trajectory2.points[-1].accelerations = zero_vector2
 
 
@@ -258,12 +274,26 @@ class FollowTrajectoryActionClient(object):
             A name of a ros-controls controller
         joint_names_suffix (str):
             A name of a parameter to specify target joint names
+
+    Attributes:
+        joint_names (List[str]): Names of target joints.
+        controller_name (str): A name of a target controller.
     """
+
     def __init__(self, controller_name, joint_names_suffix="/joints"):
+        """See class docstring."""
         self._controller_name = controller_name
-        self._client = actionlib.SimpleActionClient(controller_name + "/follow_joint_trajectory", FollowJointTrajectoryAction)
+        action = controller_name + "/follow_joint_trajectory"
+        self._client = actionlib.SimpleActionClient(
+            action,
+            FollowJointTrajectoryAction
+        )
         self._client.wait_for_server(rospy.Duration(_ACTION_WAIT_TIMEOUT))
-        self._joint_names = rospy.get_param("{0}/{1}".format(self._controller_name, joint_names_suffix), None)
+        param_name = "{0}/{1}".format(
+            self._controller_name,
+            joint_names_suffix
+        )
+        self._joint_names = rospy.get_param(param_name, None)
 
     def send_goal(self, trajectory):
         """Send a goal to a connecting controller."""
@@ -276,6 +306,7 @@ class FollowTrajectoryActionClient(object):
         self._client.cancel_goal()
 
     def get_state(self):
+        """Get a status of the action client"""
         return self._client.get_state()
 
     def get_results(self, timeout=None):
@@ -291,22 +322,23 @@ class FollowTrajectoryActionClient(object):
         result = self._client.get_result()
 
         if result.error_code != FollowJointTrajectoryResult.SUCCESSFUL:
-            raise exceptions.FollowTrajectoryError("{0}".format(result.error_code))
+            msg = "{0}".format(result.error_code)
+            raise exceptions.FollowTrajectoryError(msg)
         if state != actionlib.GoalStatus.SUCCEEDED:
             raise exceptions.FollowTrajectoryError("{0}".format(state))
         return result
 
-    @property
-    def joint_names(self):
+    def _get_joint_names(self):
         return self._joint_names
+    joint_names = property(_get_joint_names)
 
-    @property
-    def controller_name(self):
+    def _get_controller_name(self):
         return self._controller_name
+    controller_name = property(_get_controller_name)
 
 
 class ImpedanceControlActionClient(FollowTrajectoryActionClient):
-    """Wrapper class to invoke impedance control action
+    """Wrapper class to invoke impedance control action.
 
     Args:
         controller_name (str):
@@ -314,13 +346,19 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
         joint_names_suffix (str):
             A name of a parameter to specify target joint names
 
+    Attributes:
+        config (str): A name of preset config.
+        config_names (List[str]): A list of available preset configs.
     """
+
     def __init__(self, controller_name, joint_names_suffix="/joint_names"):
-        super(ImpedanceControlActionClient, self).__init__(
-            controller_name, joint_names_suffix)
+        """See class docstring."""
+        super(ImpedanceControlActionClient, self).__init__(controller_name,
+                                                           joint_names_suffix)
         self._config = None
-        self._config_names = rospy.get_param(
-            controller_name + "/config_names", [])
+        self._config_names = rospy.get_param(controller_name + "/config_names",
+                                             [])
+        self._controller_name = controller_name
 
     def send_goal(self, trajectory):
         """Send a goal to a connecting controller"""
@@ -345,12 +383,10 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
         goal.trajectory = trajectory
         self._client.send_goal(goal)
 
-    @property
-    def config(self):
+    def _get_config(self):
         return self._config
 
-    @config.setter
-    def config(self, value):
+    def _set_config(self, value):
         if value in self._config_names:
             self._config = value
         elif value is None:
@@ -359,16 +395,42 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
             raise exceptions.FollowTrajectoryError(
                 "Failed to set impedance config")
 
-    @property
-    def config_names(self):
+    config = property(_get_config, _set_config)
+
+    def _get_config_names(self):
         self._config_names = rospy.get_param(
-            controller_name + "/config_names", [])
+            self.controller_name + "/config_names", [])
         return self._config_names
 
+    config_names = property(_get_config_names)
+
+
 class JointGroup(robot.Item):
-    """Abstract interface to control a group of joints."""
+    """Abstract interface to control a group of joints.
+
+    Attributes:
+        joint_names (List[str]): A list of available joints.
+        joint_positions (Dict[str, float]):
+            Current joint positions.
+        joint_states (sensor_msgs.JointState): A latest joint states.
+        joint_limits (Dict[str, float]):
+            Joint limits of a robot.
+        collision_world (Collisionworld):
+            A present collision world to check collision.
+            If None, collision checking is disabled.
+        linear_wait (float):
+        angular_wait (float):
+        planning_timeout (float): Timeout for motion planning [sec].
+        impedance_config (str):
+            A name of impedance control preset config.
+            If None, impeance control is disabled.
+            Default is None.
+        use_base_timeopt (bool):
+            If true, time-optimal filter is applied to a base trajectory.
+    """
 
     def __init__(self, name):
+        """See class docstring."""
         super(JointGroup, self).__init__()
         self._setting = settings.get_entry('joint_group', name)
         self._arm_client = FollowTrajectoryActionClient(
@@ -407,45 +469,35 @@ class JointGroup(robot.Item):
 
     @property
     def joint_names(self):
-        """List[str]: List of joint names"""
         return self._get_joint_state().name
 
     @property
     def joint_positions(self):
-        """Dict[str, float]: """
         joint_state = self._get_joint_state()
         return dict(zip(joint_state.name, joint_state.position))
 
     @property
     def joint_velocities(self):
-        """"""
         joint_state = self._get_joint_state()
         return dict(zip(joint_state.name, joint_state.velocity))
 
     @property
     def joint_state(self):
-        """sensor_msgs.JointState: A latest joint state"""
         return self._get_joint_state()
 
     @property
     def joint_limits(self):
         joint_map = self._robot_urdf.joint_map
-        return {joint_name: (joint_map[joint_name].limit.lower, joint_map[joint_name].limit.upper)
+        return {joint_name: (joint_map[joint_name].limit.lower,
+                             joint_map[joint_name].limit.upper)
                 for joint_name in self.joint_names}
 
     @property
     def collision_world(self):
-        """CollisionWorld: A present collision world to check collision.
-
-        """
         return self._collision_world
 
     @collision_world.setter
     def collision_world(self, value):
-        """CollisionWorld: Set a collision world for motion planning.
-
-        If None, collision checking is disabled.
-        """
         if value is None:
             self._collision_world = None
         elif isinstance(value, collision_world.CollisionWorld):
@@ -491,7 +543,6 @@ class JointGroup(robot.Item):
 
     @property
     def use_base_timeopt(self):
-        """If True, Time-optimal mobile base control is adopted."""
         return self._use_base_timeopt
 
     @use_base_timeopt.setter
@@ -506,7 +557,7 @@ class JointGroup(robot.Item):
         Returns:
             None
         Raises:
-            ValueError: Some specified joints are not found in an acutual robot.
+            ValueError: Some specified joints are not found.
         """
         # Validate joint names
         initial_joint_state = self._get_joint_state()
@@ -514,14 +565,18 @@ class JointGroup(robot.Item):
         target_joint_set = set(goal_state.name)
         if not target_joint_set.issubset(active_joint_set):
             unknown_set = target_joint_set.difference(active_joint_set)
-            raise ValueError("No such joint(s): [{0}]".format(', '.join(unknown_set)))
+            msg = "No such joint(s): [{0}]".format(', '.join(unknown_set))
+            raise ValueError(msg)
 
         odom_to_robot_transform = self._tf2_buffer.lookup_transform(
-                                    settings.get_frame('odom'),
-                                    settings.get_frame('base'),
-                                    rospy.Time(0),
-                                    rospy.Duration(_TF_TIMEOUT))
-        odom_to_robot_tuples = geometry.transform_to_tuples(odom_to_robot_transform.transform)
+            settings.get_frame('odom'),
+            settings.get_frame('base'),
+            rospy.Time(0),
+            rospy.Duration(_TF_TIMEOUT)
+        )
+        odom_to_robot_tuples = geometry.transform_to_tuples(
+            odom_to_robot_transform.transform
+        )
         odom_to_robot_pose = geometry.tuples_to_pose(odom_to_robot_tuples)
 
         req = PlanWithJointGoalsRequest()
@@ -536,13 +591,16 @@ class JointGroup(robot.Item):
         req.max_iteration = _PLANNING_MAX_ITERATION
         req.base_movement_type.val = BaseMovementType.ROTATION_Z
         if self._collision_world is not None:
-            req.environment_before_planning = self._collision_world.snapshot('odom')
+            snapshot = self._collision_world.snapshot('odom')
+            req.environment_before_planning = snapshot
 
-        plan_service = rospy.ServiceProxy(self._setting['plan_with_joint_goals_service'], PlanWithJointGoals)
+        service_name = self._setting['plan_with_joint_goals_service']
+        plan_service = rospy.ServiceProxy(service_name, PlanWithJointGoals)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             error = _refer_planning_error(res.error_code.val)
-            raise exceptions.PlannerError("Fail to plan change_joint_state: {0}".format(error))
+            msg = "Fail to plan change_joint_state: {0}".format(error)
+            raise exceptions.PlannerError(msg)
         res.base_solution.header.frame_id = settings.get_frame('odom')
         self._play_trajectory(res.solution, res.base_solution)
 
@@ -579,7 +637,9 @@ class JointGroup(robot.Item):
                    whole_body.move_to_joint_positions(goals)
 
                    # The method also accept keyword arguments
-                   whole_body.move_to_joint_positions(head_tilt_joint=math.radians(30))
+                   whole_body.move_to_joint_positions(
+                       head_tilt_joint=math.radians(30)
+                   )
 
         """
         if goals is None:
@@ -594,11 +654,7 @@ class JointGroup(robot.Item):
         self._change_joint_state(goal_state)
 
     def move_to_neutral(self):
-        """Move joints to neutral(initial) pose of a robot.
-
-        Returns:
-            None
-        """
+        """Move joints to neutral(initial) pose of a robot."""
         goals = {
             'arm_lift_joint': 0.0,
             'arm_flex_joint': 0.0,
@@ -611,11 +667,7 @@ class JointGroup(robot.Item):
         self.move_to_joint_positions(goals)
 
     def move_to_go(self):
-        """Move joints to a suitable pose for moving a mobile base.
-
-        Returns:
-            None
-        """
+        """Move joints to a suitable pose for moving a mobile base."""
         goals = {
             'arm_flex_joint': 0.0,
             'arm_lift_joint': 0.0,
@@ -626,7 +678,6 @@ class JointGroup(robot.Item):
             'head_tilt_joint': 0.0
         }
         self.move_to_joint_positions(goals)
-
 
     def get_end_effector_pose(self, ref_frame_id=None):
         """Get a pose of end effector based on robot frame.
@@ -656,7 +707,6 @@ class JointGroup(robot.Item):
         Returns:
             None
         """
-
         use_joints = (
             'wrist_flex_joint',
             'wrist_roll_joint',
@@ -674,16 +724,19 @@ class JointGroup(robot.Item):
             settings.get_frame('base'),
             rospy.Time(0),
             rospy.Duration(_TF_TIMEOUT)
+        ).transform
+        odom_to_robot_tuples = geometry.transform_to_tuples(
+            odom_to_robot_transform
         )
-        odom_to_robot_pose = geometry.tuples_to_pose(geometry.transform_to_tuples(odom_to_robot_transform.transform))
+        odom_to_robot_pose = geometry.tuples_to_pose(odom_to_robot_tuples)
 
         odom_to_ref_transform = self._tf2_buffer.lookup_transform(
             settings.get_frame('odom'),
             ref_frame_id,
             rospy.Time(0),
             rospy.Duration(_TF_TIMEOUT)
-        )
-        odom_to_ref = geometry.transform_to_tuples(odom_to_ref_transform.transform)
+        ).transform
+        odom_to_ref = geometry.transform_to_tuples(odom_to_ref_transform)
         odom_to_hand = geometry.multiply_tuples(odom_to_ref, pose)
         odom_to_hand_pose = geometry.tuples_to_pose(odom_to_hand)
 
@@ -702,9 +755,11 @@ class JointGroup(robot.Item):
         req.weighted_joints = ['_linear_base', '_rotational_base']
         req.weight = [self._linear_weight, self._angular_weight]
         if self._collision_world is not None:
-            req.environment_before_planning = self._collision_world.snapshot('odom')
+            snapshot = self._collision_world.snapshot('odom')
+            req.environment_before_planning = snapshot
 
-        plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_goals_service'],
+        service_name = self._setting['plan_with_hand_goals_service'],
+        plan_service = rospy.ServiceProxy(service_name,
                                           PlanWithHandGoals)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
@@ -760,9 +815,11 @@ class JointGroup(robot.Item):
         req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
         req.extra_goal_constraints = []
         if self._collision_world is not None:
-            req.environment_before_planning = self._collision_world.snapshot('odom')
+            snapshot = self._collision_world.snapshot('odom')
+            req.environment_before_planning = snapshot
 
-        plan_service = rospy.ServiceProxy(self._setting['plan_with_hand_line_service'],
+        service_name = self._setting['plan_with_hand_line_service']
+        plan_service = rospy.ServiceProxy(service_name,
                                           PlanWithHandLine)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
@@ -778,12 +835,13 @@ class JointGroup(robot.Item):
         Args:
             joint_trajectory (trajectory_msgs.msg.JointTrajectory):
                 An upper body trajectory
-            base_trajectory (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory):
+            base_trajectory(tmc_manipulation_msgs.msg.MultiDOFJointTrajectory):
                 A base trajectory
         Returns:
             None
         """
-        constrained_trajectory = self._constrain_trajectory(joint_trajectory, base_trajectory)
+        constrained_trajectory = self._constrain_trajectory(joint_trajectory,
+                                                            base_trajectory)
 
         clients = []
         if self._impedance_client.config is not None:
@@ -796,65 +854,69 @@ class JointGroup(robot.Item):
                 break
         self._execute_trajectory(clients, constrained_trajectory)
 
-    def _build_whole_body_trajectory(self, joint_trajectory, odom_base_trajectory):
+    def _build_whole_body_trajectory(self, joint_trajectory, base_trajectory):
         """Combine an upper body trajectory and a base one into whole body one.
 
         Args:
             joint_trajectory (trajectory_msgs.msg.JointTrajectory):
                 An upper body trajectory
-            odom_base_trajectory (trajectory_msgs.msg.JointTrajectory):
+            base_trajectory (trajectory_msgs.msg.JointTrajectory):
                 A base trajectory (Based on odom frame)
         Returns:
             trajectory_msgs.msg.JointTrajectory: A whole body trajectory.
         """
-        if len(joint_trajectory.points) != len(odom_base_trajectory.points):
+        if len(joint_trajectory.points) != len(base_trajectory.points):
             raise exceptions.TrajectoryLengthError(
                 "Uneven joint_trajectory size and base_trajectory size.")
         # Merge arm and base trajectory
-        return _merge_trajectory(joint_trajectory, odom_base_trajectory)
+        return _merge_trajectory(joint_trajectory, base_trajectory)
 
-    def _transform_base_trajectory(self, base_trajectory):
-        """"Transform a base trajectory to an ``odom`` frame based trajectory.
+    def _transform_base_trajectory(self, base_traj):
+        """Transform a base trajectory to an ``odom`` frame based trajectory.
 
         Args:
-            base_trajectory (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory):
+            base_traj (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory):
                 A base trajectory
         Returns:
             trajectory_msgs.msg.JointTrajectory:
-                A base trajectory based on ``odom`` frame
+                A base trajectory based on ``odom`` frame.
         """
         odom_to_frame_transform = self._tf2_buffer.lookup_transform(
             _BASE_TRAJECTORY_ORIGIN,
-            base_trajectory.header.frame_id,
+            base_traj.header.frame_id,
             rospy.Time(0),
             rospy.Duration(_TF_TIMEOUT))
         odom_to_frame = geometry.transform_to_tuples(
             odom_to_frame_transform.transform)
 
-        num_points = len(base_trajectory.points)
+        num_points = len(base_traj.points)
         odom_base_trajectory = JointTrajectory()
         odom_base_trajectory.points = list(
             utils.iterate(JointTrajectoryPoint, num_points))
-        odom_base_trajectory.header = base_trajectory.header
+        odom_base_trajectory.header = base_traj.header
         odom_base_trajectory.joint_names = self._base_client.joint_names
 
         # Transform each point into odom frame
         previous_theta = 0.0
         for i in range(num_points):
-            t = base_trajectory.points[i].transforms[0]
+            t = base_traj.points[i].transforms[0]
             frame_to_base = geometry.transform_to_tuples(t)
 
             # odom_to_base = odom_to_frame * frame_to_base
-            (odom_to_base_trans, odom_to_base_rot) =\
-                geometry.multiply_tuples(odom_to_frame, frame_to_base)
+            (odom_to_base_trans, odom_to_base_rot) = geometry.multiply_tuples(
+                odom_to_frame,
+                frame_to_base
+            )
 
-            odom_base_trajectory.points[i].positions = [odom_to_base_trans[0],
-                                                        odom_to_base_trans[1],
-                                                        0]
+            odom_base_trajectory.points[i].positions = [
+                odom_to_base_trans[0],
+                odom_to_base_trans[1],
+                0
+            ]
             roll, pitch, yaw = tf.transformations.euler_from_quaternion(
                 odom_to_base_rot)
-            theta = previous_theta +\
-                    geometry.shortest_angular_distance(previous_theta, yaw)
+            dtheta = geometry.shortest_angular_distance(previous_theta, yaw)
+            theta = previous_theta + dtheta
 
             odom_base_trajectory.points[i].positions[2] = theta
             previous_theta = theta
@@ -864,8 +926,10 @@ class JointGroup(robot.Item):
         """Apply constraints to given trajectories.
 
         Parameters:
-            trajectory (trajectory_msgs.msg.JointTrajectory):
-                A trajectory
+            joint_trajectory (trajectory_msgs.msg.JointTrajectory):
+                A upper body trajectory
+            base_trajectory (trajectory_msgs.msg.JointTrajectory):
+                A base trajectory
         Returns:
             trajectory_msgs.msg.JointTrajectory:
                 A constrained trajectory
@@ -873,7 +937,6 @@ class JointGroup(robot.Item):
             TrajectoryFilterError:
                 Failed to execute trajectory-filtering
         """
-
         odom_base_trajectory = self._transform_base_trajectory(base_trajectory)
         trajectory = self._build_whole_body_trajectory(
             joint_trajectory, odom_base_trajectory)
@@ -893,15 +956,16 @@ class JointGroup(robot.Item):
         except rospy.ServiceException:
             traceback.print_exc()
             raise
-        filtered_merged_trajectory = res.trajectory
-        all_joint_time = filtered_merged_trajectory.points[-1].time_from_start.to_sec()
+        filtered_merged_traj = res.trajectory
         if not self._use_base_timeopt:
-            return filtered_merged_trajectory
+            return filtered_merged_traj
         # Transform arm and base trajectories to time-series trajectories
-        filtered_joint_trajectory = self._filter_arm_trajectory(joint_trajectory)
-        filtered_base_trajectory = self._filter_base_trajectory(odom_base_trajectory)
-        arm_joint_time = filtered_joint_trajectory.points[-1].time_from_start.to_sec()
-        base_timeopt_time = filtered_base_trajectory.points[-1].time_from_start.to_sec()
+        filtered_joint_traj = self._filter_arm_trajectory(joint_trajectory)
+        filtered_base_traj = self._filter_base_trajectory(odom_base_trajectory)
+        last_joint_point = filtered_joint_traj.points[-1]
+        last_base_point = filtered_base_traj.points[-1]
+        arm_joint_time = last_joint_point.time_from_start.to_sec()
+        base_timeopt_time = last_base_point.time_from_start.to_sec()
 
         # Play a trajectory
         # If end of a base trajectory is later than arm one,
@@ -909,10 +973,10 @@ class JointGroup(robot.Item):
         # (1) arm_joint_time < base_timeopt_time: use timeopt trajectory
         if arm_joint_time < base_timeopt_time:
             # Adjusting arm trajectory points to base ones as much as possible
-            _adjust_trajectory_time(filtered_base_trajectory, filtered_joint_trajectory)
-            return _merge_trajectory(filtered_joint_trajectory, filtered_base_trajectory)
+            _adjust_trajectory_time(filtered_base_traj, filtered_joint_traj)
+            return _merge_trajectory(filtered_joint_traj, filtered_base_traj)
         else:
-            return filtered_merged_trajectory
+            filtered_merged_traj
 
     def _execute_trajectory(self, clients, joint_trajectory):
         """Execute a trajectory playback with given action clients.
@@ -947,9 +1011,10 @@ class JointGroup(robot.Item):
                         log.append("{0}={1}".format(c.controller_name,
                                                     c.get_state()))
                         c.cancel_goal()
-                    text = "Playing trajecotry failed: {0}".format(', '.join(log))
+                    reason = ', '.join(log)
+                    text = "Playing trajecotry failed: {0}".format(reason)
                     raise exceptions.FollowTrajectoryError(text)
-                if all(map(lambda s: s == actionlib.GoalStatus.SUCCEEDED, states)):
+                if all([s == actionlib.GoalStatus.SUCCEEDED for s in states]):
                     break
                 rate.sleep()
         except KeyboardInterrupt:
@@ -959,8 +1024,10 @@ class JointGroup(robot.Item):
     def _filter_arm_trajectory(self, joint_trajectory):
         """Apply joint constraint fileter to an upper body trajectory."""
         service = self._setting["trajectory_filter_service"]
-        filter_service = rospy.ServiceProxy(service,
-                                            FilterJointTrajectoryWithConstraints)
+        filter_service = rospy.ServiceProxy(
+            service,
+            FilterJointTrajectoryWithConstraints
+        )
         req = FilterJointTrajectoryWithConstraintsRequest()
         req.trajectory = joint_trajectory
 
@@ -968,7 +1035,9 @@ class JointGroup(robot.Item):
         try:
             res = filter_service.call(req)
             if res.error_code.val != res.error_code.SUCCESS:
-                raise exceptions.TrajectoryFilterError("Failed to filter trajectory: {0}".fomrat(res.error_code.val))
+                reason = res.error_code.val
+                msg = "Failed to filter trajectory: {0}".fomrat(reason)
+                raise exceptions.TrajectoryFilterError(msg)
         except rospy.ServiceException:
             traceback.print_exc()
             raise
@@ -977,13 +1046,16 @@ class JointGroup(robot.Item):
 
     def _filter_base_trajectory(self, base_trajectory):
         """Apply timeopt filter to a omni-base trajectory."""
-        filter_service = rospy.ServiceProxy(self._setting["omni_base_timeopt_service"], FilterJointTrajectory)
+        service = self._setting["omni_base_timeopt_service"]
+        filter_service = rospy.ServiceProxy(service, FilterJointTrajectory)
         req = FilterJointTrajectoryRequest()
         req.trajectory = base_trajectory
         try:
             res = filter_service.call(req)
             if res.error_code.val != res.error_code.SUCCESS:
-                raise exceptions.TrajectoryFilterError("Failed to filter trajectory: {0}".fomrat(res.error_code.val))
+                reason = res.error_code.val
+                msg = "Failed to filter trajectory: {0}".fomrat(reason)
+                raise exceptions.TrajectoryFilterError(msg)
         except rospy.ServiceException:
             traceback.print_exc()
             raise

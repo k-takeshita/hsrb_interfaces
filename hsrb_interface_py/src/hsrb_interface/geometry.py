@@ -1,7 +1,9 @@
 # vim: fileencoding=utf-8
-"""Simple Geometry Library.
+"""This module implements  simple geometry utilities.
 
-Copyright (c) 2015, TOYOTA MOTOR CORPORATION All rights reserved.
+Notes:
+    At present, this module does not provide adequate features for serious
+    usage. Please consider using other libraries for such kind of task.
 """
 
 from __future__ import absolute_import
@@ -11,19 +13,21 @@ from __future__ import unicode_literals
 
 import collections
 import math
+import warnings
 
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Transform
 import numpy as np
 import tf
 
+from . import exceptions
 
 Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 
 
 def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
-    """Create pose tuple.
+    """Create a new pose-tuple representation.
 
     Args:
         x, y, z: Linear translation.
@@ -37,17 +41,38 @@ def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
     quaternion = tf.transformations.quaternion_from_euler(ei, ej, ek, axes)
     return (Vector3(*vec3), Quaternion(*quaternion))
 
-# For backward compatibility
-create_pose = pose
+
+def create_pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
+    """Create a new pose-tuple representation.
+
+    Args:
+        x, y, z: Linear translation.
+        ei, ej, ek, axes: Rotation in euler form.
+            By default, (ei, ej, ek) are correspond to (roll, pitch, yaw).
+
+    Warning:
+        This function is deprecated. Use :py:func:`pose()` instead.
+    """
+    warnings.warn('create_pose() is deprecated. Use pose() instead.',
+                  exceptions.DeprecationWarning)
+    return pose(x, y, z, ei, ej, ek, axes)
 
 
 def vector3(x=0.0, y=0.0, z=0.0):
-    """Construct a Vector3 instance."""
+    """Construct a Vector3 instance.
+
+    Returns:
+        Vector3: A new :py:class:`Vector3` instance.
+    """
     return Vector3(x, y, z)
 
 
 def quaterion(x=0.0, y=0.0, z=0.0, w=1.0):
-    """Construct a Quaternion instance."""
+    """Construct a Quaternion instance.
+
+    Returns:
+        Quaternion: A new :py:class:`Quaternion` instance.
+    """
     return Quaternion(x, y, z, w)
 
 
@@ -56,25 +81,46 @@ def from_ros_vector3(msg):
 
     Args:
         msg (geometry_msgs.msg.Vector3): A ROS message.
+
+    Returns:
+        Vector3: A new :py:class:`Vector3` instance.
     """
     return Vector3(msg.x, msg.y, msg.z)
 
 
 def from_ros_quaternion(msg):
-    """
+    """Convert ``geometry_msgs/Quaternion`` to a :py:class:`Quaternion`.
+
+    Args:
+        msg (geometry_msgs.msg.Quaternion): A ROS message.
+
+    Returns:
+        Quaternion: A new :py:class:`Quaternion` instance.
     """
     return Quaternion(msg.x, msg.y, msg.z, msg.w)
 
 
 def normalize_angle_positive(angle):
-    """
+    """Normalize a given angle value to 0 to 2PI range.
+
+    Args:
+        angle (float): An input angle.
+
+    Returns:
+        float: A normalized angle.
     """
     twopi = 2.0 * math.pi
     return math.fmod(math.fmod(angle, twopi) + twopi, twopi)
 
 
 def normalize_angle(angle):
-    """
+    """Normalize a given angle value to -PI to PI range.
+
+    Args:
+        angle (float): An input angle.
+
+    Returns:
+        float: A normalized angle.
     """
     a = normalize_angle_positive(angle)
     if a > math.pi:
@@ -83,13 +129,26 @@ def normalize_angle(angle):
 
 
 def shortest_angular_distance(_from, to):
-    """
+    """Compute shortest angular distance of 2 angles.
+
+    Args:
+        _from (float): A source angle.
+        to (float): A target angle.
+
+    Returns:
+        float: A distance of 2 angles.
     """
     return normalize_angle(to - _from)
 
 
 def tuples_to_pose(tuples):
-    """
+    """Convert a pose-tuple representation to a ``geometry_msgs/Pose``.
+
+    Args:
+        tuples (Tuple[Vector3, Quaternion]): A pose-tuple representation.
+
+    Returns:
+        geometry_msgs.msg.Pose: A result of conversion.
     """
     trans, rot = tuples
     pose = Pose()
@@ -104,7 +163,13 @@ def tuples_to_pose(tuples):
 
 
 def pose_to_tuples(pose):
-    """
+    """Convert a ``geometry_msgs/Pose`` to a pose-tuple representation.
+
+    Args:
+        pose (geometry_msgs.msg.Pose): A pose message.
+
+    Returns:
+        tuples (Tuple[Vector3, Quaternion]): A result of conversion.
     """
     x = pose.position.x
     y = pose.position.y
@@ -117,7 +182,13 @@ def pose_to_tuples(pose):
 
 
 def tuples_to_transform(tuples):
-    """
+    """Convert a pose-tuple representation to a ``geometry_msgs/Transform``.
+
+    Args:
+        tuples (Tuple[Vector3, Quaternion]): A pose-tuple representation.
+
+    Returns:
+        geometry_msgs.msg.Transform: A result of conversion.
     """
     trans, rot = tuples
     transform = Transform()
@@ -132,7 +203,13 @@ def tuples_to_transform(tuples):
 
 
 def transform_to_tuples(transform):
-    """
+    """Convert a ``geometry_msgs/Transform`` to a pose-tuple representation.
+
+    Args:
+        transform (geometry_msgs.msg.Transform): A transform message.
+
+    Returns:
+        tuples (Tuple[Vector3, Quaternion]): A result of conversion.
     """
     x = transform.translation.x
     y = transform.translation.y
@@ -145,7 +222,14 @@ def transform_to_tuples(transform):
 
 
 def multiply_tuples(t1, t2):
-    """
+    """Multiply 2 pose-tuple representation.
+
+    Args:
+        t1 (Tuple[Vector3, Quaternion]): Left hand side operand.
+        t2 (Tuple[Vector3, Quaternion]): Right hand side operand.
+
+    Returns:
+        Tuple[Vector3, Quaternion]: A result of multiplication.
     """
     trans1, rot1 = t1
     trans1_mat = tf.transformations.translation_matrix(trans1)
