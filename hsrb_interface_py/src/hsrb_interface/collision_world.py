@@ -43,9 +43,9 @@ class CollisionWorld(robot.Item):
         self._ref_frame_id = settings.get_frame('map')
         self._collision_object_pub = rospy.Publisher(self._setting['topic'],
                                                      CollisionObject,
-                                                     queue_size=1)
+                                                     queue_size=100)
         self._environment = CollisionEnvironment()
-        self._object_pub = rospy.Publisher('known_object', CollisionObject, queue_size=1)
+        self._object_pub = rospy.Publisher('known_object', CollisionObject, queue_size=100)
         # デフォルトではobject_idが10000から始まる
         self._start_object_id = 10000
         self._object_count = self._start_object_id
@@ -54,6 +54,15 @@ class CollisionWorld(robot.Item):
 
     def _is_object_id_used(self, id):
         return id in [x.object_id for x in self._known_object_ids_sub.data.object_ids]
+
+    def _wait_object_id_used(self, id, timeout=1.0):
+        start = rospy.Time.now()
+        while not rospy.is_shutdown():
+            if self._is_object_id_used(id):
+                return True
+            if rospy.Time.now() - start > rospy.Duration(timeout):
+                return False
+            rospy.sleep(0.1)
 
     @property
     def known_object_only(self):
@@ -125,6 +134,7 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [x, y, z]
         pose = geometry.tuples_to_pose(pose)
         box.operation.operation = CollisionObjectOperation.ADD
+        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         box.id.object_id = self._object_count
@@ -134,7 +144,11 @@ class CollisionWorld(robot.Item):
         box.header.frame_id = frame_id
         box.header.stamp = rospy.Time.now()
         self._object_pub.publish(box)
-        return (box.id.object_id, box.id.name)
+        # 反映されるまで待ち
+        if self._wait_object_id_used(self._object_count):
+            return (box.id.object_id, box.id.name)
+        else:
+            return ()
 
     def add_sphere(self, radius=0.1, pose=geometry.create_pose(), frame_id='map', name='sphere'):
         u"""干渉物体の球を追加する
@@ -152,6 +166,7 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [radius]
         pose = geometry.tuples_to_pose(pose)
         sphere.operation.operation = CollisionObjectOperation.ADD
+        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         sphere.id.object_id = self._object_count
@@ -161,7 +176,11 @@ class CollisionWorld(robot.Item):
         sphere.header.frame_id = frame_id
         sphere.header.stamp = rospy.Time.now()
         self._object_pub.publish(sphere)
-        return (sphere.id.object_id, sphere.id.name)
+        # 反映されるまで待ち
+        if self._wait_object_id_used(self._object_count):
+            return (sphere.id.object_id, sphere.id.name)
+        else:
+            return ()
 
     def add_cylinder(self, radius=0.1, length=0.1, pose=geometry.create_pose(), frame_id='map', name='cylinder'):
         u"""干渉物体の円柱を追加する
@@ -180,6 +199,7 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [radius, length]
         pose = geometry.tuples_to_pose(pose)
         cylinder.operation.operation = CollisionObjectOperation.ADD
+        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         cylinder.id.object_id = self._object_count
@@ -189,7 +209,11 @@ class CollisionWorld(robot.Item):
         cylinder.header.frame_id = frame_id
         cylinder.header.stamp = rospy.Time.now()
         self._object_pub.publish(cylinder)
-        return (cylinder.id.object_id, cylinder.id.name)
+        # 反映されるまで待ち
+        if self._wait_object_id_used(self._object_count):
+            return (cylinder.id.object_id, cylinder.id.name)
+        else:
+            return ()
 
     def add_mesh(self, filename, pose=geometry.create_pose(), frame_id='map', name='mesh'):
         u"""干渉物体のメッシュを追加する
@@ -219,7 +243,11 @@ class CollisionWorld(robot.Item):
         mesh.header.frame_id = frame_id
         mesh.header.stamp = rospy.Time.now()
         self._object_pub.publish(mesh)
-        return (mesh.id.object_id, mesh.id.name)
+        # 反映されるまで待ち
+        if self._wait_object_id_used(self._object_count):
+            return (mesh.id.object_id, mesh.id.name)
+        else:
+            return ()
 
     def remove(self, object_id):
         u"""衝突検知用の空間から物体を削除
