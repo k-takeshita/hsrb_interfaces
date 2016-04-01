@@ -148,7 +148,7 @@ class CollisionWorld(robot.Item):
         if self._wait_object_id_used(self._object_count):
             return (box.id.object_id, box.id.name)
         else:
-            return ()
+            return None
 
     def add_sphere(self, radius=0.1, pose=geometry.create_pose(), frame_id='map', name='sphere'):
         u"""干渉物体の球を追加する
@@ -180,7 +180,7 @@ class CollisionWorld(robot.Item):
         if self._wait_object_id_used(self._object_count):
             return (sphere.id.object_id, sphere.id.name)
         else:
-            return ()
+            return None
 
     def add_cylinder(self, radius=0.1, length=0.1, pose=geometry.create_pose(), frame_id='map', name='cylinder'):
         u"""干渉物体の円柱を追加する
@@ -213,7 +213,7 @@ class CollisionWorld(robot.Item):
         if self._wait_object_id_used(self._object_count):
             return (cylinder.id.object_id, cylinder.id.name)
         else:
-            return ()
+            return None
 
     def add_mesh(self, filename, pose=geometry.create_pose(), frame_id='map', name='mesh'):
         u"""干渉物体のメッシュを追加する
@@ -247,7 +247,7 @@ class CollisionWorld(robot.Item):
         if self._wait_object_id_used(self._object_count):
             return (mesh.id.object_id, mesh.id.name)
         else:
-            return ()
+            return None
 
     def remove(self, object_id):
         u"""衝突検知用の空間から物体を削除
