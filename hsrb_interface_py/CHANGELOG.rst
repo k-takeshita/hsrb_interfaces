@@ -2,8 +2,8 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.0 (2016-04-04)
+------------------
 * Conform to PEP8 and PEP257
 * Change default documentation language to English
 * Add base timeopt
