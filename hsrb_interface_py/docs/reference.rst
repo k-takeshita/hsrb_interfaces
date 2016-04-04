@@ -1,56 +1,28 @@
-リファレンスマニュアル
+API Reference
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. contents:: 目次
+.. contents:: Table of contents
    :local:
 
-ロボット管理
-==============
+Robot Management
+================
 
 Robot
 ----------
 
 .. autoclass:: hsrb_interface.Robot
-   :members:
 
-電源
-===========
+.. autoclass:: hsrb_interface.ItemTypes
+
+Power Supply
+=============
 
 Battery
 ------------------
 
 .. autoclass:: hsrb_interface.battery.Battery
-   :members:
 
-動作
-=========
-
-JointGroup
-----------------
-
-.. autoclass:: hsrb_interface.joint_group.JointGroup
-   :members:
-
-MobileBase
-----------------
-
-.. autoclass:: hsrb_interface.mobile_base.MobileBase
-   :members:
-
-Gripper
-----------------
-
-.. autoclass:: hsrb_interface.end_effector.Gripper
-   :members:
-
-Suction
-----------------
-
-.. autoclass:: hsrb_interface.end_effector.Suction
-   :members:
-
-
-センサー
+Sensors
 ==========
 
 
@@ -58,43 +30,83 @@ Image
 -----------
 
 .. autoclass:: hsrb_interface.sensors.Image
-   :members:
+
+LaserScan
+-----------
+
+.. autoclass:: hsrb_interface.sensors.LaserScan
 
 Camera
 -----------
 
 .. autoclass:: hsrb_interface.sensors.Camera
-   :members:
 
 IMU
 -------------
 
 .. autoclass:: hsrb_interface.sensors.IMU
-   :members:
+
 
 ForceTorque
 --------------------
 
 .. autoclass:: hsrb_interface.sensors.ForceTorque
-   :members:
 
-認識機能
-=========
+
+Lidar
+--------------------
+
+.. autoclass:: hsrb_interface.sensors.Lidar
+Navigation
+============
+
+MobileBase
+----------------
+
+.. autoclass:: hsrb_interface.mobile_base.MobileBase
+
+Manipulation
+============
+
+JointGroup
+----------------
+
+.. autoclass:: hsrb_interface.joint_group.JointGroup
+
+Gripper
+----------------
+
+.. autoclass:: hsrb_interface.end_effector.Gripper
+
+Suction
+----------------
+
+.. autoclass:: hsrb_interface.end_effector.Suction
+
+
+
+Perception
+============
 
 Object
 -----------
 
 .. autoclass:: hsrb_interface.object_detection.Object
-   :members:
+
 
 ObjectDetector
 ---------------
 
 .. autoclass:: hsrb_interface.object_detection.ObjectDetector
-   :members:
+
 
 CollisionWorld
 ------------------------
 
 .. autoclass:: hsrb_interface.collision_world.CollisionWorld
-   :members:
+
+
+Geometry
+==================
+
+.. automodule:: hsrb_interface.geometry

@@ -12,7 +12,7 @@ import hsrb_interface.mobile_base
 
 
 @patch("actionlib.SimpleActionClient")
-@patch("hsrb_interface.Robot.connecting")
+@patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
 def test_mobile_base(mock_get_entry, mock_connecting, mock_action_client_cls):
     mock_connecting.return_value = True
@@ -28,7 +28,7 @@ def test_mobile_base(mock_get_entry, mock_connecting, mock_action_client_cls):
 @patch("rospy.Duration")
 @patch("rospy.Time")
 @patch("actionlib.SimpleActionClient")
-@patch("hsrb_interface.Robot.connecting")
+@patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
 def test_mobile_base_goto_x_y_yaw(mock_get_entry, mock_connecting,
                                   mock_action_client_cls,
@@ -66,7 +66,7 @@ def test_mobile_base_goto_x_y_yaw(mock_get_entry, mock_connecting,
 @patch("rospy.Duration")
 @patch("rospy.Time")
 @patch("actionlib.SimpleActionClient")
-@patch("hsrb_interface.Robot.connecting")
+@patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
 def test_mobile_base_goto_pos_ori(mock_get_entry, mock_connecting,
                                   mock_action_client_cls,
@@ -103,7 +103,7 @@ def test_mobile_base_goto_pos_ori(mock_get_entry, mock_connecting,
 
 
 @patch("tf2_ros.Buffer")
-@patch("hsrb_interface.Robot.connecting")
+@patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
 def test_mobile_base_get_pose(mock_get_entry, mock_connecting, mock_tf_cls):
     mock_connecting.return_value = True
@@ -115,7 +115,7 @@ def test_mobile_base_get_pose(mock_get_entry, mock_connecting, mock_tf_cls):
 
 
 @patch("tf2_ros.Buffer")
-@patch("hsrb_interface.Robot.connecting")
+@patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
 def test_mobile_base_go_fail_with_invalid_timeout(mock_get_entry,
                                                    mock_connecting,

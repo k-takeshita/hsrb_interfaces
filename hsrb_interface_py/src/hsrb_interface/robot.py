@@ -1,36 +1,48 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
-#
-# Copyright (c) 2015, TOYOTA MOTOR CORPORATION
-# All rights reserved.
-#
+"""This module provides classes and functions to manage connections to robots.
+
+Copyright (c) 2015-2016 Toyota Motor Corporation
+"""
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
+
 import sys
+import warnings
 import weakref
-import rospy
-import importlib
+
 import enum
+import importlib
+
+import rospy
 import tf2_ros
 
-from . import settings
 from . import exceptions
+from . import settings
 
 
 class Item(object):
-    u"""リソース管理を受けるオブジェクトのベースクラス"""
+    """A base class to be under resource management.
+
+    Raises:
+        hsrb_interface.exceptions.RobotConnectionError:
+            Not connected to a robot.
+    """
+
     def __init__(self):
-        if not Robot.connecting():
+        """See class docstring."""
+        if not Robot._connecting():
             raise exceptions.RobotConnectionError("No robot connection")
 
 
 class ItemTypes(enum.Enum):
-    u"""
+    """Types of resource items.
 
     Attributes:
         JOINT_GROUP:
-        MOBILE_BASE:
         END_EFFECTOR:
+        MOBILE_BASE:
         CAMERA:
         FORCE_TORQUE:
         IMU:
@@ -39,31 +51,55 @@ class ItemTypes(enum.Enum):
         OBJECT_DETECTION:
         COLLISION_WORLD:
         TEXT_TO_SPEECH:
+
+    Warnings:
+        This class is deprecated.
     """
-    JOINT_GROUP      = 'joint_group'
-    MOBILE_BASE      = 'mobile_base'
-    END_EFFECTOR     = 'end_effector'
-    CAMERA           = 'camera'
-    FORCE_TORQUE     = 'force_torque'
-    IMU              = 'imu'
-    LIDAR            = 'lidar'
-    BATTERY          = 'power_supply'
+
+    JOINT_GROUP = 'joint_group'
+    MOBILE_BASE = 'mobile_base'
+    END_EFFECTOR = 'end_effector'
+    CAMERA = 'camera'
+    FORCE_TORQUE = 'force_torque'
+    IMU = 'imu'
+    LIDAR = 'lidar'
+    BATTERY = 'power_supply'
     OBJECT_DETECTION = 'object_detection'
-    COLLISION_WORLD  = 'collision_world'
-    TEXT_TO_SPEECH   = 'text_to_speech'
+    COLLISION_WORLD = 'collision_world'
+    TEXT_TO_SPEECH = 'text_to_speech'
+
+
+def _type_deprecation_warning(name, typ):
+    """Warn uses of ItemType feature."""
+    if typ is not None:
+        msg = "A feature specifying an item by ItemType is deprecated."
+        warnings.warn(msg, exceptions.DeprecationWarning)
+    if name == "default":
+        if typ is ItemTypes.TEXT_TO_SPEECH:
+            return "default_tts"
+        elif typ is ItemTypes.COLLISION_WORLD:
+            return "global_collision_world"
+    return name
 
 
 _interactive = False
+
+
 def _is_interactive():
     """True if interactive mode is set.
 
     Returns:
-        bool: Is interactive mode enabled or not
+        bool: Is interactive mode enabled or not.
     """
     return _interactive
 
+
 def enable_interactive():
-    """Enable interactive mode
+    """Enable interactive mode.
+
+    This function changes behavior when a user send SIGINT(Ctrl-C).
+    In the interactive mode, SIGINT doesn't stop process but cancel
+    executing action or other blocking procedure.
 
     Returns:
         None
@@ -73,23 +109,25 @@ def enable_interactive():
 
 
 class _ConnectionManager(object):
-    u"""ロボットとの接続制御を行うクラス
+    """This class manage connection with a robot.
 
-    基本的に１プロセスに一つだけインスタンス化されるべき。
-    通常は ``Robot``クラスによって生存期間を管理される。
-    ``Resource`` サブクラスのすべてのインスタンスはこのクラスが所有権を持ち、
-    生存期間が同期される。
+    Basically, only 1 instance should be created at 1 process.
+    Usually ``Robot`` instances manage this object.
+    All of ``Resource`` subclass instances are owned by this class and
+    synchronize their lifecycle.
 
     """
 
     def __init__(self):
+        """See class docstring."""
         try:
             master = rospy.get_master()
-            uri = master.getUri("hsrb_interface_py")
+            master.getUri()  # Examine a master connection
         except Exception as e:
             raise exceptions.RobotConnectionError(e)
         disable_signals = _is_interactive()
-        rospy.init_node('hsrb_interface_py', anonymous=True, disable_signals=disable_signals)
+        rospy.init_node(b'hsrb_interface_py', anonymous=True,
+                        disable_signals=disable_signals)
         self._tf2_buffer = tf2_ros.Buffer()
         self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
         self._registry = {}
@@ -104,7 +142,11 @@ class _ConnectionManager(object):
         return weakref.proxy(self._tf2_buffer)
 
     def list(self, typ=None):
-        u"""利用可能なアイテムを列挙する"""
+        """List available items.
+
+        Args:
+            typ (ItemTypes):
+        """
         if typ is None:
             targets = [x for x in ItemTypes]
         else:
@@ -113,17 +155,24 @@ class _ConnectionManager(object):
         for target in targets:
             section = settings.get_section(target.value)
             if section is None:
-                raise exceptions.ResourceNotFoundError("No such category ({0})".format(target))
+                msg = "No such category ({0})".format(target)
+                raise exceptions.ResourceNotFoundError(msg)
             for key in section.keys():
                 results.append((key, target))
         return results
 
     def get(self, name, typ=None):
-        u"""利用可能なアイテムのハンドルを生成する
+        """Get an item if available.
 
-        Attributes:
-            name (str): リソース名
-            typ (ItemTypes): アイテムカテゴリ
+        Args:
+            name (str):   A name of ``Item`` to get.
+            typ (Types):  A type of ``Item`` to get.
+
+        Returns:
+            Item: An instance with a specified name
+
+        Raises:
+            hsrb_interface.exceptions.ResourceNotFoundError
         """
         if typ is None:
             section, config = settings.get_entry_by_name(name)
@@ -131,14 +180,16 @@ class _ConnectionManager(object):
             if types:
                 typ = types[0]
             else:
-                raise exceptions.ResourceNotFoundError("No such category ({0})".format(section))
+                msg = "No such category ({0})".format(section)
+                raise exceptions.ResourceNotFoundError(msg)
         key = (name, typ)
         if key in self._registry:
             return self._registry.get(key, None)
         else:
             config = settings.get_entry(typ.value, name)
             module_name, class_name = config["class"]
-            module = importlib.import_module(".{0}".format(module_name), "hsrb_interface")
+            module = importlib.import_module(".{0}".format(module_name),
+                                             "hsrb_interface")
             cls = getattr(module, class_name)
             obj = cls(name)
             self._registry[key] = obj
@@ -146,39 +197,57 @@ class _ConnectionManager(object):
 
 
 def _get_tf2_buffer():
-    """
-    """
+    """Get global tf2 buffer."""
     return Robot._get_tf2_buffer()
 
 
 class Robot(object):
-    u"""ロボットとの接続を管理するハンドル
+    """A handle object to manage a robot connection.
 
-    複数のインスタンスを作ることができ、その場合最後のインスタンスで`close`が
-    呼び出されるか、すべてのインスタンスが破壊されると接続が切断される。
+    Args:
+        *args: Reserved for future use.
+        **kwargs: Reserved for future use.
 
-    新たに接続を確立するには、新しいインスタンスを生成する必要がある。
+    This class allow multiple instances. In that case, the connection is closed
+    if all instances are destroyed or invoke :py:meth:`.close()` method.
 
-    Example:
-
-        .. sourcecode:: python
-
-	        from hsrb_interface import Robot, ItemTypes
-                with Robot() as robot:
-                    print(robot.list(ItemTypes.JOINT_GROUP))
-                    whole_body = robot.get("whole_body", ItemTypes.JOINT_GROUP)
+    In order to establish a new connection, you need to create a new instance.
 
     Attributes:
-        name (str): ロボット名
+        name (str): A name of a connecting robot.
+
+    Example:
+        .. sourcecode:: python
+
+           from hsrb_interface import Robot, ItemTypes
+                with Robot() as robot:
+                    print(robot.list())
+                    whole_body = robot.get("whole_body")
     """
+
     _connection = None
 
-    # 後方互換性のための設定
-    Items = ItemTypes
+    @property
+    def Items(self):
+        """Repesent types of resource items.
+
+        Warnings:
+            This class is deprecated. It will be removed in future release.
+        """
+        msg = "A feature specifying a resource item by ItemType is deprecated."
+        warnings.warn(msg, exceptions.DeprecationWarning)
+        return ItemTypes
+
+    @classmethod
+    def _connecting(cls):
+        return cls._connection is not None and cls._connection() is not None
 
     @classmethod
     def connecting(cls):
-        return cls._connection is not None and cls._connection() is not None
+        """Check whether the connection to a robot is valid."""
+        warnings.warn("Robot.connectiong() is depreacated",
+                      exceptions.DeprecationWarning)
+        return cls._connecting()
 
     @classmethod
     def _get_tf2_buffer(cls):
@@ -192,6 +261,7 @@ class Robot(object):
             return None
 
     def __init__(self, *args, **kwargs):
+        """See class docstring."""
         if Robot._connection is None or Robot._connection() is None:
             self._conn = _ConnectionManager()
             Robot._connection = weakref.ref(self._conn)
@@ -199,71 +269,96 @@ class Robot(object):
             self._conn = Robot._connection()
 
     def close(self):
-        u"""直ちに接続を閉じる"""
+        """Shutdown immediately."""
         self.__exit__(None, None, None)
 
     def __enter__(self):
-        u"""ContextManagerインターフェースの一部"""
+        """A part of ContextManager interface."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        u"""ContextManagerインターフェースの一部"""
+        """A part of ContextManager interface."""
         self._conn = None
 
     def ok(self):
-        u"""初期化されていれば``True``"""
+        """Check whether this handle is valid or not.
+
+        Returns:
+            bool: ``True`` if this handle is valid. Otherwise False.
+        """
         return self._conn is not None
 
-    @property
-    def name(self):
-        u"""ロボット名を返す
-
-        Returns:
-            str: ロボット名を表す文字列
-        """
+    def _get_name(self):
         return settings.get_entry('robot', 'hsrb')['fullname']
+    name = property(_get_name)
 
     def list(self, typ=None):
-        u"""利用可能なアイテムをリストアップする。
+        """List available items up.
+
+        Args:
+            typ (Types):  A type of ``Item`` to list.
+                If None, all types are selected.
 
         Returns:
-            List[str]: 利用可能なリスト
+            List[str]: A list of available items.
+
+        Warnings:
+            `typ` parameter is deprecated.
+            It will be removed in future release.
         """
+        if typ is not None:
+            msg = """A feature specifying an item by ItemType is deprecated."""
+            warnings.warn(msg, exceptions.DeprecationWarning)
         return self._conn.list(typ)
 
-
     def get(self, name, typ=None):
-        u"""利用可能なアイテムを取得する。
+        """Get an item if available.
+
         Args:
-            name (str): 取得したいオブジェクトの名前
-            typ (Types): 取得したいオブジェクトの種類
+            name (str):   A name of an item to get.
+            typ (Types):  A type of an item to get.
 
         Returns:
-            Item: アイテムのインスタンス
+            Item: An instance with a specified name.
 
         Raises:
-            hsrb_interface.exceptions.ResourceNotFoundError
+            hsrb_interface.exceptions.ResourceNotFoundError:
+                A resource that named as `name` is not found.
+
+        Warnings:
+            `typ` parameter is deprecated.
+            It will be removed in future release.
         """
-        return self._conn.get(name, typ)
+        name = _type_deprecation_warning(name, typ)
+        return self._conn.get(name)
 
     def try_get(self, name, typ=None, msg="Ignored"):
-        u"""利用可能なアイテムを取得する（失敗時はメッセージを``stderr``に出力）
+        """Try to get an item if available.
+
+        If trial failed, error messsage is printed to ``stderr`` instead of
+        raising exception.
 
         Args:
-            name (str):   取得したい ``Item`` の名前
-            typ (Types):  取得したい ``Item`` の種類
-            msg (str):  　失敗時のエラーメッセージ(Noneなら何も出力しない）
+            name (str):   A name of ``Item`` to get.
+            typ (Types):  A type of ``Item`` to get.
+            msg (str):  A error message. (If msg is None, output nothing）
 
         Returns:
-            Item: アイテムのインスタンス
+            Item: An instance with a specified name.
 
         Raises:
-            hsrb_interface.exceptions.ResourceNotFoundError
-        """
-        try:
-            return self.get(name, typ)
-        except (exceptions.ResourceNotFoundError, exceptions.RobotConnectionError):
-            if msg is not None:
-                err = "Failed to get Item({0} : {1}): {2}".format(name, typ.value if typ else "Any", msg)
-                print(err, file=sys.stderr)
+            hsrb_interface.exceptions.ResourceNotFoundError:
+                A resource that named as `name` is not found.
 
+        Warnings:
+            `typ` parameter is deprecated.
+            It will be removed in future release.
+        """
+        name = _type_deprecation_warning(name, typ)
+        try:
+            return self.get(name, None)
+        except (exceptions.ResourceNotFoundError,
+                exceptions.RobotConnectionError):
+            if msg is not None:
+                err = "Failed to get Item({0}): {1}".format(name, msg)
+                print(err, file=sys.stderr)

@@ -72,7 +72,7 @@ release = '1.0.0'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'ja'
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -290,3 +290,23 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
+napoleon_include_private_with_doc = False
+napoleon_include_special_with_doc = True
+napoleon_use_ivar = False
+napoleon_use_param = True
+napoleon_use_rtype = True
+
+autoclass_content = 'class'
+autodoc_default_flags = ['members']
+
+# Ensure that the __init__ method gets documented.
+def skip(app, what, name, obj, skip, options):
+    if name == "__init__":
+        return False
+    return skip
+
+#def setup(app):
+#    app.connect("autodoc-skip-member", skip)

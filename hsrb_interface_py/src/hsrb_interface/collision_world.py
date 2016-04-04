@@ -1,42 +1,60 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
+"""Collision checking interface.
 
-import os
-import rospy
-from tmc_manipulation_msgs.srv import (
-    GetCollisionEnvironment,
-    GetCollisionEnvironmentRequest,
-)
-from tmc_manipulation_msgs.msg import (
-    CollisionObject,
-    CollisionObjectOperation,
-    CollisionEnvironment,
-)
+Copyright (c) 2015, TOYOTA MOTOR CORPORATION All rights reserved.
+"""
 
-from tmc_msgs.msg import (
-    ObjectIdentifierArray,
-)
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
-from tmc_geometric_shapes_msgs.msg import Shape
+
 from hsrb_interface import geometry
 
-from . import robot
-from . import utils
-from . import settings
+import rospy
 
-# トピック受信待ちタイムアウト[sec]
+from tmc_geometric_shapes_msgs.msg import Shape
+
+from tmc_manipulation_msgs.msg import CollisionEnvironment
+from tmc_manipulation_msgs.msg import CollisionObject
+from tmc_manipulation_msgs.msg import CollisionObjectOperation
+
+from tmc_manipulation_msgs.srv import GetCollisionEnvironment
+from tmc_manipulation_msgs.srv import GetCollisionEnvironmentRequest
+
+from tmc_msgs.msg import ObjectIdentifierArray
+
+
+from . import robot
+from . import settings
+from . import utils
+
+# Timeout to wait for message [sec]
 _WAIT_TOPIC_TIMEOUT = 20.0
 
+
 class CollisionWorld(robot.Item):
-    u"""衝突検知用環境インターフェース
+    """Abstract interface that represents collision space.
+
+    The collision space is usually unique and global.
+
 
     Attributes:
         known_object_only (bool):
+            If True :py:meth:`.snapshot` exclude unknown objects.
         ref_frame_id (str):
-
-
+            A reference frame ID for a snapshot.
+        next_object_id (int):
+            Next ID that may be given to a newly added collision object.
     """
+
     def __init__(self, name):
+        """Intialize an instance.
+
+        Args:
+            name (str): A name of a target resouce
+        """
         super(CollisionWorld, self).__init__()
         self._setting = settings.get_entry('collision_world', name)
         self._known_object_only = True
@@ -45,15 +63,22 @@ class CollisionWorld(robot.Item):
                                                      CollisionObject,
                                                      queue_size=100)
         self._environment = CollisionEnvironment()
-        self._object_pub = rospy.Publisher('known_object', CollisionObject, queue_size=100)
-        # デフォルトではobject_idが10000から始まる
+        self._object_pub = rospy.Publisher('known_object', CollisionObject,
+                                           queue_size=100)
+        # object_id starts 10000 by default.
         self._start_object_id = 10000
         self._object_count = self._start_object_id
-        self._known_object_ids_sub = utils.CachingSubscriber('known_object_ids', ObjectIdentifierArray, default=ObjectIdentifierArray())
-        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
+        self._known_obj_ids_sub = utils.CachingSubscriber(
+            'known_object_ids',
+            ObjectIdentifierArray,
+            default=ObjectIdentifierArray()
+        )
+        self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
 
-    def _is_object_id_used(self, id):
-        return id in [x.object_id for x in self._known_object_ids_sub.data.object_ids]
+    def _is_object_id_used(self, object_id):
+        """Check if a given object ID is used or not"""
+        return object_id in [x.object_id for x in
+                             self._known_obj_ids_sub.data.object_ids]
 
     def _wait_object_id_used(self, id, timeout=1.0):
         start = rospy.Time.now()
@@ -64,44 +89,49 @@ class CollisionWorld(robot.Item):
                 return False
             rospy.sleep(0.1)
 
-    @property
-    def known_object_only(self):
+    def _get_known_object_only(self):
+        """Getter for :py:attr:`known_object_only`."""
         return self._known_object_only
 
-    @known_object_only.setter
-    def known_object_only(self, value):
+    def _set_known_object_only(self, value):
+        """Setter for :py:attr:`known_object_only`."""
         self._known_object_only = value
 
-    @property
-    def ref_frame_id(self):
+    known_object_only = property(_get_known_object_only,
+                                 _set_known_object_only)
+
+    def _get_ref_frame_id(self):
         return self._ref_frame_id
 
-    @ref_frame_id.setter
-    def ref_frame_id(self, value):
+    def _set_ref_frame_id(self, value):
         self._ref_frame_id = value
 
-    @property
-    def next_object_id(self):
+    ref_frame_id = property(_get_ref_frame_id, _set_ref_frame_id)
+
+    def _get_next_object_id(self):
         return self._object_count
 
-    @next_object_id.setter
-    def next_object_id(self, value):
+    def _set_next_object_id(self, value):
         self._start_object_id = value
         self._object_count = self._start_object_id
 
+    next_object_id = property(_get_next_object_id, _set_next_object_id)
+
     @property
     def environment(self):
-        u"""tmc_manipulation_msgs.msg.CollisionEnvironment: 最後に取得した衝突検知用の空間"""
+        """CollisionEnvironment: A latest snapshot of a collision world."""
         return self._environment
 
     def snapshot(self, ref_frame_id=None):
-        u"""現在の衝突検知用の空間を取得する
+        """Get a snapshot of collision space from present environment.
 
         Args:
-            ref_frame_id (str):　基準となるframe。ref_frame_id属性よりも引数が優先される。
+            ref_frame_id (str):　A base frame of a snapshot space.
+                This parameter overrides ref_frame_id attribute.
 
         Returns:
-            tmc_manipulation_msgs.msg.CollisionEnvironment: 衝突検知用の空間
+            tmc_manipulation_msgs.msg.CollisionEnvironment:
+                A snapshot of collision space.
         """
         req = GetCollisionEnvironmentRequest()
         req.known_object_only = self._known_object_only
@@ -116,17 +146,19 @@ class CollisionWorld(robot.Item):
         self._environment = res.environment
         return self._environment
 
-    def add_box(self, x=0.1, y=0.1, z=0.1, pose=geometry.create_pose(), frame_id='map', name='box'):
-        u"""干渉物体の箱を追加する
+    def add_box(self, x=0.1, y=0.1, z=0.1, pose=geometry.pose(),
+                frame_id='map', name='box'):
+        """Add a box object to the collision space.
 
         Args:
-            x: 縦[m]
-            y: 横[m]
-            z: 高さ[m]
-            pose: frame_id基準の位置姿勢
-            frame_id: 物体が属するframe
+            x: Length along with X-axis [m]
+            y: Length along with Y-axis [m]
+            z: Length along with Z-axis [m]
+            pose: A pose of a new object from the frame ``frame_id`` .
+            frame_id: A reference frame of a new object.
+
         Returns:
-            Tuple[int, str]: 追加物体のID
+            Tuple[int, str]: An ID of an added object.
         """
         box = CollisionObject()
         shape = Shape()
@@ -150,15 +182,17 @@ class CollisionWorld(robot.Item):
         else:
             return None
 
-    def add_sphere(self, radius=0.1, pose=geometry.create_pose(), frame_id='map', name='sphere'):
-        u"""干渉物体の球を追加する
+    def add_sphere(self, radius=0.1, pose=geometry.pose(),
+                   frame_id='map', name='sphere'):
+        """Add a sphere object to the collision space.
 
         Args:
-            radius: 半径[m]
-            pose: frame_id基準の位置姿勢
-            frame_id: 物体が属するframe
+            radius: Radius [m]
+            pose: A pose of a new object from the frame ``frame_id`` .
+            frame_id: A reference frame of a new object.
+
         Returns:
-            Tuple[int, str]: 追加物体のID
+            Tuple[int, str]: An ID of an added object.
         """
         sphere = CollisionObject()
         shape = Shape()
@@ -182,16 +216,18 @@ class CollisionWorld(robot.Item):
         else:
             return None
 
-    def add_cylinder(self, radius=0.1, length=0.1, pose=geometry.create_pose(), frame_id='map', name='cylinder'):
-        u"""干渉物体の円柱を追加する
+    def add_cylinder(self, radius=0.1, length=0.1, pose=geometry.pose(),
+                     frame_id='map', name='cylinder'):
+        """Add a cylinder object to the collision space.
 
         Args:
-            radius: 半径[m]
-            length: 高さ[m]
-            pose: frame_id基準の位置姿勢
-            frame_id: 物体が属するframe
+            radius: Radius [m]
+            length: Height [m]
+            pose: A pose of a new object from the frame ``frame_id`` .
+            frame_id: A reference frame of a new object.
+
         Returns:
-            Tuple[int, str]: 追加物体のID
+            Tuple[int, str]: An ID of an added object.
         """
         cylinder = CollisionObject()
         shape = Shape()
@@ -215,18 +251,28 @@ class CollisionWorld(robot.Item):
         else:
             return None
 
-    def add_mesh(self, filename, pose=geometry.create_pose(), frame_id='map', name='mesh'):
-        u"""干渉物体のメッシュを追加する
+    def add_mesh(self, filename, pose=geometry.pose(), frame_id='map',
+                 name='mesh'):
+        """Add a mesh object to the collision space.
 
         Args:
-            filename: stlのファイル名。
-                      例：'http://hoge/mesh.stl, package://your_pkg/mesh/hoge.stl, file:///home/hoge/huge.stl'
-            pose: frame_id基準の位置姿勢
-            frame_id: 物体が属するframe
+            filename: An URI to a STL file.
+                Acceptable schemes are 'http', 'package', 'file'.
+
+                Example:
+
+                    - http://hoge/mesh.stl
+                    - package://your_pkg/mesh/hoge.stl
+                    - file:///home/hoge/huge.stl'
+
+            pose: A pose of a new object from the frame ``frame_id`` .
+            frame_id: A reference frame of a new object.
+
         Returns:
-            Tuple[int, str]: 追加物体のID
+            Tuple[int, str]: An ID of an added object.
+
         Raises:
-            IOError: ファイルが存在しない
+            IOError: A file does not exist.
         """
         mesh = CollisionObject()
         shape = Shape()
@@ -250,10 +296,11 @@ class CollisionWorld(robot.Item):
             return None
 
     def remove(self, object_id):
-        u"""衝突検知用の空間から物体を削除
+        """Remove a specified object from the collision space.
 
         Args:
-            object_id (Tuple[int, str]): 物体ID
+            object_id (Tuple[int, str]): A known object ID
+
         Returns:
             None
         """
@@ -265,7 +312,11 @@ class CollisionWorld(robot.Item):
         self._collision_object_pub.publish(collision_object)
 
     def remove_all(self):
-        u"""干渉物体をクリアする"""
+        """Remove all collision objects
+
+        Returns:
+            None
+        """
         clear = CollisionObject()
         clear.operation.operation = CollisionObjectOperation.REMOVE
         clear.id.object_id = 0

@@ -1,76 +1,130 @@
-#!/usr/bin/env python
 # vim: fileencoding=utf-8
-from __future__ import absolute_import
-import threading
-import rospy
-import copy
+"""Provides object detection elements.
 
-from geometry_msgs.msg import PoseStamped
+Copyright (c) 2016 Toyota Motor Corporation.
+"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import copy
+import threading
+
+import rospy
+
 from tmc_vision_msgs.msg import RecognizedObject
 
-from . import robot
 from . import geometry
+from . import robot
 from . import settings
 
 _TF_TIMEOUT = 1.0
 
-def _expired(now, expiration, obj):
-    return (now - obj.header.stamp) > expiration
+
+def _expired(now, expiration, stamped):
+    """Check a given object is outdated or not.
+
+    Args:
+        now (rospy.Time):
+            A current time stamp
+        expiration (rospy.Duration):
+            The time to live
+        stamped (Stamped Message Type):
+            A ROS message type that has a header(stamped)
+    Returns:
+        bool: True if the object is outdated.
+    """
+    return (now - stamped.header.stamp) > expiration
+
 
 class Object(object):
-    u"""認識された物体"""
+    """Abstract representation of a recognized object.
+
+    Attributes:
+        id (int): A ID of this object
+    """
 
     def __init__(self, data):
+        """Initialize from a ROS message
+
+        Args:
+            data (tmc_vision_msgs.msg.RecognizedObject):
+                A ROS message of a recognized object
+        """
         self._data = data
 
     def to_ros(self):
-        u"""
+        """Convert ot ROS message type
+
+        Returns:
+            tmc_vision_msgs.msg.RecognizedObject: A ROS message reresentation.
         """
         return copy.deepcopy(self._data)
 
     def __repr__(self):
+        """Human friendly object representation."""
         return "<{0}: id={1} name={2}>".format(self.__class__.__name__,
                                                self._data.object_id.object_id,
                                                self._data.object_id.name)
+
     def __eq__(self, other):
+        """Equality is checked by only ``object_id`` ."""
         return self._data.object_id == other._data.object_id
 
     def get_pose(self, ref_frame_id=None):
+        """Get a pose of this object based onf `ref_frame_id`.
+
+        Args:
+            ref_frame_id (str): A reference frame of a pose to be returned.
+
+        Returns:
+            Tuple[Vector3, Quaternion]: A pose of this object.
+        """
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('map')
         msg = self._data
 
         camera_to_marker_pose = msg.object_frame
         tf2_buffer = robot._get_tf2_buffer()
-        ref_to_camera_tf = tf2_buffer.lookup_transform(ref_frame_id,
-                                                msg.header.frame_id,
-                                                 #      rospy.Time(0),
-                                                msg.header.stamp,
-                                                rospy.Duration(_TF_TIMEOUT))
-        return geometry.multiply_tuples(geometry.transform_to_tuples(ref_to_camera_tf.transform),
-                                        geometry.pose_to_tuples(camera_to_marker_pose))
+        ref_to_camera_tf = tf2_buffer.lookup_transform(
+            ref_frame_id,
+            msg.header.frame_id,
+            msg.header.stamp,
+            rospy.Duration(_TF_TIMEOUT))
+        return geometry.multiply_tuples(
+            geometry.transform_to_tuples(ref_to_camera_tf.transform),
+            geometry.pose_to_tuples(camera_to_marker_pose))
 
-    @property
-    def id(self):
+    def _get_id(self):
         return self._data.object_id.object_id
+    id = property(_get_id)
 
 
 class ObjectDetector(robot.Item):
-    u"""オブジェクト認識機の結果を保持するクラス
+    """This object collect and hold results of object detection.
 
     Attributes:
-        expiration (float): オブジェクトを検知してから、無効になるまでの時間[sec]
-            デフォルトは１０秒。
+        expiration (float): Duration to hold newly detected objects [sec].
 
     Examples:
+        .. sourcecode:: python
 
-        Usage::
-            with Robot() as robot:
-                detector = robot.get("marker", Items.OBJECT_DETECTION)
-                objects = detector.get_objects()
+           with Robot() as robot:
+               detector = robot.get("marker", Items.OBJECT_DETECTION)
+               objects = detector.get_objects()
 
     """
+
     def __init__(self, name):
+        """Initialize with a resource of a given `name`.
+
+        Notes:
+            This class is not intended to be created by user directly.
+
+        Args:
+            name (str): A name of a resource.
+        """
         super(ObjectDetector, self).__init__()
         self._setting = settings.get_entry('object_detection', name)
         self._lock = threading.Lock()
@@ -87,16 +141,17 @@ class ObjectDetector(robot.Item):
             finally:
                 self._lock.release()
 
-    @property
-    def expiration(self):
+    def _get_expiration(self):
         return self._expiration.to_sec()
 
-    @expiration.setter
-    def expiration(self, value):
+    def _set_expiration(self, value):
         self._expiration = rospy.Duration(value)
 
+    expiration = property(_get_expiration, _set_expiration,
+                          "Duration to hold newly detected objects [sec]")
+
     def get_objects(self):
-        u"""認識しているオブジェクトを返す
+        """Get all objects currently detecting.
 
         Returns:
             Dict[str, Any]:
@@ -111,14 +166,18 @@ class ObjectDetector(robot.Item):
         return [Object(o) for o in objects]
 
     def get_object_by_id(self, id=None):
+        """Get a object from current detection pool which has given ID.
+
+        Args:
+            id (int): if `id` is  ``None`` .
+
+        Returns:
+            A recognized object.
+            If ID is not found in the pool, it returns None.
+        """
         objects = self.get_objects()
         filtered = [obj for obj in objects if obj.id == id]
         if filtered:
             return filtered[0]
         else:
-            None
-
-
-
-
-
+            return None
