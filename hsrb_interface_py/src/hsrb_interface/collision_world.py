@@ -1,7 +1,6 @@
 # vim: fileencoding=utf-8
 """Collision checking interface.
 
-Copyright (c) 2015, TOYOTA MOTOR CORPORATION All rights reserved.
 """
 
 from __future__ import absolute_import
