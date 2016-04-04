@@ -2,6 +2,16 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2016-04-04)
+------------------
+* Conform to PEP8 and PEP257
+* Change default documentation language to English
+* Add base timeopt
+* Fix battery timeout
+* Add impedance control interface
+* Add interfaces to sensors.ForceTorque for handling compensated wrench
+* Contributors: Akiyoshi Ochiai, Keisuke Takeshita, Yoshimi Iyoda, 寺田　耕志, 水野 貴文, 落合 亮吉
+
 0.5.2 (2015-11-27)
 ------------------
 * Add patch to urdf_parser to support multiple visuals and collisions
