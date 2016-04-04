@@ -127,8 +127,9 @@ def _refer_planning_error(error_code):
 
     Args:
         error_code (ArmManipulationErrorCodes): An error code
+
     Returns:
-        A human readable error description
+        str: A human readable error description
     """
     error_codes = ArmManipulationErrorCodes.__dict__.items()
     error_names = [k for k, v in error_codes
@@ -146,7 +147,7 @@ def _extract_trajectory(trajectory, joint_names, joint_state):
     the trajctory of the joint is filled with currenta joint state.
 
     Args:
-        trajectory (trajectory_msgs.msg.JointTrajector):
+        trajectory (trajectory_msgs.msg.JointTrajectory):
             A JointTrajectory to work on
         joint_names (List[str]):
             Target joint names
@@ -409,18 +410,25 @@ class JointGroup(robot.Item):
     """Abstract interface to control a group of joints.
 
     Attributes:
-        joint_names (List[str]): A list of available joints.
+        joint_names (List[str]):
+            A list of available joints.
         joint_positions (Dict[str, float]):
             Current joint positions.
-        joint_states (sensor_msgs.JointState): A latest joint states.
+        joint_states (sensor_msgs.msg.JointState):
+            A latest joint states.
         joint_limits (Dict[str, float]):
             Joint limits of a robot.
-        collision_world (Collisionworld):
+        collision_world (hsrb_interface.collsion_world.CollisionWorld):
             A present collision world to check collision.
             If None, collision checking is disabled.
-        linear_wait (float):
-        angular_wait (float):
-        planning_timeout (float): Timeout for motion planning [sec].
+        linear_weight (float):
+            How much laying weight on linear movement of a mobile base.
+            This attirbute affect a output trajectory of motion planning.
+        angular_weight (float):
+            How much laying weight on angular movement of a mobile base.
+            This attirbute affect a output trajectory of motion planning.
+        planning_timeout (float):
+            Timeout for motion planning [sec].
         impedance_config (str):
             A name of impedance control preset config.
             If None, impeance control is disabled.
@@ -619,7 +627,7 @@ class JointGroup(robot.Item):
             None
 
         See Also:
-            JointGroup.joint_names
+            :py:attr:`.joint_names`
 
         Examples:
 
