@@ -2,6 +2,11 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Rollback dependencty on the traitlets module to IPython.config.loader
+* Contributors: Akiyoshi Ochiai
+
 0.6.0 (2016-04-04)
 ------------------
 * Conform to PEP8 and PEP257
