@@ -984,7 +984,7 @@ class JointGroup(robot.Item):
             _adjust_trajectory_time(filtered_base_traj, filtered_joint_traj)
             return _merge_trajectory(filtered_joint_traj, filtered_base_traj)
         else:
-            filtered_merged_traj
+            return filtered_merged_traj
 
     def _execute_trajectory(self, clients, joint_trajectory):
         """Execute a trajectory playback with given action clients.
