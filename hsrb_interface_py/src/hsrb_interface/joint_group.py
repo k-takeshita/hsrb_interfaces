@@ -766,7 +766,7 @@ class JointGroup(robot.Item):
             snapshot = self._collision_world.snapshot('odom')
             req.environment_before_planning = snapshot
 
-        service_name = self._setting['plan_with_hand_goals_service'],
+        service_name = self._setting['plan_with_hand_goals_service']
         plan_service = rospy.ServiceProxy(service_name,
                                           PlanWithHandGoals)
         res = plan_service.call(req)
