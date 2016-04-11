@@ -279,6 +279,7 @@ class CollisionWorld(robot.Item):
         shape.stl_file_name = filename
         pose = geometry.tuples_to_pose(pose)
         mesh.operation.operation = CollisionObjectOperation.ADD
+        self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         mesh.id.object_id = self._object_count
