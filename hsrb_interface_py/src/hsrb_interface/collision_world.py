@@ -165,7 +165,7 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [x, y, z]
         pose = geometry.tuples_to_pose(pose)
         box.operation.operation = CollisionObjectOperation.ADD
-        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
+        self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         box.id.object_id = self._object_count
@@ -199,7 +199,7 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [radius]
         pose = geometry.tuples_to_pose(pose)
         sphere.operation.operation = CollisionObjectOperation.ADD
-        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
+        self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         sphere.id.object_id = self._object_count
@@ -234,7 +234,7 @@ class CollisionWorld(robot.Item):
         shape.dimensions = [radius, length]
         pose = geometry.tuples_to_pose(pose)
         cylinder.operation.operation = CollisionObjectOperation.ADD
-        self._known_object_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
+        self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
             self._object_count = self._object_count + 1
         cylinder.id.object_id = self._object_count
