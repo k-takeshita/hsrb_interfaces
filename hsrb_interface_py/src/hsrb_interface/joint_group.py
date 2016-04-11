@@ -394,7 +394,7 @@ class ImpedanceControlActionClient(FollowTrajectoryActionClient):
             self._config = None
         else:
             raise exceptions.FollowTrajectoryError(
-                "Failed to set impedance config")
+                "Impedance config \"" + value + "\" is not determined.")
 
     config = property(_get_config, _set_config)
 
