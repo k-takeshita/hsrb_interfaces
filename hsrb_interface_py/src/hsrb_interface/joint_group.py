@@ -249,7 +249,7 @@ def _adjust_trajectory_time(trajectory1, trajectory2):
         t_from = trajectory2.points[index].time_from_start.to_sec()
         dt = t_to - t_from
         p_to = trajectory2.points[index + 1].positions
-        p_from = trajectory2.points[index].positions,
+        p_from = trajectory2.points[index].positions
         new_vels = [(x1 - x0) / dt for (x0, x1) in zip(p_from, p_to)]
         trajectory2.points[index].velocities = new_vels
     zero_vector2 = [0] * len(trajectory2.joint_names)
