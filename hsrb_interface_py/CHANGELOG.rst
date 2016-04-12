@@ -2,6 +2,19 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Write PKGDOC.rst
+* Fix error message if impednace_config is invalid
+* Remove unnecessary comma
+* Add mission wait_for_message to CollisionWorld.add_mesh()
+* Fix wrong attribute name in CollisionWorld
+* Fix error message if impednace_config is invalid
+* Remove raw sensor interfaces from ihsrb
+* Remove miscopied comma
+* Fix non return bug
+* Contributors: Akiyoshi Ochiai, Keisuke Takeshita, 竹下 佳佑
+
 0.6.1 (2016-04-06)
 ------------------
 * Rollback dependencty on the traitlets module to IPython.config.loader
