@@ -2,8 +2,8 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.7.0 (2016-04-12)
+------------------
 * Write PKGDOC.rst
 * Fix error message if impednace_config is invalid
 * Remove unnecessary comma
