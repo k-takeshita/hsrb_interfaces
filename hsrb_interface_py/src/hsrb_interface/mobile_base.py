@@ -24,6 +24,7 @@ from . import settings
 # Timeout to receve enough tf transform [sec]
 _TF_TIMEOUT = 1.0
 
+_ACTION_WAIT_TIMEOUT = 30.0
 
 def _validate_timeout(timeout):
     """Validate a given timeout value is meaning time value."""
@@ -58,6 +59,7 @@ class MobileBase(robot.Item):
         action_name = self._setting['move_base_action']
         self._action_client = actionlib.SimpleActionClient(action_name,
                                                            MoveBaseAction)
+        self._action_client.wait_for_server(rospy.Duration(_ACTION_WAIT_TIMEOUT))
 
     def move(self, pose, timeout=0.0, ref_frame_id=None):
         """Move to a specified pose.
