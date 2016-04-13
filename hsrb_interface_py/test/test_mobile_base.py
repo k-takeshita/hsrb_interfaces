@@ -102,29 +102,37 @@ def test_mobile_base_goto_pos_ori(mock_get_entry, mock_connecting,
     mock_action_client.wait_for_result.call_with_args(mock_duraiton_cls(3.0))
 
 
+@patch("actionlib.SimpleActionClient")
 @patch("tf2_ros.Buffer")
 @patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
-def test_mobile_base_get_pose(mock_get_entry, mock_connecting, mock_tf_cls):
+def test_mobile_base_get_pose(mock_get_entry, mock_connecting, mock_tf_cls,
+                              mock_action_client_cls):
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
         "pose_topic": "/pose",
         "move_base_action": "/move_base"
     }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
 
 
+@patch("actionlib.SimpleActionClient")
 @patch("tf2_ros.Buffer")
 @patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
 def test_mobile_base_go_fail_with_invalid_timeout(mock_get_entry,
-                                                   mock_connecting,
-                                                   mock_tf_cls):
+                                                  mock_connecting,
+                                                  mock_tf_cls,
+                                                  mock_action_client_cls):
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
         "pose_topic": "/pose",
         "move_base_action": "/move_base"
     }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
 
     assert_raises(ValueError, mobile_base.go, 0, 0, 0, -1)
