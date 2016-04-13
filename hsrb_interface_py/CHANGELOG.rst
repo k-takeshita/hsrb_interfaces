@@ -2,8 +2,8 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.7.1 (2016-04-13)
+------------------
 * Fix MobileBase unittest
 * Insert SimpleActionClient.wait_for_r_server() to MobileBase() to fix unstable action execution
 * Contributors: Akiyoshi Ochiai
