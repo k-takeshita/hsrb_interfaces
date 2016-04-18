@@ -32,6 +32,7 @@
   <run_depend>urdfdom_py</run_depend>
 
   <test_depend>python-mock</test_depend>
+  <test_depend>hsrb_gazebo_launch</test_depend>
 
   <export></export>
 </package>
