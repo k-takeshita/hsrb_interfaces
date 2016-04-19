@@ -49,6 +49,7 @@ class TestUserManual(unittest.TestCase):
                 self.assertAlmostEqual(a[key], b[key], delta=delta)
 
     def test_5_1_2_1(self):
+        """Getting started"""
         omni_base = self.robot.get('omni_base')
         omni_base.go(0.1, 0.0, 0.0, 10.0, relative=True)
 
@@ -57,7 +58,8 @@ class TestUserManual(unittest.TestCase):
                                delta=0.01)
 
     def test_5_1_3_1(self):
-        neutral = {
+        """Pose transition"""
+        expected_neutral = {
             "arm_lift_joint": 0,
             "arm_flex_joint": 0,
             "arm_roll_joint": 0,
@@ -67,7 +69,7 @@ class TestUserManual(unittest.TestCase):
             "head_tilt_joint": 0,
         }
 
-        to_go = {
+        expected_to_go = {
             "arm_lift_joint": 0,
             "arm_flex_joint": 0,
             "arm_roll_joint": math.radians(-90),
@@ -81,15 +83,61 @@ class TestUserManual(unittest.TestCase):
 
         whole_body.move_to_neutral()
         joint_positions = whole_body.joint_positions
-        self.assert_dict_contains_subset(neutral, joint_positions, 0.01)
+        self.assert_dict_contains_subset(expected_neutral,
+                                         joint_positions,
+                                         0.01)
 
         whole_body.move_to_go()
         joint_positions = whole_body.joint_positions
-        self.assert_dict_contains_subset(to_go, joint_positions, 0.01)
+        self.assert_dict_contains_subset(expected_to_go,
+                                         joint_positions,
+                                         0.01)
 
         whole_body.move_to_neutral()
         joint_positions = whole_body.joint_positions
-        self.assert_dict_contains_subset(neutral, joint_positions, 0.01)
+        self.assert_dict_contains_subset(expected_neutral,
+                                         joint_positions,
+                                         0.01)
+
+    def test_5_1_3_2(self):
+        """Driving joints"""
+        whole_body = self.robot.get('whole_body')
+
+        whole_body.move_to_neutral()
+
+        expected = [
+            'arm_flex_joint',
+            'arm_lift_joint',
+            'arm_roll_joint',
+            'base_l_drive_wheel_joint',
+            'base_r_drive_wheel_joint',
+            'base_roll_joint',
+            'hand_l_spring_proximal_joint',
+            'hand_motor_joint',
+            'hand_r_spring_proximal_joint',
+            'head_pan_joint',
+            'head_tilt_joint',
+            'wrist_flex_joint',
+            'wrist_roll_joint'
+        ]
+        self.assertListEqual(expected, whole_body.joint_names)
+
+        whole_body.move_to_joint_positions({'arm_lift_joint': 0.2})
+        expected_pose = {'arm_lift_joint': 0.2}
+        self.assert_dict_contains_subset(expected_pose,
+                                         whole_body.joint_positions,
+                                         0.01)
+
+        whole_body.move_to_joint_positions({'head_pan_joint': 0.4,
+                                            'head_tilt_joint': -0.2})
+        expected_pose = {'head_pan_joint': 0.4,
+                         'head_tilt_joint': -0.2}
+        self.assert_dict_contains_subset(expected_pose,
+                                         whole_body.joint_positions,
+                                         0.01)
+
+    def test_5_1_3_3(self):
+        pass
 
 if __name__ == '__main__':
     import rostest
