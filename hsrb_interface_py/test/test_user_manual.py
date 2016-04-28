@@ -22,6 +22,41 @@ def dict_almost_equal(a, b, delta):
     else:
         raise ValueError("a and b don't share keys")
 
+EXPECTED_NEUTRAL = {
+    "arm_lift_joint": 0,
+    "arm_flex_joint": 0,
+    "arm_roll_joint": 0,
+    "wrist_flex_joint": math.radians(-90),
+    "wrist_roll_joint": 0,
+    "head_pan_joint": 0,
+    "head_tilt_joint": 0,
+}
+
+EXPECTED_TO_GO = {
+    "arm_lift_joint": 0,
+    "arm_flex_joint": 0,
+    "arm_roll_joint": math.radians(-90),
+    "wrist_flex_joint": math.radians(-90),
+    "wrist_roll_joint": 0,
+    "head_pan_joint": 0,
+    "head_tilt_joint": 0,
+}
+
+JOINT_NAMES = [
+    'arm_flex_joint',
+    'arm_lift_joint',
+    'arm_roll_joint',
+    'base_l_drive_wheel_joint',
+    'base_r_drive_wheel_joint',
+    'base_roll_joint',
+    'hand_l_spring_proximal_joint',
+    'hand_motor_joint',
+    'hand_r_spring_proximal_joint',
+    'head_pan_joint',
+    'head_tilt_joint',
+    'wrist_flex_joint',
+    'wrist_roll_joint'
+]
 
 class TestUserManual(unittest.TestCase):
     @classmethod
@@ -57,6 +92,8 @@ class TestUserManual(unittest.TestCase):
         self.assertAlmostEqual(rot1[3], rot2[3], delta=delta)
 
     def assert_dict_contains_subset(self, a, b, delta=None):
+        """
+        """
         for key in a:
             if key not in b:
                 self.fail()
@@ -64,6 +101,8 @@ class TestUserManual(unittest.TestCase):
                 self.assertAlmostEqual(a[key], b[key], delta=delta)
 
     def wait_joints_stable(self, delta):
+        """
+        """
         whole_body = self.robot.get('whole_body')
         last_positions = whole_body.joint_positions
         while True:
@@ -74,8 +113,8 @@ class TestUserManual(unittest.TestCase):
                 last_positions = copy.deepcopy(positions)
                 time.sleep(0.1)
 
-    def assert_joints_reach_within(self, expected, delta=None,
-                                   timeout=30.0, tick=0.5):
+    def assert_joints_reach_goals(self, expected, delta=None,
+                                  timeout=30.0, tick=0.5):
         """Success if all `expected` joints reach their goals within `timeout`.
 
         Args:
@@ -87,12 +126,12 @@ class TestUserManual(unittest.TestCase):
         whole_body = self.robot.get('whole_body')
         start = rospy.Time.now()
         timeout = rospy.Duration(timeout)
+        if delta is None:
+            delta = 0
         while True:
             num_reached = 0
             for joint, goal in expected.items():
                 position = whole_body.joint_positions[joint]
-                if delta is None:
-                    delta = 0
                 if abs(position - goal) <= delta:
                     num_reached += 1
             now = rospy.Time.now()
@@ -100,7 +139,8 @@ class TestUserManual(unittest.TestCase):
                 diffs = []
                 positions = whole_body.joint_positions
                 for key in expected:
-                    diff = '{0}: expected={1} actual={2}'.format(key, expected[key], positions[key])
+                    template = '{0}: expected={1} actual={2}'
+                    diff = template.format(key, expected[key], positions[key])
                     diffs.append(diff)
                 self.fail('Timed out: {0}'.format(', '.join(diffs)))
             if num_reached == len(expected):
@@ -108,124 +148,121 @@ class TestUserManual(unittest.TestCase):
             else:
                 rospy.sleep(tick)
 
+    def assert_end_effector_reach_goal(self, goal, frame='map', delta=None,
+                                       timeout=30.0, tick=0.5):
+        whole_body = self.robot.get('whole_body')
+        start = rospy.Time.now()
+        timeout = rospy.Duration(timeout)
+        if delta is None:
+            delta = 0
+        while True:
+            now = rospy.Time.now()
+            if (now - start) > timeout:
+                msg = 'frame={0}'.format(frame)
+                self.fail('Timed out: {0}'.format(msg))
+            pose = whole_body.get_end_effector_pose(frame)
+            result_list = pose[0] + pose[1]
+            goal_list = goal[0] + goal[1]
+            if all(abs(a - b) < delta for a, b in zip(result_list, goal_list)):
+                break
+            else:
+                rospy.sleep(tick)
+
+    def assert_base_reach_goal(self, goal):
+        pass
+
     def test_5_1_2_1(self):
         """Getting started"""
         omni_base = self.robot.get('omni_base')
         omni_base.go(0.1, 0.0, 0.0, 10.0, relative=True)
-
         self.assert_pose_equal(omni_base.get_pose('map'),
                                geometry.pose(0.1, 0.0, 0.0),
                                delta=0.01)
 
-    def test_5_1_3_1(self):
-        """Pose transition"""
-        expected_neutral = {
-            "arm_lift_joint": 0,
-            "arm_flex_joint": 0,
-            "arm_roll_joint": 0,
-            "wrist_flex_joint": math.radians(-90),
-            "wrist_roll_joint": 0,
-            "head_pan_joint": 0,
-            "head_tilt_joint": 0,
-        }
+        omni_base.go(-0.1, 0.0, 0.0, 10.0, relative=True)
+        self.assert_pose_equal(omni_base.get_pose('map'),
+                               geometry.pose(0.0, 0.0, 0.0),
+                               delta=0.01)
 
-        expected_to_go = {
-            "arm_lift_joint": 0,
-            "arm_flex_joint": 0,
-            "arm_roll_joint": math.radians(-90),
-            "wrist_flex_joint": math.radians(-90),
-            "wrist_roll_joint": 0,
-            "head_pan_joint": 0,
-            "head_tilt_joint": 0,
-        }
+    def test_5_1_3_01(self):
+        """Pose transition"""
 
         whole_body = self.robot.get('whole_body')
 
         whole_body.move_to_neutral()
-        joint_positions = whole_body.joint_positions
-        self.assert_dict_contains_subset(expected_neutral,
-                                         joint_positions,
-                                         0.01)
+        self.assert_joints_reach_goals(EXPECTED_NEUTRAL, 0.01)
 
         whole_body.move_to_go()
-        joint_positions = whole_body.joint_positions
-        self.assert_dict_contains_subset(expected_to_go,
-                                         joint_positions,
-                                         0.01)
+        self.assert_joints_reach_goals(EXPECTED_TO_GO, 0.01)
 
         whole_body.move_to_neutral()
-        joint_positions = whole_body.joint_positions
-        self.assert_dict_contains_subset(expected_neutral,
-                                         joint_positions,
-                                         0.01)
+        self.assert_joints_reach_goals(EXPECTED_NEUTRAL, 0.01)
 
-    def test_5_1_3_2(self):
+    def test_5_1_3_02(self):
         """Driving joints"""
         whole_body = self.robot.get('whole_body')
         whole_body.move_to_neutral()
 
-        expected = [
-            'arm_flex_joint',
-            'arm_lift_joint',
-            'arm_roll_joint',
-            'base_l_drive_wheel_joint',
-            'base_r_drive_wheel_joint',
-            'base_roll_joint',
-            'hand_l_spring_proximal_joint',
-            'hand_motor_joint',
-            'hand_r_spring_proximal_joint',
-            'head_pan_joint',
-            'head_tilt_joint',
-            'wrist_flex_joint',
-            'wrist_roll_joint'
-        ]
-        self.assertListEqual(expected, whole_body.joint_names)
+        self.assertListEqual(JOINT_NAMES, whole_body.joint_names)
 
         whole_body.move_to_joint_positions({'arm_lift_joint': 0.2})
         expected_pose = {'arm_lift_joint': 0.2}
-        self.assert_joints_reach_within(expected_pose, delta=0.01)
+        self.assert_joints_reach_goals(expected_pose, delta=0.01)
 
         whole_body.move_to_joint_positions({'head_pan_joint': 0.4,
                                             'head_tilt_joint': -0.2})
         expected_pose = {'head_pan_joint': 0.4,
                          'head_tilt_joint': -0.2}
-        self.assert_joints_reach_within(expected_pose, delta=0.01)
+        self.assert_joints_reach_goals(expected_pose, delta=0.01)
 
-    def test_5_1_3_3(self):
+    def test_5_1_3_03(self):
         """Driving gripper"""
         gripper = self.robot.get('gripper')
         whole_body = self.robot.get('whole_body')
         whole_body.move_to_neutral()
+        self.assert_joints_reach_goals(EXPECTED_NEUTRAL, 0.01)
 
         gripper.command(1.0)
-        self.assert_joints_reach_within({'hand_motor_joint': 1.0}, delta=0.01)
+        self.assert_joints_reach_goals({'hand_motor_joint': 1.0}, delta=0.01)
 
         gripper.command(0.0)
-        self.assert_joints_reach_within({'hand_motor_joint': 0.0}, delta=0.01)
+        self.assert_joints_reach_goals({'hand_motor_joint': 0.0}, delta=0.01)
+
+        gripper.command(1.0)
+        self.assert_joints_reach_goals({'hand_motor_joint': 1.0}, delta=0.01)
 
         gripper.grasp(-0.01)
+        self.assert_joints_reach_goals({'hand_motor_joint': 0.0}, delta=0.01)
 
-    def test_5_1_3_4(self):
+    def test_5_1_3_04(self):
         """Moving end-effector"""
-        self.fail("Not implemented.")
+        whole_body = self.robot.get('whole_body')
+        whole_body.move_to_neutral()
+        self.assert_joints_reach_goals(EXPECTED_NEUTRAL, delta=0.01)
 
-    def test_5_1_3_5(self):
+        goal =  whole_body.get_end_effector_pose('map')
+        whole_body.move_end_effector_pose(geometry.pose(z=1.0),
+                                          'hand_palm_link')
+        goal = ((goal[0].x + 1.0, goal[0].y, goal[0].z), goal[1])
+        self.assert_end_effector_reach_goal(goal, delta=0.01)
+
+    def test_5_1_3_05(self):
         """Coordinates and tf"""
         self.fail("Not implemented.")
 
-    def test_5_1_3_6(self):
+    def test_5_1_3_06(self):
         """Moving end-effector with tf"""
         self.fail("Not implemented.")
 
-    def test_5_1_3_7(self):
+    def test_5_1_3_07(self):
         """Moving end-effector by line"""
         self.fail("Not implemented.")
 
-    def test_5_1_3_8(self):
+    def test_5_1_3_08(self):
         """Hand impedance control"""
         self.fail("Not implemented.")
 
-    def test_5_1_3_9(self):
+    def test_5_1_3_09(self):
         """Changing arm/base ratio in motion planning"""
         self.fail("Not implemented.")
 
