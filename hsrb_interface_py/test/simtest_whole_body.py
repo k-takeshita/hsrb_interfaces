@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+# vim: fileencoding=utf-8 :
+"""Test gripper object.
+
+"""
+
+import math
+import hsrb_interface
+from hsrb_interface import geometry
+
+import testing
+
+class WholeBodyTest(testing.HsrbInterfaceTest):
+    def test_move_to_named_positions(self):
+        """Pose transition"""
+        self.whole_body.move_to_neutral()
+        self.expect_joints_reach_goals(self.EXPECTED_NEUTRAL, 0.01)
+
+        self.whole_body.move_to_go()
+        self.expect_joints_reach_goals(self.EXPECTED_TO_GO, 0.01)
+
+        self.whole_body.move_to_neutral()
+        self.expect_joints_reach_goals(self.EXPECTED_NEUTRAL, 0.01)
+
+    def test_move_to_joint_positions(self):
+        """Driving joints"""
+        self.whole_body.move_to_neutral()
+
+        self.assertListEqual(self.JOINT_NAMES, self.whole_body.joint_names)
+
+        self.whole_body.move_to_joint_positions({'arm_lift_joint': 0.2})
+        expected_pose = {'arm_lift_joint': 0.2}
+        self.expect_joints_reach_goals(expected_pose, delta=0.01)
+
+        self.whole_body.move_to_joint_positions({'head_pan_joint': 0.4,
+                                                 'head_tilt_joint': -0.2})
+        expected_pose = {'head_pan_joint': 0.4,
+                         'head_tilt_joint': -0.2}
+        self.expect_joints_reach_goals(expected_pose, delta=0.01)
+
+    def stest_move_end_effector_pose(self):
+        """Moving end-effector"""
+        self.whole_body.move_to_neutral()
+        self.expect_joints_reach_goals(self.EXPECTED_NEUTRAL, delta=0.01)
+
+        hand_pose = self.whole_body.get_end_effector_pose('map')
+        self.whole_body.move_end_effector_pose(geometry.pose(z=1.0),
+                                               'hand_palm_link')
+        goal = ((hand_pose[0].x + 1.0, hand_pose[0].y, hand_pose[0].z),
+                hand_pose[1])
+        self.expect_end_effector_reach_goal(goal, pos_delta=0.02,
+                                            ori_delta=math.radians(2.0))
+
+    def test_move_end_effectro_by_line(self):
+        """Moving end-effector by line"""
+        self.whole_body.move_to_neutral()
+        hand_pose = self.whole_body.get_end_effector_pose('hand_palm_link')
+
+        self.whole_body.move_end_effector_by_line((0, 0, -1), 0.1, 'hand_palm_link')
+
+        goal = ((hand_pose[0].x, hand_pose[0].y, hand_pose[0].z - 0.1),
+                hand_pose[1])
+
+        self.expect_end_effector_reach_goal(goal, pos_delta=0.02,
+                                            ori_delta=math.radians(2.0))
+
+    def test_move_end_effector_pose_with_tf(self):
+        """Moving end-effector with tf"""
+        self.whole_body.move_to_neutral()
+
+        goals = [
+            geometry.pose(),
+            geometry.pose(x=0.2),
+            geometry.pose(x=0.2, ej=-1.57)
+        ]
+
+        for goal in goals:
+            self.whole_body.move_end_effector_pose(geometry.pose(), 'my_frame')
+            self.expect_end_effector_reach_goal(goal, pos_delta=0.02,
+                                                ori_delta=math.radians(2.0),
+                                                frame='my_frame')
+
+if __name__ == '__main__':
+    import rostest
+    rostest.rosrun('hsrb_interface_py', 'simtest_whole_body', WholeBodyTest)
