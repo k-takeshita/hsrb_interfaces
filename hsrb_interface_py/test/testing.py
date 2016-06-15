@@ -188,9 +188,15 @@ class HsrbInterfaceTest(unittest.TestCase):
                 rospy.sleep(tick)
             now = rospy.Time.now()
             if (now - start) > timeout:
-                msg = 'expected={5}, acutal={6}, position({0} < {1}), orientation({2} < {3}), frame={4}'
-                msg = msg.format(pos_error, pos_delta, ori_error, ori_delta, frame, goal)
-                self.fail('Timed out: {0}'.format(msg))
+                msg = '\n'.join([
+                    'Timed out:',
+                    '\nexpected  = {0}'.format(goal),
+                    '\nacutal    = {0}'.format(pose),
+                    '\npos_error = {0} < {1}'.format(pos_error, pos_delta),
+                    '\nori_error = {0} < {1}'.format(ori_error, ori_delta),
+                    '\nframe     = {0}'.format(frame),
+                ])
+                self.fail(msg)
 
     def expect_base_reach_goal(self, goal, frame='map',
                                pos_delta=None, ori_delta=None,
@@ -228,7 +234,13 @@ class HsrbInterfaceTest(unittest.TestCase):
                 rospy.sleep(tick)
             now = rospy.Time.now()
             if (now - start) > timeout:
-                msg = 'expected={5}, acutal={6}, position({0} < {1}), orientation({2} < {3}), frame={4}'
-                msg = msg.format(pos_error, pos_delta, ori_error, ori_delta, frame, goal, pose)
-                self.fail('Timed out: {0}'.format(msg))
+                msg = '\n'.join([
+                    'Timed out:',
+                    '\texpected  = {0}'.format(goal),
+                    '\tacutal    = {0}'.format(pose),
+                    '\tpos_error = {0} < {1}'.format(pos_error, pos_delta),
+                    '\tori_error = {0} < {1}'.format(ori_error, ori_delta),
+                    '\tframe     = {0}'.format(frame),
+                ])
+                self.fail(msg)
 
