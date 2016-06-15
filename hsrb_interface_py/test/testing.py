@@ -8,7 +8,11 @@ import unittest
 
 import hsrb_interface
 import hsrb_interface.robot
+from hsrb_interface import geometry
+from geometry_msgs.msg import PoseStamped
+import tf2_geometry_msgs
 import rospy
+import tf2_ros
 
 def dict_almost_equal(a, b, delta):
     keys = a.keys()
@@ -66,7 +70,7 @@ class HsrbInterfaceTest(unittest.TestCase):
     ]
 
     BASE_MOVE_TIME_TOLERANCE = 60
-    BASE_MOVE_GOAL_TOLERANCE = 0.01
+    BASE_MOVE_GOAL_TOLERANCE = 0.05
 
     @classmethod
     def setUpClass(cls):
@@ -87,6 +91,8 @@ class HsrbInterfaceTest(unittest.TestCase):
         cls.omni_base = cls.robot.get('omni_base')
         cls.gripper  = cls.robot.get('gripper')
         cls.collision_world = cls.robot.get('global_collision_world')
+        cls.tf_buffer = tf2_ros.Buffer()
+        cls.tf_listner = tf2_ros.TransformListener(cls.tf_buffer)
 
     @classmethod
     def tearDownClass(cls):
@@ -154,25 +160,24 @@ class HsrbInterfaceTest(unittest.TestCase):
             else:
                 rospy.sleep(tick)
 
-    def expect_end_effector_reach_goal(self, goal, frame='map',
-                                       pos_delta=None, ori_delta=None,
-                                       timeout=30.0, tick=0.5):
+    def expect_hand_reach_goal(self, goal, frame='map',
+                               pos_delta=None, ori_delta=None,
+                               timeout=30.0, tick=0.5):
         """
         Args:
             goal (): Expected goal pose
-            frame (str): pass
-
+            frame (str): base frame of `goal`
+            pos_delta (float): Position tolerance [m]
+            ori_delta (float): Orientation tolerance
+                (Measured in closest angle difference) [rad]
+            timeout (float): Timeout in seconds
+            tick (float): Sleep time between goal check in seconds
         """
         start = rospy.Time.now()
         timeout = rospy.Duration(timeout)
-        pos_delta = 0 if pos_delta is None else pos_delta
-        ori_delta = 0 if ori_delta is None else ori_delta
+        pos_delta = float('inf') if pos_delta is None else pos_delta
+        ori_delta = float('inf') if ori_delta is None else ori_delta
         while True:
-            now = rospy.Time.now()
-            if (now - start) > timeout:
-                msg = 'goal={5}, position({0} < {1}), orientation({2} < {3}), frame={4}'
-                msg = msg.format(pos_error, pos_delta, ori_error, ori_delta, frame, goal)
-                self.fail('Timed out: {0}'.format(msg))
             pose = self.whole_body.get_end_effector_pose(frame)
             pos_error = vector3_distance(pose[0], goal[0])
             ori_error = quaternion_distance(pose[1], goal[1])
@@ -181,4 +186,49 @@ class HsrbInterfaceTest(unittest.TestCase):
                 break
             else:
                 rospy.sleep(tick)
+            now = rospy.Time.now()
+            if (now - start) > timeout:
+                msg = 'expected={5}, acutal={6}, position({0} < {1}), orientation({2} < {3}), frame={4}'
+                msg = msg.format(pos_error, pos_delta, ori_error, ori_delta, frame, goal)
+                self.fail('Timed out: {0}'.format(msg))
+
+    def expect_base_reach_goal(self, goal, frame='map',
+                               pos_delta=None, ori_delta=None,
+                               timeout=30.0, tick=0.5):
+        """
+        Args:
+            goal (): Expected goal pose
+            frame (str): base frame of `goal`
+            pos_delta (float): Position tolerance [m]
+            ori_delta (float): Orientation tolerance
+                (Measured in closest angle difference) [rad]
+            timeout (float): Timeout in seconds
+            tick (float): Sleep time between goal check in seconds
+        """
+        start = rospy.Time.now()
+        timeout = rospy.Duration(timeout)
+        goal_pose = PoseStamped()
+        goal_pose.header.stamp = rospy.Time(0)
+        goal_pose.header.frame_id = frame
+        goal_pose.pose = geometry.tuples_to_pose(goal)
+        map_to_goal_pose = self.tf_buffer.transform(goal_pose, 'map')
+        map_to_goal_pose.pose.position.z = 0.0
+        goal = geometry.pose_to_tuples(map_to_goal_pose.pose)
+
+        pos_delta = float('inf') if pos_delta is None else pos_delta
+        ori_delta = float('inf') if ori_delta is None else ori_delta
+        while True:
+            pose = self.omni_base.get_pose('map')
+            pos_error = vector3_distance(pose[0], goal[0])
+            ori_error = quaternion_distance(pose[1], goal[1])
+
+            if pos_error < pos_delta and ori_error < ori_delta:
+                break
+            else:
+                rospy.sleep(tick)
+            now = rospy.Time.now()
+            if (now - start) > timeout:
+                msg = 'expected={5}, acutal={6}, position({0} < {1}), orientation({2} < {3}), frame={4}'
+                msg = msg.format(pos_error, pos_delta, ori_error, ori_delta, frame, goal, pose)
+                self.fail('Timed out: {0}'.format(msg))
 
