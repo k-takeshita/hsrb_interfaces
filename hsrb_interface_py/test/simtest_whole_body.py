@@ -48,21 +48,21 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
                                                'hand_palm_link')
         goal = ((hand_pose[0].x + 1.0, hand_pose[0].y, hand_pose[0].z),
                 hand_pose[1])
-        self.expect_end_effector_reach_goal(goal, pos_delta=0.02,
-                                            ori_delta=math.radians(2.0))
+        self.expect_hand_reach_goal(goal, pos_delta=0.02,
+                                    ori_delta=math.radians(2.0))
 
-    def test_move_end_effectro_by_line(self):
+    def test_move_end_effector_by_line(self):
         """Moving end-effector by line"""
         self.whole_body.move_to_neutral()
-        hand_pose = self.whole_body.get_end_effector_pose('hand_palm_link')
+        hand_pose = self.whole_body.get_end_effector_pose('map')
 
-        self.whole_body.move_end_effector_by_line((0, 0, -1), 0.1, 'hand_palm_link')
+        self.whole_body.move_end_effector_by_line((0, 0, 1), 0.1, 'hand_palm_link')
 
-        goal = ((hand_pose[0].x, hand_pose[0].y, hand_pose[0].z - 0.1),
+        goal = ((hand_pose[0].x + 0.1, hand_pose[0].y, hand_pose[0].z),
                 hand_pose[1])
 
-        self.expect_end_effector_reach_goal(goal, pos_delta=0.02,
-                                            ori_delta=math.radians(2.0))
+        self.expect_hand_reach_goal(goal, frame='map', pos_delta=0.02,
+                                    ori_delta=math.radians(2.0))
 
     def test_move_end_effector_pose_with_tf(self):
         """Moving end-effector with tf"""
@@ -75,10 +75,10 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
         ]
 
         for goal in goals:
-            self.whole_body.move_end_effector_pose(geometry.pose(), 'my_frame')
-            self.expect_end_effector_reach_goal(goal, pos_delta=0.02,
-                                                ori_delta=math.radians(2.0),
-                                                frame='my_frame')
+            self.whole_body.move_end_effector_pose(goal, 'my_frame')
+            self.expect_hand_reach_goal(goal, pos_delta=0.02,
+                                        ori_delta=math.radians(2.0),
+                                        frame='my_frame')
 
 if __name__ == '__main__':
     import rostest
