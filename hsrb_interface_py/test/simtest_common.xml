@@ -10,8 +10,15 @@
         <arg name="paused" value="false" />
     </include>
 
-    <test pkg="hsrb_interface_py" type="$(arg test_name).py" test-name="$(arg test_name)" time-limit="$(arg time_limit)" />
+    <test pkg="hsrb_interface_py" type="$(arg test_name).py"
+          test-name="$(arg test_name)" time-limit="$(arg time_limit)" />
 
     <node pkg="tf" type="static_transform_publisher" name="my_frame_publisher"
-        args="2 0 0.5 3.14 -1.57 0 map my_frame 10" />
+          args="2.0 0.0 0.5 3.14 -1.57 0.0 map my_frame 10" />
+
+    <node pkg="tf" type="static_transform_publisher" name="goal1_publisher"
+          args="0.0 0.0 0.0 0.0 1.57 0.0 my_frame goal1 10" />
+
+    <node pkg="tf" type="static_transform_publisher" name="goal2_publisher"
+          args="0.0 0.0 -0.5 0.0 1.57 0.0 my_frame goal2 10" />
 </launch>

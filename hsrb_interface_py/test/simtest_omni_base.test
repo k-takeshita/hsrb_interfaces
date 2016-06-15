@@ -1,7 +1,12 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="time_limit" default="6000" />
+
     <include file="$(find hsrb_interface_py)/test/simtest_common.xml">
         <arg name="test_name" value="simtest_omni_base" />
-        <arg name="time_limit" value="600" />
+        <arg name="time_limit" value="$(arg time_limit)" />
     </include>
+
+    <node if="false" name="bag" pkg="rosbag" type="record"
+        args="--topic /hsrb/command_velocity /hsrb/omni_base_controller/state /hsrb/omni_base_controller/internal_state /hsrb/base_pose /base_local_path_status /base_path_with_goal /global_pose /tf" />
 </launch>
