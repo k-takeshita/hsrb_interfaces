@@ -146,7 +146,7 @@ class CollisionWorld(robot.Item):
         return self._environment
 
     def add_box(self, x=0.1, y=0.1, z=0.1, pose=geometry.pose(),
-                frame_id='map', name='box'):
+                frame_id='map', name='box', timeout=1.0):
         """Add a box object to the collision space.
 
         Args:
@@ -176,13 +176,13 @@ class CollisionWorld(robot.Item):
         box.header.stamp = rospy.Time.now()
         self._object_pub.publish(box)
         # 反映されるまで待ち
-        if self._wait_object_id_used(self._object_count):
+        if self._wait_object_id_used(self._object_count, timeout):
             return (box.id.object_id, box.id.name)
         else:
             return None
 
     def add_sphere(self, radius=0.1, pose=geometry.pose(),
-                   frame_id='map', name='sphere'):
+                   frame_id='map', name='sphere', timeout=1.0):
         """Add a sphere object to the collision space.
 
         Args:
@@ -210,13 +210,13 @@ class CollisionWorld(robot.Item):
         sphere.header.stamp = rospy.Time.now()
         self._object_pub.publish(sphere)
         # 反映されるまで待ち
-        if self._wait_object_id_used(self._object_count):
+        if self._wait_object_id_used(self._object_count, timeout):
             return (sphere.id.object_id, sphere.id.name)
         else:
             return None
 
     def add_cylinder(self, radius=0.1, length=0.1, pose=geometry.pose(),
-                     frame_id='map', name='cylinder'):
+                     frame_id='map', name='cylinder', timeout=1.0):
         """Add a cylinder object to the collision space.
 
         Args:
@@ -245,13 +245,13 @@ class CollisionWorld(robot.Item):
         cylinder.header.stamp = rospy.Time.now()
         self._object_pub.publish(cylinder)
         # 反映されるまで待ち
-        if self._wait_object_id_used(self._object_count):
+        if self._wait_object_id_used(self._object_count, timeout):
             return (cylinder.id.object_id, cylinder.id.name)
         else:
             return None
 
     def add_mesh(self, filename, pose=geometry.pose(), frame_id='map',
-                 name='mesh'):
+                 name='mesh', timeout=1.0):
         """Add a mesh object to the collision space.
 
         Args:
@@ -290,7 +290,7 @@ class CollisionWorld(robot.Item):
         mesh.header.stamp = rospy.Time.now()
         self._object_pub.publish(mesh)
         # 反映されるまで待ち
-        if self._wait_object_id_used(self._object_count):
+        if self._wait_object_id_used(self._object_count, timeout):
             return (mesh.id.object_id, mesh.id.name)
         else:
             return None
