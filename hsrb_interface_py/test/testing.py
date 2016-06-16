@@ -10,7 +10,6 @@ import hsrb_interface
 import hsrb_interface.robot
 from hsrb_interface import geometry
 from geometry_msgs.msg import PoseStamped
-import tf2_geometry_msgs
 import rospy
 import tf2_ros
 
@@ -91,6 +90,7 @@ class HsrbInterfaceTest(unittest.TestCase):
         cls.omni_base = cls.robot.get('omni_base')
         cls.gripper  = cls.robot.get('gripper')
         cls.collision_world = cls.robot.get('global_collision_world')
+        cls.marker = cls.robot.get('marker')
         cls.tf_buffer = tf2_ros.Buffer()
         cls.tf_listner = tf2_ros.TransformListener(cls.tf_buffer)
 
@@ -243,4 +243,46 @@ class HsrbInterfaceTest(unittest.TestCase):
                     '\tframe     = {0}'.format(frame),
                 ])
                 self.fail(msg)
+
+    def expect_object(self, object_id, expected_pose, frame='map',
+                      pos_delta=None, ori_delta=None,
+                      timeout=30.0, tick=0.5):
+        """
+        Args:
+            object_id (id)
+            expected_pose (): Expected goal pose
+            frame (str): base frame of `goal`
+            pos_delta (float): Position tolerance [m]
+            ori_delta (float): Orientation tolerance
+                (Measured in closest angle difference) [rad]
+            timeout (float): Timeout in seconds
+            tick (float): Sleep time between goal check in seconds
+        """
+        start = rospy.Time.now()
+        timeout = rospy.Duration(timeout)
+
+        pos_delta = float('inf') if pos_delta is None else pos_delta
+        ori_delta = float('inf') if ori_delta is None else ori_delta
+        while True:
+            obj = self.marker.get_object_by_id(object_id)
+            if obj is not None:
+                pose = obj.get_pose(frame)
+                pos_error = vector3_distance(pose[0], expected_pose[0])
+                ori_error = quaternion_distance(pose[1], expected_pose[1])
+
+                if pos_error < pos_delta and ori_error < ori_delta:
+                    break
+            rospy.sleep(tick)
+            now = rospy.Time.now()
+            if (now - start) > timeout:
+                msg = '\n'.join([
+                    'Timed out:',
+                    '\texpected  = {0}'.format(expected_pose),
+                    '\tacutal    = {0}'.format(pose),
+                    '\tpos_error = {0} < {1}'.format(pos_error, pos_delta),
+                    '\tori_error = {0} < {1}'.format(ori_error, ori_delta),
+                    '\tframe     = {0}'.format(frame),
+                ])
+                self.fail(msg)
+
 
