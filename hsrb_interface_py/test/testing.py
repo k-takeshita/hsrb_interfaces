@@ -264,6 +264,7 @@ class HsrbInterfaceTest(unittest.TestCase):
         pos_delta = float('inf') if pos_delta is None else pos_delta
         ori_delta = float('inf') if ori_delta is None else ori_delta
         while True:
+            now = rospy.Time.now()
             obj = self.marker.get_object_by_id(object_id)
             if obj is not None:
                 pose = obj.get_pose(frame)
@@ -272,17 +273,18 @@ class HsrbInterfaceTest(unittest.TestCase):
 
                 if pos_error < pos_delta and ori_error < ori_delta:
                     break
-            rospy.sleep(tick)
-            now = rospy.Time.now()
             if (now - start) > timeout:
-                msg = '\n'.join([
-                    'Timed out:',
-                    '\texpected  = {0}'.format(expected_pose),
-                    '\tacutal    = {0}'.format(pose),
-                    '\tpos_error = {0} < {1}'.format(pos_error, pos_delta),
-                    '\tori_error = {0} < {1}'.format(ori_error, ori_delta),
-                    '\tframe     = {0}'.format(frame),
-                ])
+                buf = ['Timed out:']
+                if obj is not None:
+                    buf.extend([
+                        '\texpected  = {0}'.format(expected_pose),
+                        '\tactual    = {0}'.format(pose),
+                        '\tpos_error = {0} < {1}'.format(pos_error, pos_delta),
+                        '\tori_error = {0} < {1}'.format(ori_error, ori_delta),
+                    ])
+                buf.append('\tframe     = {0}'.format(frame))
+                msg = '\n'.join(buf)
                 self.fail(msg)
+            rospy.sleep(tick)
 
 
