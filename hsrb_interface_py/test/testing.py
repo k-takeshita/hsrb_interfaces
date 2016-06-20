@@ -160,6 +160,14 @@ class HsrbInterfaceTest(unittest.TestCase):
             else:
                 rospy.sleep(tick)
 
+    def expect_grasp(self, delta=None, timeout=30.0, tick=0.5):
+        m = self.whole_body.joint_positions['hand_motor_joint']
+        r = self.whole_body.joint_positions['hand_r_spring_proximal_joint']
+        l = self.whole_body.joint_positions['hand_l_spring_proximal_joint']
+
+        self.assertNotAlmostEqual(m, r, delta=delta)
+        self.assertNotAlmostEqual(m, l, delta=delta)
+
     def expect_hand_reach_goal(self, goal, frame='map',
                                pos_delta=None, ori_delta=None,
                                timeout=30.0, tick=0.5):
@@ -175,8 +183,8 @@ class HsrbInterfaceTest(unittest.TestCase):
         """
         start = rospy.Time.now()
         timeout = rospy.Duration(timeout)
-        pos_delta = float('inf') if pos_delta is None else pos_delta
-        ori_delta = float('inf') if ori_delta is None else ori_delta
+        pos_delta = 0.0 if pos_delta is None else pos_delta
+        ori_delta = 0.0 if ori_delta is None else ori_delta
         while True:
             pose = self.whole_body.get_end_effector_pose(frame)
             pos_error = vector3_distance(pose[0], goal[0])
@@ -221,8 +229,8 @@ class HsrbInterfaceTest(unittest.TestCase):
         map_to_goal_pose.pose.position.z = 0.0
         goal = geometry.pose_to_tuples(map_to_goal_pose.pose)
 
-        pos_delta = float('inf') if pos_delta is None else pos_delta
-        ori_delta = float('inf') if ori_delta is None else ori_delta
+        pos_delta = 0.0 if pos_delta is None else pos_delta
+        ori_delta = 0.0 if ori_delta is None else ori_delta
         while True:
             pose = self.omni_base.get_pose('map')
             pos_error = vector3_distance(pose[0], goal[0])
@@ -261,8 +269,8 @@ class HsrbInterfaceTest(unittest.TestCase):
         start = rospy.Time.now()
         timeout = rospy.Duration(timeout)
 
-        pos_delta = float('inf') if pos_delta is None else pos_delta
-        ori_delta = float('inf') if ori_delta is None else ori_delta
+        pos_delta = 0.0 if pos_delta is None else pos_delta
+        ori_delta = 0.0 if ori_delta is None else ori_delta
         while True:
             now = rospy.Time.now()
             obj = self.marker.get_object_by_id(object_id)
