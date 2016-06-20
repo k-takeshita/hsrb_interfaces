@@ -98,7 +98,7 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
         hand_pose = self.whole_body.get_end_effector_pose('map')
         goal = geometry.pose(0.7, 0.0, 0.25, ej=math.pi/2.0)
         self.whole_body.move_end_effector_pose(goal, 'map')
-        self.expect_hand_reach_goal(goal, frame='map', pos_delta=0.02,
+        self.expect_hand_reach_goal(goal, frame='map', pos_delta=0.05,
                                     ori_delta=math.radians(2.0))
         self.whole_body.collision_world = None
 
