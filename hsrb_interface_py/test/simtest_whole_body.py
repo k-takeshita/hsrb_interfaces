@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
-"""Test gripper object.
-
-"""
+"""Testing motion planning interface in Gazebo simulator."""
 
 import math
 import hsrb_interface
@@ -12,7 +10,7 @@ import testing
 
 class WholeBodyTest(testing.HsrbInterfaceTest):
     def test_move_to_named_positions(self):
-        """Pose transition"""
+        """Test fixed pattern pose changes."""
         self.whole_body.move_to_neutral()
         self.expect_joints_reach_goals(self.EXPECTED_NEUTRAL, 0.01)
 
@@ -23,7 +21,7 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
         self.expect_joints_reach_goals(self.EXPECTED_NEUTRAL, 0.01)
 
     def test_move_to_joint_positions(self):
-        """Driving joints"""
+        """Driving each joint."""
         self.whole_body.move_to_neutral()
 
         self.assertListEqual(self.JOINT_NAMES, self.whole_body.joint_names)
@@ -39,7 +37,7 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
         self.expect_joints_reach_goals(expected_pose, delta=0.01)
 
     def stest_move_end_effector_pose(self):
-        """Moving end-effector"""
+        """The robot should move end-effector to given pose."""
         self.whole_body.move_to_neutral()
         self.expect_joints_reach_goals(self.EXPECTED_NEUTRAL, delta=0.01)
 
@@ -52,7 +50,7 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
                                     ori_delta=math.radians(2.0))
 
     def test_move_end_effector_by_line(self):
-        """Moving end-effector by line"""
+        """The robot should move end-effector by line."""
         self.whole_body.move_to_neutral()
         hand_pose = self.whole_body.get_end_effector_pose('map')
 
@@ -65,7 +63,7 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
                                     ori_delta=math.radians(2.0))
 
     def test_move_end_effector_pose_with_tf(self):
-        """Moving end-effector with tf"""
+        """Moving end-effector with a tf frame 'my_frame'."""
         self.whole_body.move_to_neutral()
 
         goals = [

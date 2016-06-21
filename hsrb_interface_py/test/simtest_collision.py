@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
-"""Test collision_world object .
-
-"""
+"""Test collision_world object."""
 
 import math
 import rospy
@@ -33,19 +31,23 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
                                               timeout=3.0)
         self.assertIsNotNone(box_id)
 
+        pose = geometry.pose(x=1.0, y=1.0, z=0.5)
         sphere_id = self.collision_world.add_sphere(radius=0.3,
-                                                    pose=geometry.pose(x=1.0, y=1.0, z=0.5),
+                                                    pose=pose,
                                                     timeout=3.0)
         self.assertIsNotNone(sphere_id)
 
+        pose = geometry.pose(x=1.0, y=-1.0, z=0.5),
         cylinder_id = self.collision_world.add_cylinder(radius=0.1, length=1.0,
-                                                        pose=geometry.pose(x=1.0, y=-1.0, z=0.5),
+                                                        pose=pose,
                                                         timeout=3.0)
         self.assertIsNotNone(cylinder_id)
 
-        mesh_id = self.collision_world.add_mesh(filename='pacakge:///hsrb_interface_py/test/chair.stl',
-                                                pose=geometry.pose(x=2.0, ei=math.radians(90)),
-                                                frame_id='map', name='chair')
+        mesh_id = self.collision_world.add_mesh(
+            filename='pacakge:///hsrb_interface_py/test/chair.stl',
+            pose=geometry.pose(x=2.0, ei=math.radians(90)),
+            frame_id='map', name='chair'
+        )
         self.assertIsNotNone(mesh_id)
 
         snapshot = self.collision_world.snapshot()
@@ -71,8 +73,9 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
                                               timeout=3.0)
         self.assertIsNotNone(box_id)
 
+        pose = geometry.pose(x=1.0, y=1.0, z=0.5)
         sphere_id = self.collision_world.add_sphere(radius=0.3,
-                                                    pose=geometry.pose(x=1.0, y=1.0, z=0.5),
+                                                    pose=pose,
                                                     timeout=3.0)
         self.assertIsNotNone(sphere_id)
 
@@ -87,22 +90,22 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
 
     def test_collision_avoidance(self):
         """Testing collision check works correctly."""
+        pose = geometry.pose(x=0.6, y=0.0, z=0.65)
         box_id = self.collision_world.add_box(x=0.3, y=0.3, z=0.3,
-                                              pose=geometry.pose(x=0.6, y=0.0, z=0.65),
+                                              pose=pose,
                                               timeout=3.0)
         self.assertIsNotNone(box_id)
 
         self.whole_body.move_to_neutral()
         self.whole_body.collision_world = self.collision_world
 
-        hand_pose = self.whole_body.get_end_effector_pose('map')
         goal = geometry.pose(0.7, 0.0, 0.25, ej=math.pi/2.0)
         self.whole_body.move_end_effector_pose(goal, 'map')
         self.expect_hand_reach_goal(goal, frame='map', pos_delta=0.05,
                                     ori_delta=math.radians(2.0))
         self.whole_body.collision_world = None
 
+
 if __name__ == '__main__':
     import rostest
     rostest.rosrun('hsrb_interface_py', 'simtest_collision', CollisionWorldTest)
-

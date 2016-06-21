@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
-"""
+"""Testing autonomous navigation interface in Gazebo simulator.
 
+A tf frame 'my_frame' is published as::
+
+    '2.0 0.0 0.5 3.14 -1.57 0.0 map my_frame 10'
+
+Its static_transform_publisher is launched in .test file.
 """
 import math
 import unittest
@@ -12,9 +17,10 @@ import testing
 
 class OmniBaseTest(testing.HsrbInterfaceTest):
     def test_simple_move(self):
-        """Getting started"""
+        """Short distance movement."""
         self.whole_body.move_to_go()
-        self.omni_base.go(0, 0, 0, self.BASE_MOVE_TIME_TOLERANCE, relative=False)
+        self.omni_base.go(0, 0, 0, self.BASE_MOVE_TIME_TOLERANCE,
+                          relative=False)
         self.omni_base.go(0.1, 0.0, 0.0, self.BASE_MOVE_TIME_TOLERANCE,
                           relative=True)
         self.expect_base_reach_goal(geometry.pose(0.1, 0.0, 0.0), 'map',
@@ -28,7 +34,7 @@ class OmniBaseTest(testing.HsrbInterfaceTest):
                                     timeout=self.BASE_MOVE_TIME_TOLERANCE)
 
     def test_get_current_position(self):
-        """Get current position"""
+        """It should get current position correctly."""
         self.whole_body.move_to_go()
         self.omni_base.go(0, 0, 0, self.BASE_MOVE_TIME_TOLERANCE)
 
@@ -42,7 +48,7 @@ class OmniBaseTest(testing.HsrbInterfaceTest):
         self.assertAlmostEqual(pose2d[2], yaw)
 
     def test_move_globally(self):
-        """Move to global position"""
+        """The robot should move to global position."""
         self.whole_body.move_to_go()
         self.omni_base.go(6.0, 4.0, 0.0, 300.0, relative=False)
         self.expect_base_reach_goal(geometry.pose(6.0, 4.0, 0.0), 'map',
@@ -55,7 +61,7 @@ class OmniBaseTest(testing.HsrbInterfaceTest):
                                     timeout=self.BASE_MOVE_TIME_TOLERANCE)
 
     def test_move_relatively(self):
-        """Move to relative position"""
+        """The robot should move to relative position."""
         self.whole_body.move_to_go()
 
         self.omni_base.go(0.0, 0.0, 0.0, 300.0, relative=False)
@@ -74,10 +80,7 @@ class OmniBaseTest(testing.HsrbInterfaceTest):
                                     timeout=self.BASE_MOVE_TIME_TOLERANCE)
 
     def test_move_using_tf(self):
-        """Relative move using tf
-
-        my_frame is published as '2.0 0.0 0.5 3.14 -1.57 0.0 map my_frame 10'
-        """
+        """Relative move using a tf frame 'my_frame'. """
         self.whole_body.move_to_go()
 
         goal = geometry.pose(ej=math.pi/2.0)

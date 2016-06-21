@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
-"""
-
-"""
+"""Test fetching a box with marker."""
 import math
 import rospy
 import unittest
@@ -13,12 +11,14 @@ import testing
 BOX_ID = 27
 
 class FetchTest(testing.HsrbInterfaceTest):
-    def test_detect_marker(self):
-        """Getting started"""
+    def test_fetch_box_with_marker(self):
+        """The robot should grasp a box with marker successfully."""
         self.whole_body.move_to_go()
+        desk_pose = geometry.pose(x=1.70, y=1.85, z=0.36)
         desk_id = self.collision_world.add_box(x=1.0, y=1.1, z=0.72,
-                                               pose=geometry.pose(x=1.70, y=1.85, z=0.36),
+                                               pose=desk_pose,
                                                timeout=3.0)
+        self.assertIsNotNone(desk_id)
         self.omni_base.go(0.5, 1.5, 0.0, relative=True)
         self.whole_body.move_to_go()
         self.expect_object(BOX_ID,
@@ -38,10 +38,13 @@ class FetchTest(testing.HsrbInterfaceTest):
         self.whole_body.move_end_effector_pose(hand_pose, 'base_footprint')
         self.collision_world.remove((box.id, 'x'))
         self.gripper.command(0.0)
-        self.whole_body.move_end_effector_by_line((1, 0, 0), 0.1, 'hand_palm_link')
-        self.whole_body.move_end_effector_by_line((0, 0, -1), 0.5, 'hand_palm_link')
+        self.whole_body.move_end_effector_by_line((1, 0, 0), 0.1,
+                                                  'hand_palm_link')
+        self.whole_body.move_end_effector_by_line((0, 0, -1), 0.5,
+                                                  'hand_palm_link')
         self.whole_body.move_to_neutral()
         self.expect_grasp(delta=math.radians(1))
+
 
 if __name__ == '__main__':
     import rostest

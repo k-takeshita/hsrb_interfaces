@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
-"""
+"""Testing LINEMOD interface in Gazebo simulator.
 
+Target objects are spawen within simtest_linemod.test launch file.
 """
 import math
 import rospy
@@ -12,7 +13,7 @@ import testing
 
 class LinemodTest(testing.HsrbInterfaceTest):
     def test_detect_bottle(self):
-        """Getting started"""
+        """The robot should detect a bottle object by LINEMOD"""
         self.whole_body.move_to_go()
         self.omni_base.go(0.5, 1.5, 0.0, relative=True)
         self.whole_body.move_to_go()
