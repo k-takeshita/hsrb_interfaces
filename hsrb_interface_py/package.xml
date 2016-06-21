@@ -14,6 +14,7 @@
   <run_depend>rospy</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>tf2</run_depend>
+  <run_depend>tf2_geometry_msgs</run_depend>
   <run_depend>actionlib</run_depend>
   <run_depend>cv_bridge</run_depend>
   <run_depend>control_msgs</run_depend>

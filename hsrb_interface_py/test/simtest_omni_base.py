@@ -6,6 +6,7 @@
 import math
 import unittest
 from tf import transformations
+import tf2_geometry_msgs
 from hsrb_interface import geometry
 import testing
 
