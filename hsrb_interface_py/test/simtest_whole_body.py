@@ -3,12 +3,14 @@
 """Testing motion planning interface in Gazebo simulator."""
 
 import math
-import hsrb_interface
-from hsrb_interface import geometry
 
+from hsrb_interface import geometry
 import testing
 
+
 class WholeBodyTest(testing.HsrbInterfaceTest):
+    """Test cases for whole_body object."""
+
     def test_move_to_named_positions(self):
         """Test fixed pattern pose changes."""
         self.whole_body.move_to_neutral()
@@ -54,7 +56,8 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
         self.whole_body.move_to_neutral()
         hand_pose = self.whole_body.get_end_effector_pose('map')
 
-        self.whole_body.move_end_effector_by_line((0, 0, 1), 0.1, 'hand_palm_link')
+        self.whole_body.move_end_effector_by_line((0, 0, 1), 0.1,
+                                                  'hand_palm_link')
 
         goal = ((hand_pose[0].x + 0.1, hand_pose[0].y, hand_pose[0].z),
                 hand_pose[1])
@@ -62,7 +65,7 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
         self.expect_hand_reach_goal(goal, frame='map', pos_delta=0.02,
                                     ori_delta=math.radians(2.0))
 
-    def test_move_end_effector_pose_with_tf(self):
+    def test_move_hand_pose_with_tf(self):
         """Moving end-effector with a tf frame 'my_frame'."""
         self.whole_body.move_to_neutral()
 

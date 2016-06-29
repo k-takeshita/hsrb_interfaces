@@ -1,19 +1,20 @@
-"""Testing utilities
-"""
-import sys
-import time
+"""Testing Utilities"""
 import copy
 import math
+import sys
+import time
 import unittest
 
-import hsrb_interface
-import hsrb_interface.robot
-from hsrb_interface import geometry
 from geometry_msgs.msg import PoseStamped
+import hsrb_interface
+from hsrb_interface import geometry
+import hsrb_interface.robot
 import rospy
 import tf2_ros
 
+
 def dict_almost_equal(a, b, delta):
+    """Compare 2 Dict[str, float] instances."""
     keys = a.keys()
     if sorted(keys) == sorted(b.keys()):
         return all(abs(a[key] - b[key]) < delta for key in keys)
@@ -22,15 +23,19 @@ def dict_almost_equal(a, b, delta):
 
 
 def vector3_distance(v1, v2):
-    return math.sqrt(sum((a - b)**2.0 for a, b in zip(v1, v2)))
+    """Compute distance of 2 vectors."""
+    return math.sqrt(sum((a - b) ** 2.0 for a, b in zip(v1, v2)))
 
 
 def quaternion_distance(q1, q2):
+    """Compute shortest angle distance in 2 quaternions."""
     product = sum(a * b for a, b in zip(q1, q2))
-    return abs(math.acos(2.0 * product**2.0 - 1.0))
+    return abs(math.acos(2.0 * product ** 2.0 - 1.0))
 
 
 class HsrbInterfaceTest(unittest.TestCase):
+    """Base class for simulation tests."""
+
     EXPECTED_NEUTRAL = {
         "arm_lift_joint": 0,
         "arm_flex_joint": 0,
@@ -40,7 +45,6 @@ class HsrbInterfaceTest(unittest.TestCase):
         "head_pan_joint": 0,
         "head_tilt_joint": 0,
     }
-
 
     EXPECTED_TO_GO = {
         "arm_lift_joint": 0,
@@ -73,6 +77,7 @@ class HsrbInterfaceTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Initialize class variables"""
         cls.robot = hsrb_interface.Robot()
         # Wait until simluation clock starts
         now = rospy.Time.now()
@@ -84,11 +89,11 @@ class HsrbInterfaceTest(unittest.TestCase):
             rospy.wait_for_message('/static_distance_map', rospy.AnyMsg)
             rospy.wait_for_message('/static_obstacle_map', rospy.AnyMsg)
             rospy.wait_for_message('/dynamic_obstacle_map', rospy.AnyMsg)
-        except:
+        except Exception:
             sys.exit("Failed to connect a simuluation robot. Aborted.")
         cls.whole_body = cls.robot.get('whole_body')
         cls.omni_base = cls.robot.get('omni_base')
-        cls.gripper  = cls.robot.get('gripper')
+        cls.gripper = cls.robot.get('gripper')
         cls.collision_world = cls.robot.get('global_collision_world')
         cls.marker = cls.robot.get('marker')
         cls.tf_buffer = tf2_ros.Buffer()
@@ -96,9 +101,18 @@ class HsrbInterfaceTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """Disconnect from a robot."""
         cls.robot.close()
 
     def expect_pose_equal(self, pose1, pose2, delta=None):
+        """Check elements of pose1 and pose2 are almost equal.
+
+        Args:
+            pose1 (Tuple[Vector3, Quaternion]): A pose to be compared.
+            pose2 (Tuple[Vector3, Quaternion]): The other pose.
+            delta (float): If a distance of 2 pose elements is within `delta`,
+                that elemment is thought as equal.
+        """
         pos1, rot1 = pose1
         pos2, rot2 = pose2
         self.assertAlmostEqual(pos1[0], pos2[0], delta=delta)
@@ -110,6 +124,13 @@ class HsrbInterfaceTest(unittest.TestCase):
         self.assertAlmostEqual(rot1[3], rot2[3], delta=delta)
 
     def expect_dict_contains_subset(self, a, b, delta=None):
+        """For common keys in `a` and `b`, check ||a[key] - b[key]|| < delta.
+
+        Args:
+            a (Dict[Any, float]): A dict tobe compared.
+            b (Dict[Any, float]): The other dict.
+            delta (float): Equality threshold.
+        """
         for key in a:
             if key not in b:
                 self.fail()
@@ -117,6 +138,11 @@ class HsrbInterfaceTest(unittest.TestCase):
                 self.assertAlmostEqual(a[key], b[key], delta=delta)
 
     def wait_joints_stable(self, delta):
+        """Wait until position changes of all joints converges within `delta`.
+
+        Args:
+            delta (float): Equality threshold.
+        """
         last_positions = self.whole_body.joint_positions
         while True:
             positions = self.whole_body.joint_positions
@@ -161,9 +187,19 @@ class HsrbInterfaceTest(unittest.TestCase):
                 rospy.sleep(tick)
 
     def expect_grasp(self, delta=None, timeout=30.0, tick=0.5):
+        """Check a robot suceeded to grasp with timeout
+
+        Args:
+            delta (Optional[float]): Error tolerance(0.0 if If None)
+            timeout (float): Seconds to be timed out
+            tick (flaot): Check interval in seconds
+        """
         m = self.whole_body.joint_positions['hand_motor_joint']
         r = self.whole_body.joint_positions['hand_r_spring_proximal_joint']
         l = self.whole_body.joint_positions['hand_l_spring_proximal_joint']
+
+        if delta is None:
+            delta = 0
 
         self.assertNotAlmostEqual(m, r, delta=delta)
         self.assertNotAlmostEqual(m, l, delta=delta)
@@ -171,7 +207,8 @@ class HsrbInterfaceTest(unittest.TestCase):
     def expect_hand_reach_goal(self, goal, frame='map',
                                pos_delta=None, ori_delta=None,
                                timeout=30.0, tick=0.5):
-        """
+        """Check a robot move its hand to a given goal with timeout
+
         Args:
             goal (): Expected goal pose
             frame (str): base frame of `goal`
@@ -209,12 +246,13 @@ class HsrbInterfaceTest(unittest.TestCase):
     def expect_base_reach_goal(self, goal, frame='map',
                                pos_delta=None, ori_delta=None,
                                timeout=30.0, tick=0.5):
-        """
+        """Check a robot moves its base to a given goal with timeout.
+
         Args:
             goal (): Expected goal pose
             frame (str): base frame of `goal`
-            pos_delta (float): Position tolerance [m]
-            ori_delta (float): Orientation tolerance
+            pos_delta (Optional[float]): Position tolerance [m]
+            ori_delta (Optional[float]): Orientation tolerance
                 (Measured in closest angle difference) [rad]
             timeout (float): Timeout in seconds
             tick (float): Sleep time between goal check in seconds
@@ -255,7 +293,8 @@ class HsrbInterfaceTest(unittest.TestCase):
     def expect_object(self, object_id, expected_pose, frame='map',
                       pos_delta=None, ori_delta=None,
                       timeout=30.0, tick=0.5):
-        """
+        """Check a robot is detecting an object with given ID.
+
         Args:
             object_id (id)
             expected_pose (): Expected goal pose
@@ -294,5 +333,3 @@ class HsrbInterfaceTest(unittest.TestCase):
                 msg = '\n'.join(buf)
                 self.fail(msg)
             rospy.sleep(tick)
-
-

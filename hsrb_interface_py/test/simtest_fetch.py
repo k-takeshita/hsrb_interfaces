@@ -2,15 +2,16 @@
 # vim: fileencoding=utf-8 :
 """Test fetching a box with marker."""
 import math
-import rospy
-import unittest
-from tf import transformations
+
 from hsrb_interface import geometry
 import testing
 
 BOX_ID = 27
 
+
 class FetchTest(testing.HsrbInterfaceTest):
+    """Test simple object manipulation operations."""
+
     def test_fetch_box_with_marker(self):
         """The robot should grasp a box with marker successfully."""
         self.whole_body.move_to_go()
@@ -22,7 +23,7 @@ class FetchTest(testing.HsrbInterfaceTest):
         self.omni_base.go(0.5, 1.5, 0.0, relative=True)
         self.whole_body.move_to_go()
         self.expect_object(BOX_ID,
-                           geometry.pose(0.85, 0.02, 0.7, ek=math.pi/2.0),
+                           geometry.pose(0.85, 0.02, 0.7, ek=math.pi / 2.0),
                            pos_delta=0.05, ori_delta=math.radians(5),
                            frame='base_footprint')
         box = self.marker.get_object_by_id(BOX_ID)
@@ -31,7 +32,7 @@ class FetchTest(testing.HsrbInterfaceTest):
         hand_pose = geometry.pose(box_pose[0].x - 0.15,
                                   box_pose[0].y - 0.02,
                                   box_pose[0].z + 0.10,
-                                  ej=-math.pi/2.0, ek=math.pi)
+                                  ej=-math.pi / 2.0, ek=math.pi)
         self.whole_body.move_to_neutral()
         self.gripper.command(1.0)
         self.whole_body.collision_world = self.collision_world

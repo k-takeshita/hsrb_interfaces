@@ -9,13 +9,17 @@ A tf frame 'my_frame' is published as::
 Its static_transform_publisher is launched in .test file.
 """
 import math
-import unittest
-from tf import transformations
-import tf2_geometry_msgs
+
 from hsrb_interface import geometry
 import testing
+from tf import transformations
+import tf2_geometry_msgs
+assert tf2_geometry_msgs  # silence flake8
+
 
 class OmniBaseTest(testing.HsrbInterfaceTest):
+    """Test cases omni_base interface."""
+
     def test_simple_move(self):
         """Short distance movement."""
         self.whole_body.move_to_go()
@@ -80,16 +84,16 @@ class OmniBaseTest(testing.HsrbInterfaceTest):
                                     timeout=self.BASE_MOVE_TIME_TOLERANCE)
 
     def test_move_using_tf(self):
-        """Relative move using a tf frame 'my_frame'. """
+        """Relative move using a tf frame 'my_frame'."""
         self.whole_body.move_to_go()
 
-        goal = geometry.pose(ej=math.pi/2.0)
+        goal = geometry.pose(ej=math.pi / 2.0)
         self.omni_base.move(goal, 100.0, ref_frame_id='my_frame')
         self.expect_base_reach_goal(goal, frame='my_frame',
                                     pos_delta=0.05, ori_delta=0.05,
                                     timeout=self.BASE_MOVE_TIME_TOLERANCE)
 
-        goal = geometry.pose(z=-0.5, ej=math.pi/2.0)
+        goal = geometry.pose(z=-0.5, ej=math.pi / 2.0)
         self.omni_base.move(goal, 100.0, ref_frame_id='my_frame')
         self.expect_base_reach_goal(goal, frame='my_frame',
                                     pos_delta=0.05, ori_delta=0.05,

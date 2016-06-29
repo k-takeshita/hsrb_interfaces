@@ -3,17 +3,24 @@
 """Test collision_world object."""
 
 import math
-import rospy
-from tmc_manipulation_msgs.msg import CollisionObject
+
 from hsrb_interface import geometry
+import rospy
 import testing
+from tmc_manipulation_msgs.msg import CollisionObject
 
 COLLISION_ENVIRONMENT_TIMEOUT = 30.0
 
+
 class CollisionWorldTest(testing.HsrbInterfaceTest):
+    """Test for CollisionWorld interface"""
+
     def setUp(self):
-        # XXX: Waiting collision_environment start subscription.
-        #      We need more reliable method to wait until the node start up.
+        """Called before calling each test method
+
+        XXX: Waiting collision_environment start subscription.
+             We need more reliable method to wait until the node start up.
+        """
         known_object_pub = rospy.Publisher('known_object', CollisionObject,
                                            queue_size=1)
         start = rospy.Time.now()
@@ -26,20 +33,21 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
 
     def test_create_collision_objects(self):
         """It should be able to create obejects in collision world."""
+        box_pose = geometry.pose(x=1.0, z=0.15)
         box_id = self.collision_world.add_box(x=0.3, y=0.3, z=0.3,
-                                              pose=geometry.pose(x=1.0, z=0.15),
+                                              pose=box_pose,
                                               timeout=3.0)
         self.assertIsNotNone(box_id)
 
-        pose = geometry.pose(x=1.0, y=1.0, z=0.5)
+        sphere_pose = geometry.pose(x=1.0, y=1.0, z=0.5)
         sphere_id = self.collision_world.add_sphere(radius=0.3,
-                                                    pose=pose,
+                                                    pose=sphere_pose,
                                                     timeout=3.0)
         self.assertIsNotNone(sphere_id)
 
-        pose = geometry.pose(x=1.0, y=-1.0, z=0.5),
+        cylinder_pose = geometry.pose(x=1.0, y=-1.0, z=0.5),
         cylinder_id = self.collision_world.add_cylinder(radius=0.1, length=1.0,
-                                                        pose=pose,
+                                                        pose=cylinder_pose,
                                                         timeout=3.0)
         self.assertIsNotNone(cylinder_id)
 
@@ -68,8 +76,9 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
 
     def test_remove_object(self):
         """It should remove only specified obeject from collision world."""
+        box_pose = geometry.pose(x=1.0, z=0.15)
         box_id = self.collision_world.add_box(x=0.3, y=0.3, z=0.3,
-                                              pose=geometry.pose(x=1.0, z=0.15),
+                                              pose=box_pose,
                                               timeout=3.0)
         self.assertIsNotNone(box_id)
 
@@ -99,7 +108,7 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
         self.whole_body.move_to_neutral()
         self.whole_body.collision_world = self.collision_world
 
-        goal = geometry.pose(0.7, 0.0, 0.25, ej=math.pi/2.0)
+        goal = geometry.pose(0.7, 0.0, 0.25, ej=math.pi / 2.0)
         self.whole_body.move_end_effector_pose(goal, 'map')
         self.expect_hand_reach_goal(goal, frame='map', pos_delta=0.05,
                                     ori_delta=math.radians(2.0))
@@ -108,4 +117,5 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
 
 if __name__ == '__main__':
     import rostest
-    rostest.rosrun('hsrb_interface_py', 'simtest_collision', CollisionWorldTest)
+    rostest.rosrun('hsrb_interface_py', 'simtest_collision',
+                   CollisionWorldTest)

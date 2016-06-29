@@ -1,5 +1,7 @@
-from nose.tools import ok_, eq_, raises
-from mock import patch, call
+"""Unittest for hsrb_interface.text_to_speech module"""
+from mock import patch
+from nose.tools import eq_
+from nose.tools import raises
 
 import hsrb_interface
 import hsrb_interface.exceptions
@@ -7,16 +9,18 @@ import hsrb_interface.text_to_speech
 
 from tmc_msgs.msg import Voice
 
+
 @patch.object(hsrb_interface.Robot, '_connecting')
 @patch('hsrb_interface.settings.get_entry')
 @patch('rospy.Publisher')
 def test_text_to_speech(mock_pub_class, mock_get_entry, mock_connecting):
+    """Test simple usage of TTS object."""
     mock_connecting.return_value = True
 
-    tts = hsrb_interface.text_to_speech.TextToSpeech('default')
+    tts = hsrb_interface.text_to_speech.TextToSpeech('default_tts')
 
-    mock_get_entry.return_value = { "topic": "foo" }
-    mock_get_entry.called_with_args("text_to_speech", "default")
+    mock_get_entry.return_value = {"topic": "foo"}
+    mock_get_entry.called_with_args("text_to_speech", "default_tts")
     mock_pub_class.called_with_args("foo", Voice, queue_size=0)
     mock_pub_instance = mock_pub_class.return_value
 
@@ -37,11 +41,13 @@ def test_text_to_speech(mock_pub_class, mock_get_entry, mock_connecting):
 @patch.object(hsrb_interface.Robot, '_connecting')
 @patch('hsrb_interface.settings.get_entry')
 @patch('rospy.Publisher')
-def test_invalid_language_error(mock_pub_class, mock_get_entry, mock_connecting):
+def test_invalid_language_error(mock_pub_class, mock_get_entry,
+                                mock_connecting):
+    """TTS object should refuse invalid language."""
     mock_connecting.return_value = True
 
-    tts = hsrb_interface.text_to_speech.TextToSpeech('default')
+    tts = hsrb_interface.text_to_speech.TextToSpeech('default_tts')
 
-    mock_get_entry.return_value = { "topic": "foo" }
+    mock_get_entry.return_value = {"topic": "foo"}
 
     tts.language = -1
