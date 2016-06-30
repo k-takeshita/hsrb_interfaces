@@ -22,10 +22,10 @@ class FetchTest(testing.HsrbInterfaceTest):
         self.assertIsNotNone(desk_id)
         self.omni_base.go(0.5, 1.5, 0.0, relative=True)
         self.whole_body.move_to_go()
-        self.expect_object(BOX_ID,
-                           geometry.pose(0.85, 0.02, 0.7, ek=math.pi / 2.0),
-                           pos_delta=0.05, ori_delta=math.radians(5),
-                           frame='base_footprint')
+        relative_box_pose = geometry.pose(0.85, 0.02, 0.7, ek=math.pi / 2.0)
+        self.expect_detected_object(BOX_ID, relative_box_pose,
+                                    pos_delta=0.05, ori_delta=math.radians(5),
+                                    frame='base_footprint')
         box = self.marker.get_object_by_id(BOX_ID)
 
         box_pose = box.get_pose(ref_frame_id='base_footprint')

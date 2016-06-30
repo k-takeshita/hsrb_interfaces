@@ -290,14 +290,14 @@ class HsrbInterfaceTest(unittest.TestCase):
                 ])
                 self.fail(msg)
 
-    def expect_object(self, object_id, expected_pose, frame='map',
-                      pos_delta=None, ori_delta=None,
-                      timeout=30.0, tick=0.5):
+    def expect_detected_object(self, object_id, expected_pose,
+                               frame='map', pos_delta=None, ori_delta=None,
+                               timeout=30.0, tick=0.5):
         """Check a robot is detecting an object with given ID.
 
         Args:
-            object_id (id)
-            expected_pose (): Expected goal pose
+            object_id (int): Expected known object ID
+            expected_pose (Tuple[Vector3, Quaternion]): Expected goal pose
             frame (str): base frame of `goal`
             pos_delta (float): Position tolerance [m]
             ori_delta (float): Orientation tolerance

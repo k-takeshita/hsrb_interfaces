@@ -19,9 +19,9 @@ class LinemodTest(testing.HsrbInterfaceTest):
         self.omni_base.go(0.5, 1.5, 0.0, relative=True)
         self.whole_body.move_to_go()
         expected_pose = geometry.pose(0.85, 0.02, 0.7, ek=math.pi / 2.0)
-        self.expect_object(44, expected_pose,
-                           pos_delta=0.2, ori_delta=float('inf'),
-                           frame='base_footprint')
+        self.expect_detected_object(44, expected_pose,
+                                    pos_delta=0.2, ori_delta=float('inf'),
+                                    frame='base_footprint')
 
 if __name__ == '__main__':
     import rostest
