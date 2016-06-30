@@ -31,7 +31,11 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
             else:
                 self.fail("Faild to connect to collision environemnt.")
 
-    def test_create_collision_objects(self):
+    def tearDown(self):
+        """Remove all objects"""
+        self.collision_world.remove_all()
+
+    def test_add_and_remove_objects(self):
         """It should be able to create obejects in collision world."""
         box_pose = geometry.pose(x=1.0, z=0.15)
         box_id = self.collision_world.add_box(x=0.3, y=0.3, z=0.3,
@@ -45,7 +49,7 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
                                                     timeout=3.0)
         self.assertIsNotNone(sphere_id)
 
-        cylinder_pose = geometry.pose(x=1.0, y=-1.0, z=0.5),
+        cylinder_pose = geometry.pose(x=1.0, y=-1.0, z=0.5)
         cylinder_id = self.collision_world.add_cylinder(radius=0.1, length=1.0,
                                                         pose=cylinder_pose,
                                                         timeout=3.0)
@@ -74,7 +78,7 @@ class CollisionWorldTest(testing.HsrbInterfaceTest):
         self.assertNotIn(cylinder_id[0], objects)
         self.assertNotIn(mesh_id[0], objects)
 
-    def test_remove_object(self):
+    def test_remove_single_object(self):
         """It should remove only specified obeject from collision world."""
         box_pose = geometry.pose(x=1.0, z=0.15)
         box_id = self.collision_world.add_box(x=0.3, y=0.3, z=0.3,
