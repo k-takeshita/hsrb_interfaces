@@ -3,6 +3,7 @@
     <include file="$(find hsrb_interface_py)/test/simtest_common.xml">
         <arg name="test_name" value="simtest_linemod" />
         <arg name="time_limit" value="600" />
+        <arg name="debug" value="false" />
     </include>
 
     <node name="spawn_bottle" pkg="gazebo_ros" type="spawn_model"
@@ -12,7 +13,7 @@
         <arg name="configuration_file" value="disposable_bottle_pet_tea.yaml" />
         <arg name="rgb_image_topic" value="/hsrb/head_rgbd_sensor/rgb/image_raw" />
         <arg name="camera_info_topic" value="/hsrb/head_rgbd_sensor/rgb/camera_info" />
-        <arg name="depth_image_topic" value="/hsrb/head_rgbd_sensor/depth/image_raw" />
+        <arg name="depth_image_topic" value="/hsrb/head_rgbd_sensor/depth_registered/image_raw" />
         <arg name="use_display" value="false" />
     </include>
 </launch>
