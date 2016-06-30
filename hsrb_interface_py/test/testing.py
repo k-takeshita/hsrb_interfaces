@@ -137,21 +137,6 @@ class HsrbInterfaceTest(unittest.TestCase):
             else:
                 self.assertAlmostEqual(a[key], b[key], delta=delta)
 
-    def wait_joints_stable(self, delta):
-        """Wait until position changes of all joints converges within `delta`.
-
-        Args:
-            delta (float): Equality threshold.
-        """
-        last_positions = self.whole_body.joint_positions
-        while True:
-            positions = self.whole_body.joint_positions
-            if dict_almost_equal(positions, last_positions, delta):
-                break
-            else:
-                last_positions = copy.deepcopy(positions)
-                time.sleep(0.1)
-
     def expect_joints_reach_goals(self, expected, delta=None,
                                   timeout=30.0, tick=0.5):
         """Success if all `expected` joints reach their goals within `timeout`.
@@ -186,13 +171,11 @@ class HsrbInterfaceTest(unittest.TestCase):
             else:
                 rospy.sleep(tick)
 
-    def expect_grasp(self, delta=None, timeout=30.0, tick=0.5):
-        """Check a robot suceeded to grasp with timeout
+    def expect_gripper_to_grasp(self, delta=None):
+        """Check a robot suceeded to grasp within `timeout`.
 
         Args:
             delta (Optional[float]): Error tolerance(0.0 if If None)
-            timeout (float): Seconds to be timed out
-            tick (flaot): Check interval in seconds
         """
         m = self.whole_body.joint_positions['hand_motor_joint']
         r = self.whole_body.joint_positions['hand_r_spring_proximal_joint']
@@ -207,7 +190,7 @@ class HsrbInterfaceTest(unittest.TestCase):
     def expect_hand_reach_goal(self, goal, frame='map',
                                pos_delta=None, ori_delta=None,
                                timeout=30.0, tick=0.5):
-        """Check a robot move its hand to a given goal with timeout
+        """Check a robot move its hand to a given goal withing `timeout`
 
         Args:
             goal (): Expected goal pose
@@ -246,7 +229,7 @@ class HsrbInterfaceTest(unittest.TestCase):
     def expect_base_reach_goal(self, goal, frame='map',
                                pos_delta=None, ori_delta=None,
                                timeout=30.0, tick=0.5):
-        """Check a robot moves its base to a given goal with timeout.
+        """Check a robot moves its base to a given goal withing `timeout`.
 
         Args:
             goal (): Expected goal pose

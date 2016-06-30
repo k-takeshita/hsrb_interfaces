@@ -44,7 +44,7 @@ class FetchTest(testing.HsrbInterfaceTest):
         self.whole_body.move_end_effector_by_line((0, 0, -1), 0.5,
                                                   'hand_palm_link')
         self.whole_body.move_to_neutral()
-        self.expect_grasp(delta=math.radians(1))
+        self.expect_gripper_to_grasp(delta=math.radians(1))
 
 
 if __name__ == '__main__':
