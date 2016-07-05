@@ -1,26 +1,23 @@
-from nose.tools import ok_, eq_
-from mock import patch, call, PropertyMock
+"""Unittest for sensor objects."""
+from mock import patch
+from nose.tools import eq_
 
-from sensor_msgs.msg import (
-    Image,
-    Imu,
-    LaserScan,
-)
 from geometry_msgs.msg import WrenchStamped
-from std_srvs.srv import (
-    Empty,
-    EmptyRequest,
-)
-import hsrb_interface
 import hsrb_interface.sensors
+from sensor_msgs.msg import Image
+from sensor_msgs.msg import Imu
+from sensor_msgs.msg import LaserScan
+from std_srvs.srv import Empty
+
 
 @patch('hsrb_interface.utils.CachingSubscriber')
 @patch('hsrb_interface.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_camera(mock_get_entry, mock_connecting, mock_sub_class):
+    """Test Camera class"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
-        'name':   'head_l_stereo_camera',
+        'name': 'head_l_stereo_camera',
         'prefix': "/stereo_camera/left",
     }
 
@@ -53,6 +50,7 @@ def test_camera(mock_get_entry, mock_connecting, mock_sub_class):
 @patch('hsrb_interface.settings.get_entry')
 def test_force_torque(mock_get_entry, mock_connecting,
                       mock_sub_class, mock_service):
+    """Test ForceTorque class"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
         'name': "example",
@@ -91,9 +89,10 @@ def test_force_torque(mock_get_entry, mock_connecting,
 @patch('hsrb_interface.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_imu(mock_get_entry, mock_connecting, mock_sub_class):
+    """Test Imu class"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
-        'name':   "example",
+        'name': "example",
         'topic': "foo",
     }
 
@@ -122,13 +121,15 @@ def test_imu(mock_get_entry, mock_connecting, mock_sub_class):
     eq_(angular_vel, (4, 5, 6))
     eq_(linear_acc, (7, 8, 9))
 
+
 @patch('hsrb_interface.utils.CachingSubscriber')
 @patch('hsrb_interface.robot.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_lidar(mock_get_entry, mock_connecting, mock_sub_class):
+    """Test Lidar class"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
-        'name':   "example",
+        'name': "example",
         'topic': "foo",
     }
 
@@ -144,6 +145,3 @@ def test_lidar(mock_get_entry, mock_connecting, mock_sub_class):
     scan = lidar.scan
 
     eq_(scan.to_ros(), msg)
-
-
-

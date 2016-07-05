@@ -14,6 +14,7 @@
   <run_depend>rospy</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>tf2</run_depend>
+  <run_depend>tf2_geometry_msgs</run_depend>
   <run_depend>actionlib</run_depend>
   <run_depend>cv_bridge</run_depend>
   <run_depend>control_msgs</run_depend>
@@ -32,6 +33,8 @@
   <run_depend>urdfdom_py</run_depend>
 
   <test_depend>python-mock</test_depend>
+  <test_depend>hsrb_gazebo_launch</test_depend>
+  <test_depend>rostest</test_depend>
 
   <export></export>
 </package>

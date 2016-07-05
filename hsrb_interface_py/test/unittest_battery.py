@@ -1,5 +1,6 @@
-from nose.tools import ok_, eq_, raises
-from mock import patch, call
+"""Unittest for hsrb_interface.battery module"""
+from mock import patch
+from nose.tools import eq_
 
 import hsrb_interface
 import hsrb_interface.battery
@@ -10,6 +11,7 @@ from tmc_msgs.msg import BatteryState
 @patch('hsrb_interface.settings.get_entry')
 @patch('hsrb_interface.utils.CachingSubscriber')
 def test_battery(mock_sub_class, mock_get_entry, mock_connection):
+    """Test Battery class"""
     mock_connection.return_value = True
     mock_sub_instance = mock_sub_class.return_value
     mock_get_entry.return_value = {
