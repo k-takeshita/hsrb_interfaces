@@ -67,6 +67,14 @@ xmlr.reflect(urdf.Link, params=[
     xmlr.AggregateElement('collision', urdf.Collision, 'collision')
 ])
 
+# Monkeypatching urdf_parser_py (3)
+# <actuator> may have <hardwareInterface>.
+# http://wiki.ros.org/urdf/XML/Transmission
+xmlr.reflect(urdf.Actuator, tag='actuator', params=[
+    xmlr.Attribute('name', str),
+    xmlr.Element('mechanicalReduction', float, required = False),
+    xmlr.AggregateElement('hardwareInterface', str)
+])
 
 def _get_aggregate_list(self, xml_var):
     var = self.XML_REFL.paramMap[xml_var].var
@@ -79,6 +87,8 @@ def _get_aggregate_list(self, xml_var):
 urdf.Link.get_aggregate_list = _get_aggregate_list
 urdf.Collision.get_aggregate_list = _get_aggregate_list
 urdf.Material.check_valid = lambda self: None
+urdf.Actuator.hardwareInterfaces = []
+urdf.Actuator.get_aggregate_list = _get_aggregate_list
 
 from urdf_parser_py.urdf import Robot as RobotUrdf
 
