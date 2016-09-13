@@ -43,7 +43,8 @@ _HSRB_SETTINGS = """
                 "/trajectory_filter/filter_trajectory_with_constraints",
             "timeopt_filter_service": "/hsrb/omni_base_timeopt_filter",
             "filter_timeout": 30.0,
-            "action_timeout": 30.0
+            "action_timeout": 30.0,
+            "watch_rate": 30.0
     },
     "joint_group": {
         "whole_body": {
@@ -151,7 +152,8 @@ _HSRB_SETTINGS = """
         "global_collision_world": {
             "class": ["collision_world", "CollisionWorld"],
             "service": "/get_collision_environment",
-            "topic": "/known_object"
+            "control_topic": "/known_object",
+            "listing_topic": "/known_object_ids"
         }
     }
 }

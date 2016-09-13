@@ -122,14 +122,26 @@ def merge(target, source):
 
 
 def adjust_time(trajectory1, trajectory2):
-    """Adjust time_from_start of trajectory points in trajectory2 to another.
+    """Adjust time_from_start of trajectory points in trajectory2 to trajectory1.
 
     Velocities and accelerations are re-computed from differences.
-
     Two given trajectories must have exactly same timestamp.
+    This function overwrite the `trajectory2` argument.
+
+    Args:
+        trajectory1 (trajectory_msgs.msg.JointTrajectory):
+            Trajectory points in this trajectory is treated as base.
+        trajectory2 (trajectory_msgs.msg.JointTrajectory):
+            Trajectory points in this trajectory is adjusted to base.
+    Returns:
+        None
     """
-    if len(trajectory1.points) != len(trajectory2.points):
-        raise ValueError
+    num_traj1_points = len(trajectory1.points)
+    num_traj2_points = len(trajectory2.points)
+    if num_traj1_points != num_traj2_points:
+        msg = "Uneven trajectory size ({0} != {1})".format(num_traj1_points,
+                                                           num_traj2_points)
+        raise exceptions.TrajectoryLengthError(msg)
     num_points = len(trajectory1.points)
     # Adjust ``time_from_start`` of trajectory points in trajectory2 to
     # trajectory1
@@ -159,8 +171,16 @@ def adjust_time(trajectory1, trajectory2):
     trajectory2.points[-1].accelerations = zero_vector2
 
 
-def constraints_filter(joint_trajectory):
-    """Apply joint constraint filter to an upper body trajectory."""
+def constraint_filter(joint_trajectory):
+    """Apply joint constraint filter to an upper body trajectory.
+
+    Args:
+        joint_trajectory (trajectory_msgs.msg.JointTrajectory):
+            A trajectory that will be applied this filter
+    Returns:
+        trajectory_msgs.msg.JointTrajectory:
+            Filtered trajectory
+    """
     service = settings.get_entry("trajectory", "constraints_filter_service")
     filter_service = rospy.ServiceProxy(
         service,
@@ -183,7 +203,15 @@ def constraints_filter(joint_trajectory):
 
 
 def timeopt_filter(base_trajectory):
-    """Apply timeopt filter to a omni-base trajectory."""
+    """Apply timeopt filter to a omni-base trajectory.
+
+    Args:
+        joint_trajectory (trajectory_msgs.msg.JointTrajectory):
+            A trajectory that will be applied this filter
+    Returns:
+        trajectory_msgs.msg.JointTrajectory:
+            Filtered trajectory
+    """
     service = settings.get_entry("trajectory", "timeopt_filter_service")
     filter_service = rospy.ServiceProxy(service, FilterJointTrajectory)
     req = FilterJointTrajectoryRequest()
@@ -199,6 +227,12 @@ def timeopt_filter(base_trajectory):
         raise
     filtered_traj = res.trajectory
     return filtered_traj
+
+
+class TrajectoryClient(object):
+    def __init__(self):
+        pass
+
 
 
 class FollowTrajectoryClient(object):
@@ -274,7 +308,7 @@ class FollowTrajectoryClient(object):
 
 
 class ImpedanceControlClient(FollowTrajectoryClient):
-    """class to invoke impedance control action.
+    """A class to invoke impedance control action.
 
     Args:
         controller_name (str):

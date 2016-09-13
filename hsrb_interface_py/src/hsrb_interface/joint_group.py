@@ -86,9 +86,6 @@ from . import settings
 from . import utils
 
 
-# Rate to check trajectory action hz]
-_TRAJECTORY_RATE = 30.0
-
 # Timeout for motion planning [sec]
 _PLANNING_ARM_TIMEOUT = 10.0
 
@@ -106,10 +103,6 @@ _TF_TIMEOUT = 1.0
 
 # Base frame of a mobile base in moition planning
 _BASE_TRAJECTORY_ORIGIN = "odom"
-
-
-# Duration to open hand [sec]
-_TIME_OPEN_HAND = 10.0
 
 
 def _refer_planning_error(error_code):
@@ -351,7 +344,6 @@ class JointGroup(robot.Item):
             **kwargs:
                 Use keyword arguments to specify joint_name/posiion pairs.
                 The keyword arguments overwrite `goals` argument.
-
 
         Returns:
             None
@@ -608,7 +600,7 @@ class JointGroup(robot.Item):
                 frame_to_base
             )
 
-            odom_base_traj.points[i].positions = [ odom_to_base_trans[0],
+            odom_base_traj.points[i].positions = [odom_to_base_trans[0],
                                                   odom_to_base_trans[1],
                                                   0]
             roll, pitch, yaw = tf.transformations.euler_from_quaternion(
@@ -638,12 +630,12 @@ class JointGroup(robot.Item):
         odom_base_trajectory = self._transform_base_trajectory(base_trajectory)
         merged_traj = trajectory.merge(joint_trajectory, odom_base_trajectory)
 
-        filtered_merged_traj = trajectory.constraints_filter(merged_traj)
+        filtered_merged_traj = trajectory.constraint_filter(merged_traj)
         if not self._use_base_timeopt:
             return filtered_merged_traj
 
         # Transform arm and base trajectories to time-series trajectories
-        filtered_joint_traj = trajectory.constraints_filter(joint_trajectory)
+        filtered_joint_traj = trajectory.constraint_filter(joint_trajectory)
         filtered_base_traj = trajectory.timeopt_filter(odom_base_trajectory)
         last_joint_point = filtered_joint_traj.points[-1]
         last_base_point = filtered_base_traj.points[-1]
@@ -689,7 +681,8 @@ class JointGroup(robot.Item):
                                       joint_states)
             client.send_goal(traj)
 
-        rate = rospy.Rate(_TRAJECTORY_RATE)
+        watch_rate = settings.get_entry('trajectory', 'watch_rate')
+        rate = rospy.Rate(watch_rate)
         try:
             while True:
                 ok_set = (
