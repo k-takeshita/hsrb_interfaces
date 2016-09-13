@@ -37,6 +37,14 @@ _HSRB_SETTINGS = """
             "frame_id": "hand_palm_link"
         }
     },
+    "trajectory": {
+            "impedance_control": "/hsrb/impedance_control",
+            "constraints_filter_service":
+                "/trajectory_filter/filter_trajectory_with_constraints",
+            "timeopt_filter_service": "/hsrb/omni_base_timeopt_filter",
+            "filter_timeout": 30.0,
+            "action_timeout": 30.0
+    },
     "joint_group": {
         "whole_body": {
             "class":                        ["joint_group", "JointGroup"],
@@ -45,10 +53,6 @@ _HSRB_SETTINGS = """
             "head_controller_prefix":       "/hsrb/head_trajectory_controller",
             "hand_controller_prefix":       "/hsrb/gripper_controller",
             "omni_base_controller_prefix":  "/hsrb/omni_base_controller",
-            "impedance_control":            "/hsrb/impedance_control",
-            "trajectory_filter_service":
-                "/trajectory_filter/filter_trajectory_with_constraints",
-            "omni_base_timeopt_service":    "/hsrb/omni_base_timeopt_filter",
             "plan_with_constraints_service":"/plan_with_constraints",
             "plan_with_hand_goals_service": "/plan_with_hand_goals",
             "plan_with_hand_line_service":  "/plan_with_hand_line",
