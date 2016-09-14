@@ -34,14 +34,7 @@ from testing import RosMockTestCase
 class CollisionWorldTest(RosMockTestCase):
     def test_creation(self):
         """Test simple use case of MobileBase class"""
-        self.get_frame_mock.return_value = 'map'
-        self.get_entry_mock.return_value = {
-            "class": ["collision_world", "CollisionWorld"],
-            "service": "/get_collision_environment",
-            "control_topic": "/known_object",
-            "listing_topic": "/known_object_ids",
-        }
-        collision_world = hsrb_interface.collision_world.CollisionWorld('test')
+        collision_world = self.create()
         self.publisher_mock.assert_called_with("/known_object",
                                                CollisionObject,
                                                queue_size=ANY)
@@ -50,6 +43,7 @@ class CollisionWorldTest(RosMockTestCase):
                                                 callback=ANY)
 
     def create(self):
+        """Create a CollisionWorld instance"""
         self.get_frame_mock.return_value = 'map'
         self.get_entry_mock.return_value = {
             "class": ["collision_world", "CollisionWorld"],

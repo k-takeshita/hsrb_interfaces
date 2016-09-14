@@ -105,24 +105,6 @@ _TF_TIMEOUT = 1.0
 _BASE_TRAJECTORY_ORIGIN = "odom"
 
 
-def _refer_planning_error(error_code):
-    """Translate a motion planning error code to a human readable text.
-
-    Args:
-        error_code (ArmManipulationErrorCodes): An error code
-
-    Returns:
-        str: A human readable error description
-    """
-    error_codes = ArmManipulationErrorCodes.__dict__.items()
-    error_names = [k for k, v in error_codes
-                   if v == error_code and k.isupper()]
-    if len(error_names) != 0:
-        return error_names[0]
-    else:
-        return str(error_code)
-
-
 class JointGroup(robot.Item):
     """Abstract interface to control a group of joints.
 
@@ -159,17 +141,16 @@ class JointGroup(robot.Item):
         super(JointGroup, self).__init__()
         self._setting = settings.get_entry('joint_group', name)
         arm_config = self._setting['arm_controller_prefix']
-        self._arm_client = trajectory.FollowTrajectoryClient(arm_config)
+        self._arm_client = trajectory.TrajectoryController(arm_config)
         head_config = self._setting['head_controller_prefix']
-        self._head_client = trajectory.FollowTrajectoryClient(head_config)
+        self._head_client = trajectory.TrajectoryController(head_config)
         hand_config = self._setting["hand_controller_prefix"]
-        self._hand_client = trajectory.FollowTrajectoryClient(hand_config)
+        self._hand_client = trajectory.TrajectoryController(hand_config)
         base_config = self._setting["omni_base_controller_prefix"]
-        self._base_client = trajectory.FollowTrajectoryClient(
-            base_config,
-            "/base_coordinates")
+        self._base_client = trajectory.TrajectoryController(base_config,
+                                                            "/base_coordinates")
         impedance_config = settings.get_entry("trajectory", "impedance_control")
-        self._impedance_client = trajectory.ImpedanceControlClient(
+        self._impedance_client = trajectory.ImpedanceController(
             impedance_config,
             "/joint_names")
         joint_state_topic = self._setting["joint_states_topic"]
@@ -327,9 +308,8 @@ class JointGroup(robot.Item):
         plan_service = rospy.ServiceProxy(service_name, PlanWithJointGoals)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            error = _refer_planning_error(res.error_code.val)
-            msg = "Fail to plan change_joint_state: {0}".format(error)
-            raise exceptions.PlannerError(msg)
+            msg = "Fail to plan change_joint_state"
+            raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
         constrained_traj = self._constrain_trajectories(res.solution,
                                                         res.base_solution)
@@ -493,9 +473,8 @@ class JointGroup(robot.Item):
                                           PlanWithHandGoals)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            error = _refer_planning_error(res.error_code.val)
-            msg = "Fail to plan move_endpoint: {0}".format(error)
-            raise exceptions.PlannerError(msg)
+            msg = "Fail to plan move_endpoint"
+            raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
         constrained_traj = self._constrain_trajectories(res.solution,
                                                         res.base_solution)
@@ -555,9 +534,8 @@ class JointGroup(robot.Item):
                                           PlanWithHandLine)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            error = _refer_planning_error(res.error_code.val)
-            msg = "Fail to plan move_hand_line: {0}".format(error)
-            raise exceptions.PlannerError(msg)
+            msg = "Fail to plan move_hand_line"
+            raise exceptions.PlannerError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
         constrained_traj = self._constrain_trajectories(res.solution,
                                                         res.base_solution)
@@ -679,17 +657,17 @@ class JointGroup(robot.Item):
         for client in clients:
             traj = trajectory.extract(joint_traj, client.joint_names,
                                       joint_states)
-            client.send_goal(traj)
+            client.submit(traj)
 
         watch_rate = settings.get_entry('trajectory', 'watch_rate')
         rate = rospy.Rate(watch_rate)
+        ok_set = {
+            actionlib.GoalStatus.PENDING,
+            actionlib.GoalStatus.ACTIVE,
+            actionlib.GoalStatus.SUCCEEDED,
+        }
         try:
             while True:
-                ok_set = (
-                    actionlib.GoalStatus.PENDING,
-                    actionlib.GoalStatus.ACTIVE,
-                    actionlib.GoalStatus.SUCCEEDED,
-                )
                 states = [c.get_state() for c in clients]
                 if any(map(lambda s: s not in ok_set, states)):
                     log = []
@@ -705,4 +683,4 @@ class JointGroup(robot.Item):
                 rate.sleep()
         except KeyboardInterrupt:
             for client in clients:
-                client.cancel_goal()
+                client.cancel()

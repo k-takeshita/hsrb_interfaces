@@ -16,6 +16,7 @@ import actionlib
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
 from control_msgs.msg import FollowJointTrajectoryResult
+from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
 from tmc_manipulation_msgs.srv import FilterJointTrajectory
 from tmc_manipulation_msgs.srv import FilterJointTrajectoryRequest
 from tmc_manipulation_msgs.srv import FilterJointTrajectoryWithConstraints
@@ -32,7 +33,7 @@ def extract(trajectory, joint_names, joint_state):
     """Extract trajectories of specified joints from a given trajectory.
 
     If a given trajectory doesn't have a trajectory for a specified joint name,
-    the trajctory of the joint is filled with currenta joint state.
+    the trajctory of the joint is filled with a current joint state.
 
     Args:
         trajectory (trajectory_msgs.msg.JointTrajectory):
@@ -46,6 +47,7 @@ def extract(trajectory, joint_names, joint_state):
     """
     num_points = len(trajectory.points)
     num_joints = len(joint_names)
+    num_source_joints = len(trajectory.joint_names)
     index_map = list(repeat(0, num_joints))
     for joint_index in range(num_joints):
         index_map[joint_index] = -1
@@ -62,9 +64,14 @@ def extract(trajectory, joint_names, joint_state):
         target.positions = list(repeat(0, num_joints))
         target.velocities = list(repeat(0, num_joints))
         target.accelerations = list(repeat(0, num_joints))
+        target.effort = list(repeat(0, num_joints))
         target.time_from_start = source.time_from_start
-        has_velocities = len(source.velocities)
-        has_accelerations = len(source.accelerations)
+        # Check the point has enough elements
+        # FIXME: If the given trajectory is well-formed, this check is not
+        #        necessary. Actually we meet malformed trajectory sometime.
+        has_velocities = (len(source.velocities) == num_source_joints)
+        has_accelerations = (len(source.accelerations) == num_source_joints)
+        has_effort = (len(source.effort) == num_source_joints)
         for joint_index in range(num_joints):
             if index_map[joint_index] != -1:
                 pos = source.positions[index_map[joint_index]]
@@ -75,12 +82,16 @@ def extract(trajectory, joint_names, joint_state):
                 if has_accelerations:
                     acc = source.accelerations[index_map[joint_index]]
                     target.accelerations[joint_index] = acc
+                if has_effort:
+                    eff = source.effort[index_map[joint_index]]
+                    target.effort[joint_index] = eff
             else:
                 i = joint_state.name.index(joint_names[joint_index])
                 angle = joint_state.position[i]
                 target.positions[joint_index] = angle
                 target.velocities[joint_index] = 0.0
                 target.accelerations[joint_index] = 0.0
+                target.effort[joint_index] = 0.0
     return trajectory_out
 
 
@@ -118,6 +129,8 @@ def merge(target, source):
         merged.points[i].velocities.extend(source.points[i].velocities)
         merged.points[i].accelerations = list(merged.points[i].accelerations)
         merged.points[i].accelerations.extend(source.points[i].accelerations)
+        merged.points[i].effort = list(merged.points[i].effort)
+        merged.points[i].effort.extend(source.points[i].effort)
     return merged
 
 
@@ -132,7 +145,7 @@ def adjust_time(trajectory1, trajectory2):
         trajectory1 (trajectory_msgs.msg.JointTrajectory):
             Trajectory points in this trajectory is treated as base.
         trajectory2 (trajectory_msgs.msg.JointTrajectory):
-            Trajectory points in this trajectory is adjusted to base.
+            Trajectory points in this trajectory is adjusted to trajectory1.
     Returns:
         None
     """
@@ -181,7 +194,7 @@ def constraint_filter(joint_trajectory):
         trajectory_msgs.msg.JointTrajectory:
             Filtered trajectory
     """
-    service = settings.get_entry("trajectory", "constraints_filter_service")
+    service = settings.get_entry("trajectory", "constraint_filter_service")
     filter_service = rospy.ServiceProxy(
         service,
         FilterJointTrajectoryWithConstraints
@@ -192,10 +205,9 @@ def constraint_filter(joint_trajectory):
     req.allowed_time = rospy.Duration(timeout)
     try:
         res = filter_service.call(req)
-        if res.error_code.val != res.error_code.SUCCESS:
-            reason = res.error_code.val
-            msg = "Failed to filter trajectory: {0}".format(reason)
-            raise exceptions.TrajectoryFilterError(msg)
+        if res.error_code.val != ArmNavigationErrorCodes.SUCCESS:
+            msg = "Failed to filter trajectory" + str(type(res.error_code))
+            raise exceptions.TrajectoryFilterError(msg, res.error_code)
     except rospy.ServiceException:
         traceback.print_exc()
         raise
@@ -218,10 +230,9 @@ def timeopt_filter(base_trajectory):
     req.trajectory = base_trajectory
     try:
         res = filter_service.call(req)
-        if res.error_code.val != res.error_code.SUCCESS:
-            reason = res.error_code.val
-            msg = "Failed to filter trajectory: {0}".fomrat(reason)
-            raise exceptions.TrajectoryFilterError(msg)
+        if res.error_code.val != ArmNavigationErrorCodes.SUCCESS:
+            msg = "Failed to filter trajectory" + str(type(res.error_code))
+            raise exceptions.TrajectoryFilterError(msg, res.error_code)
     except rospy.ServiceException:
         traceback.print_exc()
         raise
@@ -229,13 +240,7 @@ def timeopt_filter(base_trajectory):
     return filtered_traj
 
 
-class TrajectoryClient(object):
-    def __init__(self):
-        pass
-
-
-
-class FollowTrajectoryClient(object):
+class TrajectoryController(object):
     """Wrapper class for FollowJointTrajectoryAction
 
     Args:
@@ -259,19 +264,19 @@ class FollowTrajectoryClient(object):
         )
         timeout = settings.get_entry('trajectory', 'action_timeout')
         self._client.wait_for_server(rospy.Duration(timeout))
-        param_name = "{0}/{1}".format(
-            self._controller_name,
+        param_name = "{0}{1}".format(
+            action,
             joint_names_suffix
         )
         self._joint_names = rospy.get_param(param_name, None)
 
-    def send_goal(self, trajectory):
-        """Send a goal to a connecting controller."""
+    def submit(self, trajectory):
+        """Send a trajectory to a connecting controller."""
         goal = FollowJointTrajectoryGoal()
         goal.trajectory = trajectory
         self._client.send_goal(goal)
 
-    def cancel_goal(self):
+    def cancel(self):
         """Cancel a current goal."""
         self._client.cancel_goal()
 
@@ -279,11 +284,11 @@ class FollowTrajectoryClient(object):
         """Get a status of the action client"""
         return self._client.get_state()
 
-    def get_results(self, timeout=None):
+    def get_result(self, timeout=None):
         """Get a result of a current goal.
 
         Returns:
-            FollowJointTrajectoryResult
+            FollowJointTrajectoryResult: Execution result
         """
         if self._client.get_result() is None:
             return None
@@ -307,7 +312,7 @@ class FollowTrajectoryClient(object):
     controller_name = property(_get_controller_name)
 
 
-class ImpedanceControlClient(FollowTrajectoryClient):
+class ImpedanceController(TrajectoryController):
     """A class to invoke impedance control action.
 
     Args:
@@ -323,15 +328,15 @@ class ImpedanceControlClient(FollowTrajectoryClient):
 
     def __init__(self, controller_name, joint_names_suffix="/joint_names"):
         """See class docstring."""
-        super(ImpedanceControlClient, self).__init__(controller_name,
-                                                     joint_names_suffix)
+        super(ImpedanceController, self).__init__(controller_name,
+                                                  joint_names_suffix)
         self._config = None
         self._config_names = rospy.get_param(controller_name + "/config_names",
                                              [])
         self._controller_name = controller_name
 
-    def send_goal(self, trajectory):
-        """Send a goal to a connecting controller"""
+    def submit(self, trajectory):
+        """Send a trajectory to a connecting controller"""
         if self._config is not None:
             setter_service = rospy.ServiceProxy(
                 self._controller_name + "/select_config", SelectConfig)

@@ -49,10 +49,6 @@ class RosMockTestCase(unittest.TestCase):
         self.get_frame_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("rospy.Duration")
-        self.duration_mock = patcher.start()
-        self.addCleanup(patcher.stop)
-
         patcher = patch("rospy.Time")
         self.time_mock = patcher.start()
         self.addCleanup(patcher.stop)
@@ -79,6 +75,14 @@ class RosMockTestCase(unittest.TestCase):
 
         patcher = patch("rospy.wait_for_service")
         self.wait_for_service_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.get_param")
+        self.get_param_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("actionlib.SimpleActionClient")
+        self.action_client_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
 class HsrbInterfaceTest(unittest.TestCase):
