@@ -248,8 +248,9 @@ class TrajectoryControllerTest(TrajectoryTestCase):
         action_client_mock = self.action_client_mock.return_value
         controller = trajectory.TrajectoryController("test")
         traj = self.trajectory_fixture()
-        controller.submit(traj)
         controller.cancel()
+
+        # Check post-conditions
         action_client_mock.cancel.assert_called()
 
     def test_get_state_ok(self):
@@ -257,6 +258,8 @@ class TrajectoryControllerTest(TrajectoryTestCase):
         controller = trajectory.TrajectoryController("test")
         traj = self.trajectory_fixture()
         controller.get_state()
+
+        # Check post-conditions
         action_client_mock.get_state.assert_called()
 
     def test_get_result_ok(self):
@@ -268,6 +271,8 @@ class TrajectoryControllerTest(TrajectoryTestCase):
         controller = trajectory.TrajectoryController("test")
         traj = self.trajectory_fixture()
         result = controller.get_result()
+
+        # Check post-conditions
         action_client_mock.get_state.assert_called()
         action_client_mock.get_result.assert_called()
         eq_(expected_result, result)
@@ -277,6 +282,8 @@ class ImpedanceControllerTest(TrajectoryTestCase):
     def test_creation_ok(self):
         # Create an instance of target class
         controller = trajectory.ImpedanceController("test")
+
+        # Check post-conditions
         self.action_client_mock.assert_called_with(
             "test/follow_joint_trajectory",
             FollowJointTrajectoryAction)
