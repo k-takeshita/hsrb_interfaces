@@ -39,7 +39,7 @@ _HSRB_SETTINGS = """
     },
     "trajectory": {
             "impedance_control": "/hsrb/impedance_control",
-            "constraints_filter_service":
+            "constraint_filter_service":
                 "/trajectory_filter/filter_trajectory_with_constraints",
             "timeopt_filter_service": "/hsrb/omni_base_timeopt_filter",
             "filter_timeout": 30.0,

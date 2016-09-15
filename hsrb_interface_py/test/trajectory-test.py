@@ -229,9 +229,7 @@ class TrajectoryControllerTest(TrajectoryTestCase):
             "test/follow_joint_trajectory",
             FollowJointTrajectoryAction)
         self.get_entry_mock.assert_called_with('trajectory', 'action_timeout')
-        self.get_param_mock.assert_called_with(
-            "test/follow_joint_trajectory/joints",
-            None)
+        self.get_param_mock.assert_called_with("test/joints")
 
     def test_submit_ok(self):
         action_client_mock = self.action_client_mock.return_value
@@ -289,7 +287,7 @@ class ImpedanceControllerTest(TrajectoryTestCase):
             FollowJointTrajectoryAction)
         self.get_entry_mock.assert_called_with('trajectory', 'action_timeout')
         self.get_param_mock.assert_has_calls([
-            call("test/follow_joint_trajectory/joint_names", None),
+            call("test/joint_names"),
             call("test/config_names", [])
         ])
 

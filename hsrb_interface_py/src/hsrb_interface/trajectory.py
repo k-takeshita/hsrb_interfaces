@@ -265,10 +265,10 @@ class TrajectoryController(object):
         timeout = settings.get_entry('trajectory', 'action_timeout')
         self._client.wait_for_server(rospy.Duration(timeout))
         param_name = "{0}{1}".format(
-            action,
+            self._controller_name,
             joint_names_suffix
         )
-        self._joint_names = rospy.get_param(param_name, None)
+        self._joint_names = rospy.get_param(param_name)
 
     def submit(self, trajectory):
         """Send a trajectory to a connecting controller."""
