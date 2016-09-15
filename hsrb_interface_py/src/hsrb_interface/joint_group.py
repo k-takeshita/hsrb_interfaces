@@ -25,58 +25,6 @@ from tmc_planning_msgs.srv import PlanWithHandLineRequest
 from tmc_planning_msgs.srv import PlanWithJointGoals
 from tmc_planning_msgs.srv import PlanWithJointGoalsRequest
 
-from urdf_parser_py import urdf
-from urdf_parser_py.urdf import xmlr
-
-
-# Monkeypatching urdf_parser_py (1)
-# https://github.com/k-okada/urdfdom/commit/9c9e28e9f1de29228def48a4d49315b2f4fbf2d2
-# If urdf_parser_py is released with merging the commit above,
-# we can safely remove following code.
-xmlr.reflect(urdf.JointLimit, params=[
-    xmlr.Attribute('effort', float),
-    xmlr.Attribute('lower', float, False, 0),
-    xmlr.Attribute('upper', float, False, 0),
-    xmlr.Attribute('velocity', float)
-])
-
-
-# Monkeypatching urdf_parser_py (2)
-# URDF specification allow multiple <visual> and <collision> elements.
-# http://wiki.ros.org/urdf/XML/link
-xmlr.reflect(urdf.Link, params=[
-    xmlr.Attribute('name', str),
-    xmlr.Element('origin', urdf.Pose, False),
-    xmlr.Element('inertial', urdf.Inertial, False),
-    xmlr.AggregateElement('visual', urdf.Visual, 'visual'),
-    xmlr.AggregateElement('collision', urdf.Collision, 'collision')
-])
-
-# Monkeypatching urdf_parser_py (3)
-# <actuator> may have <hardwareInterface>.
-# http://wiki.ros.org/urdf/XML/Transmission
-xmlr.reflect(urdf.Actuator, tag='actuator', params=[
-    xmlr.Attribute('name', str),
-    xmlr.Element('mechanicalReduction', float, required = False),
-    xmlr.AggregateElement('hardwareInterface', str)
-])
-
-def _get_aggregate_list(self, xml_var):
-    var = self.XML_REFL.paramMap[xml_var].var
-    if not getattr(self, var):
-        self.aggregate_init()
-        setattr(self, var, [])
-    return getattr(self, var)
-
-
-urdf.Link.get_aggregate_list = _get_aggregate_list
-urdf.Collision.get_aggregate_list = _get_aggregate_list
-urdf.Material.check_valid = lambda self: None
-urdf.Actuator.hardwareInterfaces = []
-urdf.Actuator.get_aggregate_list = _get_aggregate_list
-
-from urdf_parser_py.urdf import Robot as RobotUrdf
-
 from . import collision_world
 from . import exceptions
 from . import trajectory
@@ -84,6 +32,7 @@ from . import geometry
 from . import robot
 from . import settings
 from . import utils
+from . import robot_model
 
 
 # Timeout for motion planning [sec]
@@ -149,10 +98,8 @@ class JointGroup(robot.Item):
         base_config = self._setting["omni_base_controller_prefix"]
         self._base_client = trajectory.TrajectoryController(base_config,
                                                             "/base_coordinates")
-        impedance_config = settings.get_entry("trajectory", "impedance_control")
-        self._impedance_client = trajectory.ImpedanceController(
-            impedance_config,
-            "/joint_names")
+        imp_config = settings.get_entry("trajectory", "impedance_control")
+        self._impedance_client = trajectory.ImpedanceController(imp_config)
         joint_state_topic = self._setting["joint_states_topic"]
         self._joint_state_sub = utils.CachingSubscriber(joint_state_topic,
                                                         JointState,
@@ -161,7 +108,7 @@ class JointGroup(robot.Item):
         self._joint_state_sub.wait_for_message(timeout)
         self._tf2_buffer = robot._get_tf2_buffer()
 
-        self._robot_urdf = RobotUrdf.from_parameter_server()
+        self._robot_urdf = robot_model.RobotModel.from_parameter_server()
 
         self._collision_world = None
         self._linear_weight = 3.0
@@ -535,7 +482,7 @@ class JointGroup(robot.Item):
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             msg = "Fail to plan move_hand_line"
-            raise exceptions.PlannerError(msg, res.error_code)
+            raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
         constrained_traj = self._constrain_trajectories(res.solution,
                                                         res.base_solution)
@@ -659,28 +606,4 @@ class JointGroup(robot.Item):
                                       joint_states)
             client.submit(traj)
 
-        watch_rate = settings.get_entry('trajectory', 'watch_rate')
-        rate = rospy.Rate(watch_rate)
-        ok_set = {
-            actionlib.GoalStatus.PENDING,
-            actionlib.GoalStatus.ACTIVE,
-            actionlib.GoalStatus.SUCCEEDED,
-        }
-        try:
-            while True:
-                states = [c.get_state() for c in clients]
-                if any(map(lambda s: s not in ok_set, states)):
-                    log = []
-                    for c in clients:
-                        log.append("{0}={1}".format(c.controller_name,
-                                                    c.get_state()))
-                        c.cancel_goal()
-                    reason = ', '.join(log)
-                    text = "Playing trajecotry failed: {0}".format(reason)
-                    raise exceptions.FollowTrajectoryError(text)
-                if all([s == actionlib.GoalStatus.SUCCEEDED for s in states]):
-                    break
-                rate.sleep()
-        except KeyboardInterrupt:
-            for client in clients:
-                client.cancel()
+        trajectory.wait_controllers(clients)

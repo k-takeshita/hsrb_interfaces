@@ -379,3 +379,30 @@ class ImpedanceController(TrajectoryController):
         return self._config_names
 
     config_names = property(_get_config_names)
+
+def wait_controllers(controllers):
+    watch_rate = settings.get_entry('trajectory', 'watch_rate')
+    rate = rospy.Rate(watch_rate)
+    ok_set = {
+        actionlib.GoalStatus.PENDING,
+        actionlib.GoalStatus.ACTIVE,
+        actionlib.GoalStatus.SUCCEEDED,
+    }
+    try:
+        while True:
+            states = [c.get_state() for c in controllers]
+            if any(map(lambda s: s not in ok_set, states)):
+                log = []
+                for c in controllers:
+                    log.append("{0}={1}".format(c.controller_name,
+                                                c.get_state()))
+                    c.cancel_goal()
+                reason = ', '.join(log)
+                text = "Playing trajecotry failed: {0}".format(reason)
+                raise exceptions.FollowTrajectoryError(text)
+            if all([s == actionlib.GoalStatus.SUCCEEDED for s in states]):
+                break
+            rate.sleep()
+    except KeyboardInterrupt:
+        for c in controllers:
+            c.cancel()
