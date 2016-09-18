@@ -106,7 +106,6 @@ def _movement_axis_and_distance(pose1, pose2):
         z /= length
         return geometry.Vector3(x, y, z), length
 
-
 def _invert_pose(pose):
     """"""
     m = T.compose_matrix(translate=pose[0],
