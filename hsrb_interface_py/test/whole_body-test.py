@@ -14,6 +14,8 @@ from nose.tools import ok_
 from nose.tools import eq_
 from nose.tools import raises
 
+import os
+
 import rospkg
 import rospy
 import tf.transformations as T
