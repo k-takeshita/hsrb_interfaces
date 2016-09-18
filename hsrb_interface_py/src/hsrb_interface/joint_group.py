@@ -13,10 +13,13 @@ import warnings
 import actionlib
 import numpy as np
 import rospy
-import tf
 import tf.transformations as T
+import tf2_ros
 
+from geometry_msgs.msg import TransformStamped
 from sensor_msgs.msg import JointState
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
 
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
 from tmc_manipulation_msgs.msg import BaseMovementType
@@ -43,6 +46,7 @@ from . import settings
 from . import utils
 from . import robot_model
 
+_DEBUG = False
 
 # Timeout for motion planning [sec]
 _PLANNING_ARM_TIMEOUT = 10.0
@@ -70,7 +74,6 @@ def _normalize_np(vec):
     else:
         vec /= length
         return vec
-
 
 def _pose_from_x_axis(axis):
     """"""
@@ -103,13 +106,13 @@ def _movement_axis_and_distance(pose1, pose2):
         z /= length
         return geometry.Vector3(x, y, z), length
 
-def _inverse_pose(pose):
+def _invert_pose(pose):
     """"""
     m = T.compose_matrix(translate=pose[0],
                          angles=T.euler_from_quaternion(pose[1]))
     (_, _, euler, trans, _) = T.decompose_matrix(T.inverse_matrix(m))
     q = T.quaternion_from_euler(euler[0], euler[1], euler[2])
-    return (trans, q)
+    return geometry.Pose(trans, q)
 
 
 class JointGroup(robot.Item):
@@ -174,6 +177,11 @@ class JointGroup(robot.Item):
         self._angular_weight = 1.0
         self._planning_timeout = _PLANNING_ARM_TIMEOUT
         self._use_base_timeopt = True
+
+        if _DEBUG:
+            self._vis_pub = rospy.Publisher("tsr_marker", MarkerArray,
+                                            queue_size=1)
+            self._tf2_pub = tf2_ros.TransformBroadcaster()
 
     def _get_joint_state(self):
         """Get a current joint state.
@@ -549,7 +557,7 @@ class JointGroup(robot.Item):
             else:
                 end_effector_frame = ref_frame_id
 
-        odom_to_robot_pose = self._lookup_odom_to_base(settings.get_frame('base'))
+        odom_to_robot_pose = self._lookup_odom_to_ref(settings.get_frame('base'))
 
         req = PlanWithHandLineRequest()
         req.base_movement_type.val = BaseMovementType.PLANAR
@@ -618,35 +626,125 @@ class JointGroup(robot.Item):
 
         move_axis, distance = _movement_axis_and_distance(origin_to_pose1,
                                                           origin_to_pose2)
-        pose1_to_axis = _pose_from_x_axis(move_axis)
+        origin_to_axis = _pose_from_x_axis(move_axis)
+        pose1_to_axis = geometry.multiply_tuples(_invert_pose(origin_to_pose1),
+                                                 origin_to_axis)
+        pose1_to_axis = geometry.Pose((0, 0, 0), pose1_to_axis[1])
         origin_to_tsr = geometry.multiply_tuples(origin_to_pose1, pose1_to_axis)
-        tsr_to_pose1 = _inverse_pose(pose1_to_axis)
+        tsr_to_pose1 = _invert_pose(pose1_to_axis)
 
-        # Line constraint
-        #tsr_c = TaskSpaceRegion()
-        #tsr_c.end_frame_id  = bytes(self.end_effector_frame)
-        #tsr_c.origin_to_tsr = geometry.tuples_to_pose(origin_to_tsr)
-        #tsr_c.tsr_to_end = geometry.tuples_to_pose(tsr_to_pose1)
-        #tsr_c.min_bounds = [-1, -1, -1, -math.pi, -math.pi, -math.pi]
-        #tsr_c.max_bounds = [1, 1, 1, math.pi, math.pi, math.pi]
+        if _DEBUG:
+            print("AXIS     ", move_axis)
+            print("DISTANCE ", distance)
+            print("ORIGIN   ", origin_to_pose1)
+            print("CALCUD   ", geometry.multiply_tuples(origin_to_tsr, tsr_to_pose1))
+
+            margin = 0.1
+            marker_pose = geometry.multiply_tuples(origin_to_tsr,
+                                                geometry.pose(x=distance/2.0))
+            marker = Marker()
+            marker.header.frame_id = 'odom'
+            marker.header.stamp = rospy.Time.now()
+            marker.ns = 'tsr'
+            marker.id = 0
+            marker.type = Marker.CUBE
+            marker.action = Marker.ADD
+            marker.pose.position.x = marker_pose[0][0]
+            marker.pose.position.y = marker_pose[0][1]
+            marker.pose.position.z = marker_pose[0][2]
+            marker.pose.orientation.x = marker_pose[1][0]
+            marker.pose.orientation.y = marker_pose[1][1]
+            marker.pose.orientation.z = marker_pose[1][2]
+            marker.pose.orientation.w = marker_pose[1][3]
+            marker.scale.x = distance
+            marker.scale.y = margin
+            marker.scale.z = margin
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 0.0
+            marker.color.a = 0.5
+
+            marker.lifetime = rospy.Duration(60.0)
+            msg = MarkerArray(markers=[marker])
+            self._vis_pub.publish(msg)
+
+            t = TransformStamped()
+            t.header.stamp = rospy.Time.now()
+            t.header.frame_id = "odom"
+            t.child_frame_id = "pose1"
+            t.transform.translation.x = origin_to_pose1[0][0]
+            t.transform.translation.y = origin_to_pose1[0][1]
+            t.transform.translation.z = origin_to_pose1[0][2]
+            t.transform.rotation.x = origin_to_pose1[1][0]
+            t.transform.rotation.y = origin_to_pose1[1][1]
+            t.transform.rotation.z = origin_to_pose1[1][2]
+            t.transform.rotation.w = origin_to_pose1[1][3]
+            self._tf2_pub.sendTransform(t)
+
+            t = TransformStamped()
+            t.header.stamp = rospy.Time.now()
+            t.header.frame_id = "pose1"
+            t.child_frame_id = "direction"
+            t.transform.translation.x = pose1_to_axis[0][0]
+            t.transform.translation.y = pose1_to_axis[0][1]
+            t.transform.translation.z = pose1_to_axis[0][2]
+            t.transform.rotation.x = pose1_to_axis[1][0]
+            t.transform.rotation.y = pose1_to_axis[1][1]
+            t.transform.rotation.z = pose1_to_axis[1][2]
+            t.transform.rotation.w = pose1_to_axis[1][3]
+            self._tf2_pub.sendTransform(t)
+
+            t = TransformStamped()
+            t.header.stamp = rospy.Time.now()
+            t.header.frame_id = "odom"
+            t.child_frame_id = "pose2"
+            t.transform.translation.x = origin_to_pose2[0][0]
+            t.transform.translation.y = origin_to_pose2[0][1]
+            t.transform.translation.z = origin_to_pose2[0][2]
+            t.transform.rotation.x = origin_to_pose2[1][0]
+            t.transform.rotation.y = origin_to_pose2[1][1]
+            t.transform.rotation.z = origin_to_pose2[1][2]
+            t.transform.rotation.w = origin_to_pose2[1][3]
+            self._tf2_pub.sendTransform(t)
+
+            t = TransformStamped()
+            t.header.stamp = rospy.Time.now()
+            t.header.frame_id = "odom"
+            t.child_frame_id = "tsr"
+            t.transform.translation.x = origin_to_tsr[0][0]
+            t.transform.translation.y = origin_to_tsr[0][1]
+            t.transform.translation.z = origin_to_tsr[0][2]
+            t.transform.rotation.x = origin_to_tsr[1][0]
+            t.transform.rotation.y = origin_to_tsr[1][1]
+            t.transform.rotation.z = origin_to_tsr[1][2]
+            t.transform.rotation.w = origin_to_tsr[1][3]
+            self._tf2_pub.sendTransform(t)
 
         # Goal constraint
         tsr_g = TaskSpaceRegion()
-        tsr_g.end_frame_id=bytes(self.end_effector_frame)
+        tsr_g.end_frame_id = bytes(self.end_effector_frame)
         tsr_g.origin_to_tsr = geometry.tuples_to_pose(origin_to_pose2)
         tsr_g.tsr_to_end = geometry.tuples_to_pose(geometry.pose())
         tsr_g.min_bounds = [0, 0, 0, 0, 0, 0]
         tsr_g.max_bounds = [0, 0, 0, 0, 0, 0]
 
+        # Line constraint
+        tsr_c = TaskSpaceRegion()
+        tsr_c.end_frame_id  = bytes(self.end_effector_frame)
+        tsr_c.origin_to_tsr = geometry.tuples_to_pose(origin_to_tsr)
+        tsr_c.tsr_to_end = geometry.tuples_to_pose(tsr_to_pose1)
+        tsr_c.min_bounds = [0, 0, 0, -math.pi, -math.pi, -math.pi]
+        tsr_c.max_bounds = [distance, 0, 0, math.pi, math.pi, math.pi]
+
         req.goal_tsrs = [tsr_g]
-        #req.constraint_tsrs = [tsr_c]
+        req.constraint_tsrs = [tsr_c]
 
         service_name = self._setting['plan_with_constraints_service']
         plan_service = rospy.ServiceProxy(service_name,
                                           PlanWithTsrConstraints)
         res = plan_service.call(req)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-            msg = "Fail to plan: "
+            msg = "Fail to plan"
             raise exceptions.MotionPlanningError(msg, res.error_code)
         return res
 
@@ -722,7 +820,7 @@ class JointGroup(robot.Item):
             odom_base_traj.points[i].positions = [odom_to_base_trans[0],
                                                   odom_to_base_trans[1],
                                                   0]
-            roll, pitch, yaw = tf.transformations.euler_from_quaternion(
+            roll, pitch, yaw = T.euler_from_quaternion(
                 odom_to_base_rot)
             dtheta = geometry.shortest_angular_distance(previous_theta, yaw)
             theta = previous_theta + dtheta

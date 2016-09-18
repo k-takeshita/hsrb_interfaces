@@ -10,11 +10,13 @@ from mock import MagicMock
 from mock import PropertyMock
 from mock import ANY
 from nose.tools import assert_raises
+from nose.tools import assert_almost_equals
 from nose.tools import ok_
 from nose.tools import eq_
 from nose.tools import raises
 
 import os
+import math
 
 import rospkg
 import rospy
@@ -34,6 +36,7 @@ import hsrb_interface
 import hsrb_interface.exceptions
 from hsrb_interface.joint_group import JointGroup
 from hsrb_interface import geometry
+from hsrb_interface import joint_group
 from hsrb_interface import robot_model
 from hsrb_interface import settings
 
@@ -384,3 +387,50 @@ class WholeBodyTest(testing.RosMockTestCase):
         service = self.joint_group_setting["plan_with_hand_line_service"]
         self.service_proxy_mock.assert_called_with(service, PlanWithHandLine)
         plan_service_proxy_mock.call.assert_called_with(ANY)
+
+    def test_inverse_pose(self):
+        pose = geometry.pose(1, 2, 3)
+        inv = joint_group._invert_pose(pose)
+        result = geometry.multiply_tuples(inv, pose)
+        assert_almost_equals(result[0][0], 0)
+        assert_almost_equals(result[0][1], 0)
+        assert_almost_equals(result[0][2], 0)
+        assert_almost_equals(result[1][0], 0)
+        assert_almost_equals(result[1][1], 0)
+        assert_almost_equals(result[1][2], 0)
+        assert_almost_equals(result[1][3], 1)
+
+        pose = geometry.pose(ej=math.pi/4.0)
+        inv = joint_group._invert_pose(pose)
+        result = geometry.multiply_tuples(inv, pose)
+        assert_almost_equals(result[0][0], 0)
+        assert_almost_equals(result[0][1], 0)
+        assert_almost_equals(result[0][2], 0)
+        assert_almost_equals(result[1][0], 0)
+        assert_almost_equals(result[1][1], 0)
+        assert_almost_equals(result[1][2], 0)
+        assert_almost_equals(result[1][3], 1)
+
+        pose = geometry.pose(1, 3, 5,
+                             ei=math.pi/3.0, ej=math.pi/4.0, ek=-math.pi/8)
+        inv = joint_group._invert_pose(pose)
+        result = geometry.multiply_tuples(inv, pose)
+        assert_almost_equals(result[0][0], 0)
+        assert_almost_equals(result[0][1], 0)
+        assert_almost_equals(result[0][2], 0)
+        assert_almost_equals(result[1][0], 0)
+        assert_almost_equals(result[1][1], 0)
+        assert_almost_equals(result[1][2], 0)
+        assert_almost_equals(result[1][3], 1)
+
+    def test_movement_axis_and_distance(self):
+        pose1 = geometry.pose(0, 0, 0)
+        pose2 = geometry.pose(2, 0, 0)
+        axis, distance = joint_group._movement_axis_and_distance(pose1, pose2)
+        assert_almost_equals(axis[0], 1)
+        assert_almost_equals(axis[1], 0)
+        assert_almost_equals(axis[2], 0)
+        assert_almost_equals(distance, 2)
+
+
+

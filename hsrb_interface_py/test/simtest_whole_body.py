@@ -81,6 +81,16 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
                                         ori_delta=math.radians(2.0),
                                         frame='my_frame')
 
+    def test_move_cartesian_path(self):
+        """Moving end-effector with following specified waypoints"""
+        self.whole_body.move_to_neutral()
+        waypoints = [
+            geometry.pose(0.0, 0.0, 0.7, ej=-math.pi/2.0, ek=-math.pi),
+            geometry.pose(0.5, 0.5, 0.7),
+            geometry.pose(1.0, 1.0, 0.7, ej=-math.pi/2.0, ek=math.pi),
+            geometry.pose(0.5, 0.5, 0.7, ei=math.pi)]
+        self.whole_body.move_cartesian_path(waypoints, ref_frame_id='odom')
+
 if __name__ == '__main__':
     import rostest
     rostest.rosrun('hsrb_interface_py', 'simtest_whole_body', WholeBodyTest)
