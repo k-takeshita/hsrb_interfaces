@@ -15,8 +15,8 @@ import collections
 import math
 import warnings
 
-from geometry_msgs.msg import Pose
-from geometry_msgs.msg import Transform
+from geometry_msgs.msg import Pose as RosPose
+from geometry_msgs.msg import Transform as RosTransform
 import numpy as np
 import tf
 
@@ -24,7 +24,7 @@ from . import exceptions
 
 Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
-
+Pose = collections.namedtuple('Pose', 'pos ori')
 
 def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
     """Create a new pose-tuple representation.
@@ -39,7 +39,7 @@ def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
     """
     vec3 = (x, y, z)
     quaternion = tf.transformations.quaternion_from_euler(ei, ej, ek, axes)
-    return (Vector3(*vec3), Quaternion(*quaternion))
+    return Pose(Vector3(*vec3), Quaternion(*quaternion))
 
 
 def create_pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
@@ -151,7 +151,7 @@ def tuples_to_pose(tuples):
         geometry_msgs.msg.Pose: A result of conversion.
     """
     trans, rot = tuples
-    pose = Pose()
+    pose = RosPose()
     pose.position.x = trans[0]
     pose.position.y = trans[1]
     pose.position.z = trans[2]
@@ -178,7 +178,7 @@ def pose_to_tuples(pose):
     qy = pose.orientation.y
     qz = pose.orientation.z
     qw = pose.orientation.w
-    return (Vector3(x, y, z), Quaternion(qx, qy, qz, qw))
+    return Pose(Vector3(x, y, z), Quaternion(qx, qy, qz, qw))
 
 
 def tuples_to_transform(tuples):
@@ -191,7 +191,7 @@ def tuples_to_transform(tuples):
         geometry_msgs.msg.Transform: A result of conversion.
     """
     trans, rot = tuples
-    transform = Transform()
+    transform = RosTransform()
     transform.translation.x = trans[0]
     transform.translation.y = trans[1]
     transform.translation.z = trans[2]
@@ -218,7 +218,7 @@ def transform_to_tuples(transform):
     qy = transform.rotation.y
     qz = transform.rotation.z
     qw = transform.rotation.w
-    return (Vector3(x, y, z), Quaternion(qx, qy, qz, qw))
+    return Pose(Vector3(x, y, z), Quaternion(qx, qy, qz, qw))
 
 
 def multiply_tuples(t1, t2):
@@ -245,4 +245,4 @@ def multiply_tuples(t1, t2):
     trans3 = tf.transformations.translation_from_matrix(mat3)
     rot3 = tf.transformations.quaternion_from_matrix(mat3)
 
-    return (Vector3(*trans3), Quaternion(*rot3))
+    return Pose(Vector3(*trans3), Quaternion(*rot3))

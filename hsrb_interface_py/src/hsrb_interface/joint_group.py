@@ -6,11 +6,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import sys
+import math
 import warnings
 
 import actionlib
+import numpy as np
 import rospy
 import tf
+import tf.transformations as T
 
 from sensor_msgs.msg import JointState
 
@@ -20,12 +24,15 @@ from tmc_planning_msgs.msg import JointPosition
 from trajectory_msgs.msg import JointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 
+from tmc_planning_msgs.msg import TaskSpaceRegion
 from tmc_planning_msgs.srv import PlanWithHandGoals
 from tmc_planning_msgs.srv import PlanWithHandGoalsRequest
 from tmc_planning_msgs.srv import PlanWithHandLine
 from tmc_planning_msgs.srv import PlanWithHandLineRequest
 from tmc_planning_msgs.srv import PlanWithJointGoals
 from tmc_planning_msgs.srv import PlanWithJointGoalsRequest
+from tmc_planning_msgs.srv import PlanWithTsrConstraints
+from tmc_planning_msgs.srv import PlanWithTsrConstraintsRequest
 
 from . import collision_world
 from . import exceptions
@@ -54,6 +61,55 @@ _TF_TIMEOUT = 1.0
 
 # Base frame of a mobile base in moition planning
 _BASE_TRAJECTORY_ORIGIN = "odom"
+
+
+def _normalize_np(vec):
+    length = np.linalg.norm(vec)
+    if length < sys.float_info.epsilon:
+        return vec
+    else:
+        vec /= length
+        return vec
+
+
+def _pose_from_x_axis(axis):
+    """"""
+    axis = np.array(axis, dtype='float64', copy=True)
+    axis = _normalize_np(axis)
+    unit_x = np.array([1, 0, 0])
+    outerp = np.cross(unit_x, axis)
+    theta = math.acos(np.dot(unit_x, axis))
+    if np.linalg.norm(outerp) < sys.float_info.epsilon:
+        outerp = np.array([0, 1, 0])
+    outerp = _normalize_np(outerp)
+    q = T.quaternion_about_axis(theta, outerp)
+    return geometry.Pose(geometry.Vector3(0, 0, 0), geometry.Quaternion(*q))
+
+def _movement_axis_and_distance(pose1, pose2):
+    """
+    """
+    p1 = pose1[0]
+    p2 = pose2[0]
+    """Normalize Vector3"""
+    x = p2[0] - p1[0]
+    y = p2[1] - p1[1]
+    z = p2[2] - p1[2]
+    length = math.sqrt(x * x + y * y + z * z)
+    if length < sys.float_info.epsilon:
+        return geometry.Vector3(0.0, 0.0, 0.0), 0.0
+    else:
+        x /= length
+        y /= length
+        z /= length
+        return geometry.Vector3(x, y, z), length
+
+def _inverse_pose(pose):
+    """"""
+    m = T.compose_matrix(translate=pose[0],
+                         angles=T.euler_from_quaternion(pose[1]))
+    (_, _, euler, trans, _) = T.decompose_matrix(T.inverse_matrix(m))
+    q = T.quaternion_from_euler(euler[0], euler[1], euler[2])
+    return (trans, q)
 
 
 class JointGroup(robot.Item):
@@ -380,6 +436,23 @@ class JointGroup(robot.Item):
         result = geometry.transform_to_tuples(transform.transform)
         return result
 
+    def _lookup_odom_to_ref(self, ref_frame_id):
+        """
+
+        Returns:
+            geometry_msgs.Pose
+        """
+        odom_to_ref_transform = self._tf2_buffer.lookup_transform(
+            settings.get_frame('odom'),
+            ref_frame_id,
+            rospy.Time(0),
+            rospy.Duration(_TF_TIMEOUT)
+        ).transform
+        odom_to_ref_tuples = geometry.transform_to_tuples(
+            odom_to_ref_transform
+        )
+        return geometry.tuples_to_pose(odom_to_ref_tuples)
+
     def move_end_effector_pose(self, pose, ref_frame_id=None):
         """Move an end effector to a given pose.
 
@@ -392,27 +465,18 @@ class JointGroup(robot.Item):
             None
         """
         use_joints = (
-            'wrist_flex_joint',
-            'wrist_roll_joint',
-            'arm_roll_joint',
-            'arm_flex_joint',
-            'arm_lift_joint'
+            b'wrist_flex_joint',
+            b'wrist_roll_joint',
+            b'arm_roll_joint',
+            b'arm_flex_joint',
+            b'arm_lift_joint'
         )
 
         # Default is the robot frame (the base frame)
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('base')
 
-        odom_to_robot_transform = self._tf2_buffer.lookup_transform(
-            settings.get_frame('odom'),
-            settings.get_frame('base'),
-            rospy.Time(0),
-            rospy.Duration(_TF_TIMEOUT)
-        ).transform
-        odom_to_robot_tuples = geometry.transform_to_tuples(
-            odom_to_robot_transform
-        )
-        odom_to_robot_pose = geometry.tuples_to_pose(odom_to_robot_tuples)
+        odom_to_robot_pose = self._lookup_odom_to_ref(settings.get_frame('base'))
 
         odom_to_ref_transform = self._tf2_buffer.lookup_transform(
             settings.get_frame('odom'),
@@ -429,6 +493,8 @@ class JointGroup(robot.Item):
         req.origin_to_basejoint = odom_to_robot_pose
         req.initial_joint_state = self._get_joint_state()
         req.use_joints = use_joints
+        req.weighted_joints = [b'_linear_base', b'_rotational_base']
+        req.weight = [self._linear_weight, self._angular_weight]
         req.origin_to_hand_goals.append(odom_to_hand_pose)
         req.ref_frame_id = self._end_effector_frame
         req.probability_goal_generate = _PLANNING_GOAL_GENERATION
@@ -436,8 +502,6 @@ class JointGroup(robot.Item):
         req.max_iteration = _PLANNING_MAX_ITERATION
         req.uniform_bound_sampling = False
         req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
-        req.weighted_joints = ['_linear_base', '_rotational_base']
-        req.weight = [self._linear_weight, self._angular_weight]
         if self._collision_world is not None:
             snapshot = self._collision_world.snapshot('odom')
             req.environment_before_planning = snapshot
@@ -467,11 +531,11 @@ class JointGroup(robot.Item):
             None
         """
         use_joints = (
-            'wrist_flex_joint',
-            'wrist_roll_joint',
-            'arm_roll_joint',
-            'arm_flex_joint',
-            'arm_lift_joint'
+            b'wrist_flex_joint',
+            b'wrist_roll_joint',
+            b'arm_roll_joint',
+            b'arm_flex_joint',
+            b'arm_lift_joint'
         )
         if ref_frame_id is None:
             end_effector_frame = self._end_effector_frame
@@ -485,19 +549,15 @@ class JointGroup(robot.Item):
             else:
                 end_effector_frame = ref_frame_id
 
-        odom_to_robot_transform = self._tf2_buffer.lookup_transform(
-            settings.get_frame('odom'),
-            settings.get_frame('base'),
-            rospy.Time(0),
-            rospy.Duration(_TF_TIMEOUT))
-        odom_to_robot_pose = geometry.tuples_to_pose(
-            geometry.transform_to_tuples(odom_to_robot_transform.transform))
+        odom_to_robot_pose = self._lookup_odom_to_base(settings.get_frame('base'))
 
         req = PlanWithHandLineRequest()
         req.base_movement_type.val = BaseMovementType.PLANAR
         req.origin_to_basejoint = odom_to_robot_pose
         req.initial_joint_state = self._get_joint_state()
         req.use_joints = use_joints
+        req.weighted_joints = [b'_linear_base', b'_rotational_base']
+        req.weight = [self._linear_weight, self._angular_weight]
         req.axis.x = axis[0]
         req.axis.y = axis[1]
         req.axis.z = axis[2]
@@ -526,6 +586,101 @@ class JointGroup(robot.Item):
         constrained_traj = self._constrain_trajectories(res.solution,
                                                         res.base_solution)
         self._execute_trajectory(constrained_traj)
+
+    def _plan_cartesian_path(self, origin_to_pose1, origin_to_pose2,
+                             odom_to_robot_pose,
+                             initial_joint_state, collision_env):
+        use_joints = (
+            b'wrist_flex_joint',
+            b'wrist_roll_joint',
+            b'arm_roll_joint',
+            b'arm_flex_joint',
+            b'arm_lift_joint'
+        )
+
+        req = PlanWithTsrConstraintsRequest()
+        req.origin_to_basejoint = odom_to_robot_pose
+        req.initial_joint_state = initial_joint_state
+        req.base_movement_type.val = BaseMovementType.PLANAR
+        req.use_joints = use_joints
+        req.weighted_joints = [b'_linear_base', b'_rotational_base']
+        req.weight = [self._linear_weight, self._angular_weight]
+        req.probability_goal_generate = _PLANNING_GOAL_GENERATION
+        req.attached_objects = []
+        if collision_env is not None:
+            req.environment_before_planning = collision_env
+        req.timeout = rospy.Duration(self._planning_timeout)
+        req.max_iteration = _PLANNING_MAX_ITERATION
+        req.uniform_bound_sampling = False
+        req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
+        req.extra_constraints = []
+        req.extra_goal_constraints = []
+
+        move_axis, distance = _movement_axis_and_distance(origin_to_pose1,
+                                                          origin_to_pose2)
+        pose1_to_axis = _pose_from_x_axis(move_axis)
+        origin_to_tsr = geometry.multiply_tuples(origin_to_pose1, pose1_to_axis)
+        tsr_to_pose1 = _inverse_pose(pose1_to_axis)
+
+        # Line constraint
+        #tsr_c = TaskSpaceRegion()
+        #tsr_c.end_frame_id  = bytes(self.end_effector_frame)
+        #tsr_c.origin_to_tsr = geometry.tuples_to_pose(origin_to_tsr)
+        #tsr_c.tsr_to_end = geometry.tuples_to_pose(tsr_to_pose1)
+        #tsr_c.min_bounds = [-1, -1, -1, -math.pi, -math.pi, -math.pi]
+        #tsr_c.max_bounds = [1, 1, 1, math.pi, math.pi, math.pi]
+
+        # Goal constraint
+        tsr_g = TaskSpaceRegion()
+        tsr_g.end_frame_id=bytes(self.end_effector_frame)
+        tsr_g.origin_to_tsr = geometry.tuples_to_pose(origin_to_pose2)
+        tsr_g.tsr_to_end = geometry.tuples_to_pose(geometry.pose())
+        tsr_g.min_bounds = [0, 0, 0, 0, 0, 0]
+        tsr_g.max_bounds = [0, 0, 0, 0, 0, 0]
+
+        req.goal_tsrs = [tsr_g]
+        #req.constraint_tsrs = [tsr_c]
+
+        service_name = self._setting['plan_with_constraints_service']
+        plan_service = rospy.ServiceProxy(service_name,
+                                          PlanWithTsrConstraints)
+        res = plan_service.call(req)
+        if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
+            msg = "Fail to plan: "
+            raise exceptions.MotionPlanningError(msg, res.error_code)
+        return res
+
+    def move_cartesian_path(self, waypoints, ref_frame_id=None):
+        """Move the end-effector along a path that follows specified waypoints.
+
+        Args:
+            waypoints (List[Pose]): End effector poses
+            ref_frame_id (str): The base frame of waypoints
+        """
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('base')
+        origin_to_ref_ros_pose = self._lookup_odom_to_ref(ref_frame_id)
+        origin_to_ref = geometry.pose_to_tuples(origin_to_ref_ros_pose)
+        if self._collision_world is not None:
+            snapshot = self._collision_world.snapshot('odom')
+        else:
+            snapshot = None
+
+        for i in range(len(waypoints)):
+            base_frame = settings.get_frame('base')
+            odom_to_robot_pose = self._lookup_odom_to_ref(base_frame)
+            initial_joint_state = self._get_joint_state()
+            origin_to_pose1 = self.get_end_effector_pose('odom')
+            origin_to_pose2 = geometry.multiply_tuples(origin_to_ref,
+                                                       waypoints[i])
+            plan = self._plan_cartesian_path(origin_to_pose1, origin_to_pose2,
+                                             odom_to_robot_pose,
+                                             initial_joint_state,
+                                             snapshot)
+            plan.base_solution.header.frame_id = settings.get_frame('odom')
+            constrained_traj = self._constrain_trajectories(plan.solution,
+                                                            plan.base_solution)
+            self._execute_trajectory(constrained_traj)
 
     def _transform_base_trajectory(self, base_traj):
         """Transform a base trajectory to an ``odom`` frame based trajectory.
