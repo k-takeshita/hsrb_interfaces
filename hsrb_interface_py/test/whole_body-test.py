@@ -12,6 +12,7 @@ from mock import ANY
 from nose.tools import assert_raises
 from nose.tools import ok_
 from nose.tools import eq_
+from nose.tools import raises
 
 import rospkg
 import rospy
@@ -81,6 +82,24 @@ class WholeBodyTest(testing.RosMockTestCase):
         self.constrain_trajectories_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
+        def get_frame_side_effect(key):
+            mapping = {
+                "map": {
+                    "frame_id": "map"
+                },
+                "odom": {
+                    "frame_id": "odom"
+                },
+                "base": {
+                    "frame_id": "base_footprint"
+                },
+                "hand": {
+                    "frame_id": "hand_palm_link"
+                }
+            }
+            return mapping[key]["frame_id"]
+        self.get_frame_mock.side_effect = get_frame_side_effect
+
         self.joint_group_setting = {
             "class": ["joint_group", "JointGroup"],
             "joint_states_topic": "/hsrb/joint_states",
@@ -92,7 +111,11 @@ class WholeBodyTest(testing.RosMockTestCase):
             "plan_with_hand_goals_service": "/plan_with_hand_goals",
             "plan_with_hand_line_service": "/plan_with_hand_line",
             "plan_with_joint_goals_service": "/plan_with_joint_goals",
-            "timeout": 1.0
+            "timeout": 1.0,
+            "end_effector_frames": [
+                "hand_palm_link",
+                "hand_l_finger_vacuum_frame"
+            ]
         }
         self.trajectory_setting = {
             "impedance_control": "/hsrb/impedance_control",
@@ -212,6 +235,28 @@ class WholeBodyTest(testing.RosMockTestCase):
         ])
         self.imp_controller_mock.assert_called_with(self.trajectory_setting)
 
+    def test_end_effector_frame_ok(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+
+        whole_body = JointGroup('whole_body')
+        eq_('hand_palm_link', whole_body.end_effector_frame)
+        frames = ('hand_palm_link', 'hand_l_finger_vacuum_frame')
+        eq_(frames, whole_body.end_effector_frames)
+        whole_body.end_effector_frame = 'hand_l_finger_vacuum_frame'
+        eq_('hand_l_finger_vacuum_frame', whole_body.end_effector_frame)
+
+    @raises(ValueError)
+    def test_end_effector_frame_ng(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.end_effector_frame = 'hoge'
+
     def test_joint_state(self):
         self.get_entry_mock.side_effect = [
             self.joint_group_setting,
@@ -244,12 +289,16 @@ class WholeBodyTest(testing.RosMockTestCase):
         eq_(whole_body.joint_limits, expected)
 
     def test_get_end_effector_pose(self):
+        # Setup pre-conditions
         self.get_entry_mock.side_effect = [
             self.joint_group_setting,
             self.trajectory_setting,
         ]
+
         whole_body = JointGroup('whole_body')
         pose = whole_body.get_end_effector_pose()
+
+        # Check post-conditions
         self.tf2_buffer_mock.lookup_transform.assert_called_with(
             settings.get_frame('base'),
             settings.get_frame('hand'),
@@ -258,6 +307,7 @@ class WholeBodyTest(testing.RosMockTestCase):
         )
 
     def test_move_to_joint_positions_ok(self):
+        # Setup pre-conditions
         self.get_entry_mock.side_effect = [
             self.joint_group_setting,
             self.trajectory_setting,
@@ -276,15 +326,18 @@ class WholeBodyTest(testing.RosMockTestCase):
         whole_body = JointGroup('whole_body')
         whole_body.move_to_joint_positions(arm_lift_joint=0.5)
 
+        # Check post-conditions
         service = self.joint_group_setting["plan_with_joint_goals_service"]
         self.service_proxy_mock.assert_called_with(service, PlanWithJointGoals)
         plan_service_proxy_mock.call.assert_called_with(ANY)
 
     def test_move_end_effector_pose_ok(self):
+        # Setup pre-conditions
         self.get_entry_mock.side_effect = [
             self.joint_group_setting,
             self.trajectory_setting,
         ]
+
         odom_to_robot_transform, odom_to_hand_transform = self.initial_tf_fixtures()
         self.tf2_buffer_mock.lookup_transform.side_effect = [
             odom_to_robot_transform,
@@ -299,11 +352,13 @@ class WholeBodyTest(testing.RosMockTestCase):
         whole_body = JointGroup('whole_body')
         whole_body.move_end_effector_pose(geometry.pose(1, 0, 1))
 
+        # Check post-conditions
         service = self.joint_group_setting["plan_with_hand_goals_service"]
         self.service_proxy_mock.assert_called_with(service, PlanWithHandGoals)
         plan_service_proxy_mock.call.assert_called_with(ANY)
 
     def test_move_end_effector_by_line_ok(self):
+        # Setup pre-conditions
         self.get_entry_mock.side_effect = [
             self.joint_group_setting,
             self.trajectory_setting,
@@ -317,6 +372,7 @@ class WholeBodyTest(testing.RosMockTestCase):
         whole_body = JointGroup('whole_body')
         whole_body.move_end_effector_by_line(axis=(0, 0, 1), distance=1.0)
 
+        # Check post-conditions
         self.tf2_buffer_mock.lookup_transform.assert_called_with(
             settings.get_frame('odom'),
             settings.get_frame('base'),

@@ -58,7 +58,11 @@ _HSRB_SETTINGS = """
             "plan_with_hand_goals_service": "/plan_with_hand_goals",
             "plan_with_hand_line_service":  "/plan_with_hand_line",
             "plan_with_joint_goals_service":"/plan_with_joint_goals",
-            "timeout":                       1.0
+            "timeout":                       1.0,
+            "end_effector_frames": [
+                "hand_palm_link",
+                "hand_l_finger_vacuum_frame"
+            ]
         }
     },
     "end_effector": {

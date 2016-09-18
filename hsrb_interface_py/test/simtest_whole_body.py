@@ -71,7 +71,7 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
 
         goals = [
             geometry.pose(),
-            geometry.pose(x=0.2),
+            geometry.pose(x=0.3),
             geometry.pose(x=0.2, ej=-1.57)
         ]
 

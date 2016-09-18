@@ -6,6 +6,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import warnings
+
 import actionlib
 import rospy
 import tf
@@ -107,7 +109,8 @@ class JointGroup(robot.Item):
         timeout = self._setting.get('timeout', None)
         self._joint_state_sub.wait_for_message(timeout)
         self._tf2_buffer = robot._get_tf2_buffer()
-
+        self._end_effector_frames = self._setting['end_effector_frames']
+        self._end_effector_frame = self._end_effector_frames[0]
         self._robot_urdf = robot_model.RobotModel.from_parameter_server()
 
         self._collision_world = None
@@ -205,6 +208,29 @@ class JointGroup(robot.Item):
     @use_base_timeopt.setter
     def use_base_timeopt(self, value):
         self._use_base_timeopt = value
+
+    @property
+    def end_effector_frame(self):
+        """Get or set the target end effector frame of motion planning.
+
+        This attribute affects behaviors of following methods:
+        * get_end_effector_pose
+        * move_end_effector_pose
+        * move_end_effector_by_line
+        """
+        return self._end_effector_frame
+
+    @end_effector_frame.setter
+    def end_effector_frame(self, value):
+        if value in set(self._end_effector_frames):
+            self._end_effector_frame = value
+        else:
+            msg = "`ref_frame_id` must be one of end-effector frames({0})"
+            raise ValueError(msg.format(self._end_effector_frames))
+
+    @property
+    def end_effector_frames(self):
+        return tuple(self._end_effector_frames)
 
     def _change_joint_state(self, goal_state):
         """Move joints to specified joint state while checking self collision.
@@ -347,7 +373,7 @@ class JointGroup(robot.Item):
             ref_frame_id = settings.get_frame('base')
         transform = self._tf2_buffer.lookup_transform(
             ref_frame_id,
-            settings.get_frame('hand'),
+            self._end_effector_frame,
             rospy.Time(0),
             rospy.Duration(_TF_TIMEOUT)
         )
@@ -359,6 +385,7 @@ class JointGroup(robot.Item):
 
         Args
             pose (Tuple[Vector3, Quaternion]):
+                A target pose of the end effector frame.
             ref_frame_id (str): A base frame of an end effector.
                 The default is the robot frame(```base_footprint``).
         Returns:
@@ -403,7 +430,7 @@ class JointGroup(robot.Item):
         req.initial_joint_state = self._get_joint_state()
         req.use_joints = use_joints
         req.origin_to_hand_goals.append(odom_to_hand_pose)
-        req.ref_frame_id = settings.get_frame('hand')
+        req.ref_frame_id = self._end_effector_frame
         req.probability_goal_generate = _PLANNING_GOAL_GENERATION
         req.timeout = rospy.Duration(self._planning_timeout)
         req.max_iteration = _PLANNING_MAX_ITERATION
@@ -433,7 +460,9 @@ class JointGroup(robot.Item):
         Args:
             axis (Vector3): A axis to move along with
             distance (float): Distance to move [m]
-            ref_frame_id (str): a base frame
+            ref_frame_id (str):
+                [DEPRECATED] The frame name of the target end effector.
+                ``axis`` is defined on this frame.
         Returns:
             None
         """
@@ -445,7 +474,17 @@ class JointGroup(robot.Item):
             'arm_lift_joint'
         )
         if ref_frame_id is None:
-            ref_frame_id = settings.get_frame('hand')
+            end_effector_frame = self._end_effector_frame
+        else:
+            msg = ' '.join(["`ref_frame_id` argument is deprecated."
+                            "Use `end_effector_frame` attribute instead."])
+            warnings.warn(msg, exceptions.DeprecationWarning)
+            if ref_frame_id not in self._end_effector_frames:
+                msg = "ref_frame_id must be one of end-effector frames({0})"
+                raise ValueError(msg.format(self._end_effector_frames))
+            else:
+                end_effector_frame = ref_frame_id
+
         odom_to_robot_transform = self._tf2_buffer.lookup_transform(
             settings.get_frame('odom'),
             settings.get_frame('base'),
@@ -463,7 +502,7 @@ class JointGroup(robot.Item):
         req.axis.y = axis[1]
         req.axis.z = axis[2]
         req.local_origin_of_axis = True
-        req.ref_frame_id = ref_frame_id
+        req.ref_frame_id = end_effector_frame
         req.goal_value = distance
         req.probability_goal_generate = _PLANNING_GOAL_GENERATION
         req.attached_objects = []

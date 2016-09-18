@@ -3,7 +3,6 @@
     <include file="$(find hsrb_interface_py)/test/simtest_common.xml">
         <arg name="test_name" value="simtest_linemod" />
         <arg name="time_limit" value="600" />
-        <arg name="debug" value="false" />
     </include>
 
     <node name="spawn_bottle" pkg="gazebo_ros" type="spawn_model"
