@@ -31,9 +31,9 @@ from hsrb_interface import geometry
 from hsrb_interface import robot_model
 from hsrb_interface import settings
 
-from testing import RosMockTestCase
+import testing
 
-class WholeBodyTest(RosMockTestCase):
+class WholeBodyTest(testing.RosMockTestCase):
     def setUp(self):
         super(WholeBodyTest, self).setUp()
 

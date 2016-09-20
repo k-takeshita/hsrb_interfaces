@@ -26,10 +26,10 @@ from tmc_manipulation_msgs.srv import SelectConfigRequest
 
 from hsrb_interface import trajectory
 
-from testing import RosMockTestCase
+import testing
 
 
-class TrajectoryTestCase(RosMockTestCase):
+class TrajectoryTestCase(testing.RosMockTestCase):
     def trajectory_fixture(self):
         """Create a example joint trajectory"""
         traj = JointTrajectory()

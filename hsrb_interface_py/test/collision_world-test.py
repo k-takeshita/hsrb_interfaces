@@ -28,10 +28,10 @@ import hsrb_interface.exceptions
 import hsrb_interface.collision_world
 from hsrb_interface import geometry
 
-from testing import RosMockTestCase
+import testing
 
 
-class CollisionWorldTest(RosMockTestCase):
+class CollisionWorldTest(testing.RosMockTestCase):
     def test_creation(self):
         """Test simple use case of MobileBase class"""
         collision_world = self.create()
