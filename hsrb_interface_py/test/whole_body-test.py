@@ -1,4 +1,9 @@
 """Unittest for hsrb_interface.joint_group module"""
+from __future__ import absolute_import
+
+import sys
+import os
+
 from mock import patch
 from mock import call
 from mock import MagicMock
@@ -7,8 +12,6 @@ from mock import ANY
 from nose.tools import assert_raises
 from nose.tools import ok_
 from nose.tools import eq_
-
-import os
 
 import rospkg
 import rospy
@@ -31,6 +34,7 @@ from hsrb_interface import geometry
 from hsrb_interface import robot_model
 from hsrb_interface import settings
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import testing
 
 class WholeBodyTest(testing.RosMockTestCase):

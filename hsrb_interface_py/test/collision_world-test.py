@@ -1,4 +1,9 @@
 """Unittest for collision_world module"""
+from __future__ import absolute_import
+
+import sys
+import os
+
 import unittest
 from mock import patch
 from mock import call
@@ -28,6 +33,7 @@ import hsrb_interface.exceptions
 import hsrb_interface.collision_world
 from hsrb_interface import geometry
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import testing
 
 

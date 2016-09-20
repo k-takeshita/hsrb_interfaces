@@ -1,4 +1,9 @@
 """Unittest for hsrb_interface.trajectory module"""
+from __future__ import absolute_import
+
+import sys
+import os
+
 from mock import patch
 from mock import call
 from nose.tools import eq_
@@ -26,6 +31,7 @@ from tmc_manipulation_msgs.srv import SelectConfigRequest
 
 from hsrb_interface import trajectory
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import testing
 
 
