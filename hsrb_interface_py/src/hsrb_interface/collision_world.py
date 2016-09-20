@@ -1,6 +1,5 @@
 # vim: fileencoding=utf-8
 """Collision checking interface.
-
 """
 
 from __future__ import absolute_import
@@ -32,12 +31,12 @@ from . import utils
 # Timeout to wait for message [sec]
 _WAIT_TOPIC_TIMEOUT = 20.0
 
+_UINT32_MAX = 4294967295
 
 class CollisionWorld(robot.Item):
     """Abstract interface that represents collision space.
 
     The collision space is usually unique and global.
-
 
     Attributes:
         known_object_only (bool):
@@ -58,17 +57,15 @@ class CollisionWorld(robot.Item):
         self._setting = settings.get_entry('collision_world', name)
         self._known_object_only = True
         self._ref_frame_id = settings.get_frame('map')
-        self._collision_object_pub = rospy.Publisher(self._setting['topic'],
-                                                     CollisionObject,
-                                                     queue_size=100)
         self._environment = CollisionEnvironment()
-        self._object_pub = rospy.Publisher('known_object', CollisionObject,
+        self._object_pub = rospy.Publisher(self._setting['control_topic'],
+                                           CollisionObject,
                                            queue_size=100)
         # object_id starts 10000 by default.
-        self._start_object_id = 10000
+        self._start_object_id = _UINT32_MAX
         self._object_count = self._start_object_id
         self._known_obj_ids_sub = utils.CachingSubscriber(
-            'known_object_ids',
+            self._setting['listing_topic'],
             ObjectIdentifierArray,
             default=ObjectIdentifierArray()
         )
@@ -76,15 +73,16 @@ class CollisionWorld(robot.Item):
 
     def _is_object_id_used(self, object_id):
         """Check if a given object ID is used or not"""
-        return object_id in [x.object_id for x in
-                             self._known_obj_ids_sub.data.object_ids]
+        known_ids = [x.object_id for x in
+                     self._known_obj_ids_sub.data.object_ids]
+        return object_id in known_ids
 
     def _wait_object_id_used(self, id, timeout=1.0):
         start = rospy.Time.now()
         while not rospy.is_shutdown():
             if self._is_object_id_used(id):
                 return True
-            if rospy.Time.now() - start > rospy.Duration(timeout):
+            elif rospy.Time.now() - start > rospy.Duration(timeout):
                 return False
             rospy.sleep(0.1)
 
@@ -150,14 +148,17 @@ class CollisionWorld(robot.Item):
         """Add a box object to the collision space.
 
         Args:
-            x: Length along with X-axis [m]
-            y: Length along with Y-axis [m]
-            z: Length along with Z-axis [m]
-            pose: A pose of a new object from the frame ``frame_id`` .
-            frame_id: A reference frame of a new object.
+            x (float): Length along with X-axis [m]
+            y (float): Length along with Y-axis [m]
+            z (float): Length along with Z-axis [m]
+            pose (Tuple[Vector3, Quaternion]):
+                A pose of a new object from the frame ``frame_id``
+            frame_id (str): A reference frame of a new object
+            name (str): A name of a new object
+            timeout (float): Wait known object list for this value [sec]
 
         Returns:
-            Tuple[int, str]: An ID of an added object.
+            Tuple[int, str]: ID and name of an added object.
         """
         box = CollisionObject()
         shape = Shape()
@@ -167,7 +168,7 @@ class CollisionWorld(robot.Item):
         box.operation.operation = CollisionObjectOperation.ADD
         self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
-            self._object_count = self._object_count + 1
+            self._object_count = self._object_count - 1
         box.id.object_id = self._object_count
         box.id.name = name
         box.shapes = [shape]
@@ -176,7 +177,7 @@ class CollisionWorld(robot.Item):
         box.header.stamp = rospy.Time.now()
         self._object_pub.publish(box)
         # 反映されるまで待ち
-        if self._wait_object_id_used(self._object_count, timeout):
+        if self._wait_object_id_used(box.id.object_id, timeout):
             return (box.id.object_id, box.id.name)
         else:
             return None
@@ -187,11 +188,14 @@ class CollisionWorld(robot.Item):
 
         Args:
             radius: Radius [m]
-            pose: A pose of a new object from the frame ``frame_id`` .
-            frame_id: A reference frame of a new object.
+            pose (Tuple[Vector3, Quaternion]):
+                A pose of a new object from the frame ``frame_id``
+            frame_id (str): A reference frame of a new object
+            name (str): A name of a new object
+            timeout (float): Wait known object list for this value [sec]
 
         Returns:
-            Tuple[int, str]: An ID of an added object.
+            Tuple[int, str]: ID and name of an added object.
         """
         sphere = CollisionObject()
         shape = Shape()
@@ -201,7 +205,7 @@ class CollisionWorld(robot.Item):
         sphere.operation.operation = CollisionObjectOperation.ADD
         self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
-            self._object_count = self._object_count + 1
+            self._object_count = self._object_count - 1
         sphere.id.object_id = self._object_count
         sphere.id.name = name
         sphere.shapes = [shape]
@@ -222,11 +226,14 @@ class CollisionWorld(robot.Item):
         Args:
             radius: Radius [m]
             length: Height [m]
-            pose: A pose of a new object from the frame ``frame_id`` .
-            frame_id: A reference frame of a new object.
+            pose (Tuple[Vector3, Quaternion]):
+                A pose of a new object from the frame ``frame_id``
+            frame_id (str): A reference frame of a new object
+            name (str): A name of a new object
+            timeout (float): Wait known object list for this value [sec]
 
         Returns:
-            Tuple[int, str]: An ID of an added object.
+            Tuple[int, str]: ID and name of an added object.
         """
         cylinder = CollisionObject()
         shape = Shape()
@@ -236,7 +243,7 @@ class CollisionWorld(robot.Item):
         cylinder.operation.operation = CollisionObjectOperation.ADD
         self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
-            self._object_count = self._object_count + 1
+            self._object_count = self._object_count - 1
         cylinder.id.object_id = self._object_count
         cylinder.id.name = name
         cylinder.shapes = [shape]
@@ -268,7 +275,7 @@ class CollisionWorld(robot.Item):
             frame_id: A reference frame of a new object.
 
         Returns:
-            Tuple[int, str]: An ID of an added object.
+            Tuple[int, str]: ID and name of an added object.
 
         Raises:
             IOError: A file does not exist.
@@ -281,7 +288,7 @@ class CollisionWorld(robot.Item):
         mesh.operation.operation = CollisionObjectOperation.ADD
         self._known_obj_ids_sub.wait_for_message(_WAIT_TOPIC_TIMEOUT)
         while self._is_object_id_used(self._object_count):
-            self._object_count = self._object_count + 1
+            self._object_count = self._object_count - 1
         mesh.id.object_id = self._object_count
         mesh.id.name = name
         mesh.shapes = [shape]
@@ -309,7 +316,7 @@ class CollisionWorld(robot.Item):
         collision_object.id.object_id = number
         collision_object.id.name = name
         collision_object.operation.operation = CollisionObjectOperation.REMOVE
-        self._collision_object_pub.publish(collision_object)
+        self._object_pub.publish(collision_object)
 
     def remove_all(self):
         """Remove all collision objects
@@ -318,9 +325,9 @@ class CollisionWorld(robot.Item):
             None
         """
         clear = CollisionObject()
-        clear.operation.operation = CollisionObjectOperation.REMOVE
-        clear.id.object_id = 0
-        self._object_count = self._start_object_id
-        clear.id.name = 'all'
         clear.header.stamp = rospy.Time.now()
+        clear.id.object_id = 0
+        clear.id.name = 'all'
+        clear.operation.operation = CollisionObjectOperation.REMOVE
+        self._object_count = self._start_object_id
         self._object_pub.publish(clear)

@@ -4,6 +4,7 @@ import math
 import sys
 import time
 import unittest
+from mock import patch
 
 from geometry_msgs.msg import PoseStamped
 import hsrb_interface
@@ -32,6 +33,57 @@ def quaternion_distance(q1, q2):
     product = sum(a * b for a, b in zip(q1, q2))
     return abs(math.acos(2.0 * product ** 2.0 - 1.0))
 
+
+class RosMockTestCase(unittest.TestCase):
+    def setUp(self):
+        patcher = patch("hsrb_interface.Robot._connecting")
+        self.robot_connecting_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.robot_connecting_mock = True
+
+        patcher = patch("hsrb_interface.settings.get_entry")
+        self.get_entry_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("hsrb_interface.settings.get_frame")
+        self.get_frame_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.Time")
+        self.time_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.Publisher")
+        self.publisher_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.Subscriber")
+        self.subscriber_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.ServiceProxy")
+        self.service_proxy_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.Service")
+        self.service_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.client.wait_for_message")
+        self.wait_for_message_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.wait_for_service")
+        self.wait_for_service_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rospy.get_param")
+        self.get_param_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("actionlib.SimpleActionClient")
+        self.action_client_mock = patcher.start()
+        self.addCleanup(patcher.stop)
 
 class HsrbInterfaceTest(unittest.TestCase):
     """Base class for simulation tests."""
