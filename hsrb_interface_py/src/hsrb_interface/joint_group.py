@@ -68,6 +68,13 @@ _BASE_TRAJECTORY_ORIGIN = "odom"
 
 
 def _normalize_np(vec):
+    """Normalize 1D numpy.ndarray
+
+    Args:
+        vec (numpy.ndarray): A vector to be normalized
+    Returns:
+        numpy.ndarray: The reuslt
+    """
     length = np.linalg.norm(vec)
     if length < sys.float_info.epsilon:
         return vec
@@ -75,8 +82,16 @@ def _normalize_np(vec):
         vec /= length
         return vec
 
+
 def _pose_from_x_axis(axis):
-    """"""
+    """Compute a transformation that fits X-axis of its frame to given vector.
+
+    Args:
+        axis (geometry.Vector3): A target vector
+
+    Returns:
+        geometry.Pose: The result transformation that stored in Pose type.
+    """
     axis = np.array(axis, dtype='float64', copy=True)
     axis = _normalize_np(axis)
     unit_x = np.array([1, 0, 0])
@@ -88,8 +103,15 @@ def _pose_from_x_axis(axis):
     q = T.quaternion_about_axis(theta, outerp)
     return geometry.Pose(geometry.Vector3(0, 0, 0), geometry.Quaternion(*q))
 
+
 def _movement_axis_and_distance(pose1, pose2):
-    """
+    """Compute a vector from the origin of pose1 to pose2 and distance.
+
+    Args:
+        pose1 (geometry.Pose): A pose that its origin is used as start.
+        pose2 (geometry.Pose): A pose that its origin is used as goal.
+    Returns:
+        Tuple[geometry.Vector3, float]: The result
     """
     p1 = pose1[0]
     p2 = pose2[0]
@@ -106,8 +128,15 @@ def _movement_axis_and_distance(pose1, pose2):
         z /= length
         return geometry.Vector3(x, y, z), length
 
+
 def _invert_pose(pose):
-    """"""
+    """Invert a given pose as if it is a transformation.
+
+    Args:
+        pose (geometry.Pose): A pose to be inverted.q
+    Returns:
+        geometry.Pose: The result
+    """
     m = T.compose_matrix(translate=pose[0],
                          angles=T.euler_from_quaternion(pose[1]))
     (_, _, euler, trans, _) = T.decompose_matrix(T.inverse_matrix(m))
