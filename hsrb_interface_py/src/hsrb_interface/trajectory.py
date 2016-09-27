@@ -284,6 +284,10 @@ class TrajectoryController(object):
         """Get a status of the action client"""
         return self._client.get_state()
 
+    def get_status_text(self):
+        """Get a goal status text of the action client"""
+        return self._client.get_goal_status_text()
+
     def get_result(self, timeout=None):
         """Get a result of a current goal.
 
@@ -394,9 +398,9 @@ def wait_controllers(controllers):
             if any(map(lambda s: s not in ok_set, states)):
                 log = []
                 for c in controllers:
-                    log.append("{0}={1}".format(c.controller_name,
-                                                c.get_state()))
-                    c.cancel_goal()
+                    log.append("{0}({1})".format(c.controller_name,
+                                                 c.get_state()))
+                    c.cancel()
                 reason = ', '.join(log)
                 text = "Playing trajecotry failed: {0}".format(reason)
                 raise exceptions.FollowTrajectoryError(text)

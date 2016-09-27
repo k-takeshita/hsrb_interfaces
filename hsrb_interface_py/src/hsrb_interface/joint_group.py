@@ -17,6 +17,7 @@ import tf.transformations as T
 import tf2_ros
 
 from geometry_msgs.msg import TransformStamped
+from geometry_msgs.msg import Pose as RosPose
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
@@ -73,7 +74,7 @@ def _normalize_np(vec):
     Args:
         vec (numpy.ndarray): A vector to be normalized
     Returns:
-        numpy.ndarray: The reuslt
+        numpy.ndarray: The reuslt of computation
     """
     length = np.linalg.norm(vec)
     if length < sys.float_info.epsilon:
@@ -135,7 +136,7 @@ def _invert_pose(pose):
     Args:
         pose (geometry.Pose): A pose to be inverted.q
     Returns:
-        geometry.Pose: The result
+        geometry.Pose: The result of computation
     """
     m = T.compose_matrix(translate=pose[0],
                          angles=T.euler_from_quaternion(pose[1]))
@@ -474,20 +475,19 @@ class JointGroup(robot.Item):
         return result
 
     def _lookup_odom_to_ref(self, ref_frame_id):
-        """
+        """Resolve current reference frame transformation from ``odom``.
 
         Returns:
-            geometry_msgs.Pose
+            geometry_msgs.msg.Pose:
+                A transform from robot ``odom`` to ``ref_frame_id``.
         """
-        odom_to_ref_transform = self._tf2_buffer.lookup_transform(
-            settings.get_frame('odom'),
-            ref_frame_id,
-            rospy.Time(0),
-            rospy.Duration(_TF_TIMEOUT)
-        ).transform
-        odom_to_ref_tuples = geometry.transform_to_tuples(
-            odom_to_ref_transform
-        )
+        odom_to_ref_ros = self._tf2_buffer.lookup_transform(
+                              settings.get_frame('odom'),
+                              ref_frame_id,
+                              rospy.Time(0),
+                              rospy.Duration(_TF_TIMEOUT)
+                          ).transform
+        odom_to_ref_tuples = geometry.transform_to_tuples(odom_to_ref_ros)
         return geometry.tuples_to_pose(odom_to_ref_tuples)
 
     def move_end_effector_pose(self, pose, ref_frame_id=None):
@@ -782,32 +782,58 @@ class JointGroup(robot.Item):
 
         Args:
             waypoints (List[Pose]): End effector poses
-            ref_frame_id (str): The base frame of waypoints
+            ref_frame_id (str):
+                The base frame of waypoints (default is the robot frame)
         """
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('base')
+        base_frame = settings.get_frame('base')
         origin_to_ref_ros_pose = self._lookup_odom_to_ref(ref_frame_id)
         origin_to_ref = geometry.pose_to_tuples(origin_to_ref_ros_pose)
+        origin_to_pose1 = self.get_end_effector_pose('odom')
+        odom_to_robot_pose = self._lookup_odom_to_ref(base_frame)
+        initial_joint_state = self._get_joint_state()
         if self._collision_world is not None:
-            snapshot = self._collision_world.snapshot('odom')
+            collision_env = self._collision_world.snapshot('odom')
         else:
-            snapshot = None
+            collision_env = None
+
+        arm_traj = None
+        base_traj = None
 
         for i in range(len(waypoints)):
-            base_frame = settings.get_frame('base')
-            odom_to_robot_pose = self._lookup_odom_to_ref(base_frame)
-            initial_joint_state = self._get_joint_state()
-            origin_to_pose1 = self.get_end_effector_pose('odom')
             origin_to_pose2 = geometry.multiply_tuples(origin_to_ref,
                                                        waypoints[i])
-            plan = self._plan_cartesian_path(origin_to_pose1, origin_to_pose2,
+            plan = self._plan_cartesian_path(origin_to_pose1,
+                                             origin_to_pose2,
                                              odom_to_robot_pose,
                                              initial_joint_state,
-                                             snapshot)
-            plan.base_solution.header.frame_id = settings.get_frame('odom')
-            constrained_traj = self._constrain_trajectories(plan.solution,
-                                                            plan.base_solution)
-            self._execute_trajectory(constrained_traj)
+                                             collision_env)
+            if arm_traj is None:
+                arm_traj = plan.solution
+            elif len(plan.solution.points) > 0:
+                arm_traj.points.extend(plan.solution.points[1:])
+            if base_traj is None:
+                base_traj = plan.base_solution
+            elif len(plan.base_solution.points) > 0:
+                base_traj.points.extend(plan.base_solution.points[1:])
+
+            origin_to_pose1 = origin_to_pose2
+            odom_to_robot_pose = RosPose()
+            final_transform = plan.base_solution.points[-1].transforms[0]
+            odom_to_robot_pose.position.x = final_transform.translation.x
+            odom_to_robot_pose.position.y = final_transform.translation.y
+            odom_to_robot_pose.position.z = final_transform.translation.z
+            odom_to_robot_pose.orientation.x = final_transform.rotation.x
+            odom_to_robot_pose.orientation.y = final_transform.rotation.y
+            odom_to_robot_pose.orientation.z = final_transform.rotation.z
+            odom_to_robot_pose.orientation.w = final_transform.rotation.w
+            initial_joint_state = plan.joint_state_after_planning
+            collision_env = plan.environment_after_planning
+
+        base_traj.header.frame_id = settings.get_frame('odom')
+        constrained_traj = self._constrain_trajectories(arm_traj, base_traj)
+        self._execute_trajectory(constrained_traj)
 
     def _transform_base_trajectory(self, base_traj):
         """Transform a base trajectory to an ``odom`` frame based trajectory.
