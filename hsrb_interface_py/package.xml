@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>hsrb_interface_py</name>
-  <version>0.7.1</version>
+  <version>0.8.0</version>
   <description>HSR-B Python Interface</description>
 
   <maintainer email="akiyoshi_ochiai@mail.toyota.co.jp">Akiyoshi Ochiai</maintainer>
