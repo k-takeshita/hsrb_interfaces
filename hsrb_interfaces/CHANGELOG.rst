@@ -2,6 +2,9 @@
 Changelog for package hsrb_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.7.1 (2016-04-13)
 ------------------
 

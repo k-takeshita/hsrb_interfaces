@@ -2,6 +2,14 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Implements move_cartesian_path
+* Add unittests
+* Move trajectory operations from joint_group.py to trajectory.py
+* Update documentation.
+* Contributors: Akiyoshi Ochiai, Keisuke Takeshita
+
 0.7.1 (2016-04-13)
 ------------------
 * Fix MobileBase unittest
