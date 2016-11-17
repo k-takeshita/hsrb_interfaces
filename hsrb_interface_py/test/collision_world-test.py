@@ -1,6 +1,9 @@
 # Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for collision_world module"""
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import os
 import sys
@@ -17,7 +20,7 @@ from mock import MagicMock
 from mock import PropertyMock
 from nose.tools import eq_
 
-import testing
+from . import testing
 
 from tmc_geometric_shapes_msgs.msg import Shape
 from tmc_manipulation_msgs.msg import CollisionObject
@@ -43,12 +46,7 @@ class CollisionWorldTest(testing.RosMockTestCase):
                                                 callback=ANY)
 
     def create(self):
-        """Create a CollisionWorld instance"""
-        self.get_frame_mock.return_value = 'map'
-        self.get_entry_mock.return_value = {
-            "class": ["collision_world", "CollisionWorld"],
-            "service": "/get_collision_environment",
-            "control_topic": "/known_object",
+        """Create a CollisionWorld instance""" self.get_frame_mock.return_value = 'map' self.get_entry_mock.return_value = { "class": ["collision_world", "CollisionWorld"], "service": "/get_collision_environment", "control_topic": "/known_object",
             "listing_topic": "/known_object_ids",
         }
         return hsrb_interface.collision_world.CollisionWorld('test')
