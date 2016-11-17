@@ -4,8 +4,8 @@
 """Test fetching a box with marker."""
 import math
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
-import testing
 
 BOX_ID = 27
 

@@ -3,7 +3,7 @@
 # Copyright (C) 2016 Toyota Motor Corporation
 """Test gripper interface in Gazebo simlulator."""
 
-import testing
+from hsrb_interface import _testing as testing
 
 
 class GripperTest(testing.HsrbInterfaceTest):

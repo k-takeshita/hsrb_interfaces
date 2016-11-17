@@ -8,6 +8,7 @@ import sys
 
 from geometry_msgs.msg import TransformStamped
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
 from hsrb_interface import joint_group
 from hsrb_interface import robot_model
@@ -29,8 +30,6 @@ from nose.tools import raises
 import rospkg
 import rospy
 from sensor_msgs.msg import JointState
-
-import testing
 
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
 from tmc_planning_msgs.srv import PlanWithHandGoals

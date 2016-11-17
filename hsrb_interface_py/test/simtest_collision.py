@@ -5,9 +5,9 @@
 
 import math
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
 import rospy
-import testing
 from tmc_manipulation_msgs.msg import CollisionObject
 
 COLLISION_ENVIRONMENT_TIMEOUT = 30.0

@@ -10,6 +10,7 @@ import sys
 
 import hsrb_interface
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
 
 import hsrb_interface.collision_world
@@ -20,7 +21,6 @@ from mock import MagicMock
 from mock import PropertyMock
 from nose.tools import eq_
 
-from . import testing
 
 from tmc_geometric_shapes_msgs.msg import Shape
 from tmc_manipulation_msgs.msg import CollisionObject

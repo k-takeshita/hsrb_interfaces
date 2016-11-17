@@ -10,12 +10,12 @@ import actionlib
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
 from control_msgs.msg import FollowJointTrajectoryResult
+from hsrb_interface import _testing as testing
 from hsrb_interface import trajectory
 from mock import call
 from nose.tools import eq_
 import rospy
 from sensor_msgs.msg import JointState
-import testing
 from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
 from tmc_manipulation_msgs.srv import FilterJointTrajectory
 from tmc_manipulation_msgs.srv import FilterJointTrajectoryRequest

@@ -7,8 +7,8 @@ Target objects are spawen within simtest_linemod.test launch file.
 """
 import math
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
-import testing
 
 
 class LinemodTest(testing.HsrbInterfaceTest):

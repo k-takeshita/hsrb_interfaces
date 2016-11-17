@@ -5,8 +5,8 @@
 
 import math
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
-import testing
 
 
 class WholeBodyTest(testing.HsrbInterfaceTest):
