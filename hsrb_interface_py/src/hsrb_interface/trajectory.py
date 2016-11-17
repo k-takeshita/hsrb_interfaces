@@ -384,6 +384,7 @@ class ImpedanceController(TrajectoryController):
 
     config_names = property(_get_config_names)
 
+
 def wait_controllers(controllers):
     watch_rate = settings.get_entry('trajectory', 'watch_rate')
     rate = rospy.Rate(watch_rate)

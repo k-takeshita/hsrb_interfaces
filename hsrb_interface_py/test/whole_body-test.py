@@ -1,49 +1,47 @@
 """Unittest for hsrb_interface.joint_group module"""
 from __future__ import absolute_import
 
-import sys
-import os
-
-from mock import patch
-from mock import call
-from mock import MagicMock
-from mock import PropertyMock
-from mock import ANY
-from nose.tools import assert_raises
-from nose.tools import assert_almost_equals
-from nose.tools import ok_
-from nose.tools import eq_
-from nose.tools import raises
-
-import os
 import math
+import os
+import sys
 
-import rospkg
-import rospy
-import tf.transformations as T
-from sensor_msgs.msg import JointState
 from geometry_msgs.msg import TransformStamped
 
-from tmc_planning_msgs.srv import PlanWithHandGoals
-from tmc_planning_msgs.srv import PlanWithHandGoalsRequest
-from tmc_planning_msgs.srv import PlanWithHandLine
-from tmc_planning_msgs.srv import PlanWithHandLineRequest
-from tmc_planning_msgs.srv import PlanWithJointGoals
-from tmc_planning_msgs.srv import PlanWithJointGoalsRequest
-from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
-
-import hsrb_interface
-import hsrb_interface.exceptions
-from hsrb_interface.joint_group import JointGroup
 from hsrb_interface import geometry
 from hsrb_interface import joint_group
 from hsrb_interface import robot_model
 from hsrb_interface import settings
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from hsrb_interface.joint_group import JointGroup
+
+from mock import ANY
+from mock import MagicMock
+from mock import PropertyMock
+
+from mock import call
+from mock import patch
+
+from nose.tools import assert_almost_equals
+from nose.tools import eq_
+from nose.tools import raises
+
+import rospkg
+import rospy
+from sensor_msgs.msg import JointState
+
 import testing
 
+from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
+from tmc_planning_msgs.srv import PlanWithHandGoals
+from tmc_planning_msgs.srv import PlanWithHandLine
+from tmc_planning_msgs.srv import PlanWithJointGoals
+
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+
 class WholeBodyTest(testing.RosMockTestCase):
+
     def setUp(self):
         super(WholeBodyTest, self).setUp()
 
@@ -65,7 +63,8 @@ class WholeBodyTest(testing.RosMockTestCase):
 
         self.tf2_buffer_mock = self.get_tf2_buffer_mock.return_value
 
-        patcher = patch("hsrb_interface.robot_model.RobotModel.from_parameter_server")
+        patcher = patch(
+            "hsrb_interface.robot_model.RobotModel.from_parameter_server")
         self.from_parameter_server_mock = patcher.start()
         self.addCleanup(patcher.stop)
         rp = rospkg.RosPack()
@@ -83,7 +82,8 @@ class WholeBodyTest(testing.RosMockTestCase):
         # PropertyMock must be attached to class
         type(caching_sub_mock).data = data_mock
 
-        patcher = patch("hsrb_interface.joint_group.JointGroup._constrain_trajectories")
+        patcher = patch(
+            "hsrb_interface.joint_group.JointGroup._constrain_trajectories")
         self.constrain_trajectories_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -219,14 +219,14 @@ class WholeBodyTest(testing.RosMockTestCase):
         odom_to_hand_transform.transform.rotation.z = 0.999999526031
         odom_to_hand_transform.transform.rotation.w = -0.000952270991235
 
-        return odom_to_robot_transform,  odom_to_hand_transform
+        return odom_to_robot_transform, odom_to_hand_transform
 
     def test_creation(self):
         self.get_entry_mock.side_effect = [
             self.joint_group_setting,
             self.trajectory_setting,
         ]
-        whole_body = JointGroup('whole_body')
+        JointGroup('whole_body')
         self.get_entry_mock.assert_has_calls([
             call('joint_group', 'whole_body'),
             call('trajectory', 'impedance_control'),
@@ -301,7 +301,7 @@ class WholeBodyTest(testing.RosMockTestCase):
         ]
 
         whole_body = JointGroup('whole_body')
-        pose = whole_body.get_end_effector_pose()
+        whole_body.get_end_effector_pose()
 
         # Check post-conditions
         self.tf2_buffer_mock.lookup_transform.assert_called_with(
@@ -317,14 +317,16 @@ class WholeBodyTest(testing.RosMockTestCase):
             self.joint_group_setting,
             self.trajectory_setting,
         ]
-        odom_to_robot_transform, odom_to_hand_transform = self.initial_tf_fixtures()
+        odom_to_robot_transform, odom_to_hand_transform = \
+            self.initial_tf_fixtures()
         self.tf2_buffer_mock.lookup_transform.side_effect = [
             odom_to_robot_transform,
             odom_to_hand_transform,
         ]
         plan_service_proxy_mock = self.service_proxy_mock.return_value
         plan_result_mock = MagicMock()
-        error_code_mock = PropertyMock(return_value=ArmManipulationErrorCodes.SUCCESS)
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
         type(plan_result_mock.error_code).val = error_code_mock
         plan_service_proxy_mock.call.return_value = plan_result_mock
 
@@ -343,14 +345,16 @@ class WholeBodyTest(testing.RosMockTestCase):
             self.trajectory_setting,
         ]
 
-        odom_to_robot_transform, odom_to_hand_transform = self.initial_tf_fixtures()
+        odom_to_robot_transform, odom_to_hand_transform = \
+            self.initial_tf_fixtures()
         self.tf2_buffer_mock.lookup_transform.side_effect = [
             odom_to_robot_transform,
             odom_to_hand_transform,
         ]
         plan_service_proxy_mock = self.service_proxy_mock.return_value
         plan_result_mock = MagicMock()
-        error_code_mock = PropertyMock(return_value=ArmManipulationErrorCodes.SUCCESS)
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
         type(plan_result_mock.error_code).val = error_code_mock
         plan_service_proxy_mock.call.return_value = plan_result_mock
 
@@ -370,7 +374,8 @@ class WholeBodyTest(testing.RosMockTestCase):
         ]
         plan_service_proxy_mock = self.service_proxy_mock.return_value
         plan_result_mock = MagicMock()
-        error_code_mock = PropertyMock(return_value=ArmManipulationErrorCodes.SUCCESS)
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
         type(plan_result_mock.error_code).val = error_code_mock
         plan_service_proxy_mock.call.return_value = plan_result_mock
 
@@ -400,7 +405,7 @@ class WholeBodyTest(testing.RosMockTestCase):
         assert_almost_equals(result[1][2], 0)
         assert_almost_equals(result[1][3], 1)
 
-        pose = geometry.pose(ej=math.pi/4.0)
+        pose = geometry.pose(ej=math.pi / 4.0)
         inv = joint_group._invert_pose(pose)
         result = geometry.multiply_tuples(inv, pose)
         assert_almost_equals(result[0][0], 0)
@@ -412,7 +417,9 @@ class WholeBodyTest(testing.RosMockTestCase):
         assert_almost_equals(result[1][3], 1)
 
         pose = geometry.pose(1, 3, 5,
-                             ei=math.pi/3.0, ej=math.pi/4.0, ek=-math.pi/8)
+                             ei=math.pi / 3.0,
+                             ej=math.pi / 4.0,
+                             ek=-math.pi / 8)
         inv = joint_group._invert_pose(pose)
         result = geometry.multiply_tuples(inv, pose)
         assert_almost_equals(result[0][0], 0)
@@ -431,6 +438,3 @@ class WholeBodyTest(testing.RosMockTestCase):
         assert_almost_equals(axis[1], 0)
         assert_almost_equals(axis[2], 0)
         assert_almost_equals(distance, 2)
-
-
-

@@ -29,9 +29,10 @@ xmlr.reflect(urdf.Link, params=[
 # http://wiki.ros.org/urdf/XML/Transmission
 xmlr.reflect(urdf.Actuator, tag='actuator', params=[
     xmlr.Attribute('name', str),
-    xmlr.Element('mechanicalReduction', float, required = False),
+    xmlr.Element('mechanicalReduction', float, required=False),
     xmlr.AggregateElement('hardwareInterface', str)
 ])
+
 
 def _get_aggregate_list(self, xml_var):
     var = self.XML_REFL.paramMap[xml_var].var
@@ -49,4 +50,4 @@ urdf.Actuator.get_aggregate_list = _get_aggregate_list
 
 from urdf_parser_py.urdf import Robot as RobotModel
 
-__all__ = [RobotModel]
+__all__ = (RobotModel)

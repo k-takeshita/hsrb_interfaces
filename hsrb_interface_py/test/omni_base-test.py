@@ -1,17 +1,19 @@
 """Unittest for hsrb_interface.mobile_base module"""
-from mock import patch
-from nose.tools import assert_raises
-from nose.tools import ok_
-
 import actionlib
-import tf
-
-from move_base_msgs.msg import MoveBaseAction
-from move_base_msgs.msg import MoveBaseGoal
 
 import hsrb_interface
 import hsrb_interface.exceptions
 import hsrb_interface.mobile_base
+
+from mock import patch
+
+from move_base_msgs.msg import MoveBaseAction
+from move_base_msgs.msg import MoveBaseGoal
+
+from nose.tools import assert_raises
+from nose.tools import ok_
+
+import tf
 
 
 @patch("actionlib.SimpleActionClient")

@@ -1,9 +1,10 @@
 """Unittest for end_effector module"""
-from mock import patch
-from nose.tools import ok_
 
 import hsrb_interface
 import hsrb_interface.end_effector
+
+from mock import patch
+from nose.tools import ok_
 
 
 @patch.object(hsrb_interface.Robot, '_connecting')
@@ -25,7 +26,6 @@ def test_gripper(mock_get_entry, mock_connecting):
 @patch('hsrb_interface.utils.CachingSubscriber')
 def test_suction(mock_sub_class, mock_get_entry, mock_connecting):
     """Test Suction class"""
-
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
         "action": "/suction_control",

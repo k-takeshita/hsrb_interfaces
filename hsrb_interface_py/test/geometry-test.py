@@ -4,9 +4,9 @@
 
 import math
 
-from nose.tools import eq_
-
 from hsrb_interface import geometry
+
+from nose.tools import eq_
 
 
 def test_shortest_angular_distance():

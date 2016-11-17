@@ -1,9 +1,12 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface.battery module"""
-from mock import patch
-from nose.tools import eq_
 
 import hsrb_interface
 import hsrb_interface.battery
+
+from mock import patch
+from nose.tools import eq_
+
 from tmc_msgs.msg import BatteryState
 
 

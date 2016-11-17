@@ -1,6 +1,6 @@
 # vim: fileencoding=utf-8
-"""Collision checking interface.
-"""
+"""Collision checking interface."""
+
 
 from __future__ import absolute_import
 from __future__ import division
@@ -32,6 +32,7 @@ from . import utils
 _WAIT_TOPIC_TIMEOUT = 20.0
 
 _UINT32_MAX = 4294967295
+
 
 class CollisionWorld(robot.Item):
     """Abstract interface that represents collision space.

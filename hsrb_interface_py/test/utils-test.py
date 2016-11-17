@@ -2,9 +2,9 @@
 # vim: fileencoding=utf-8
 """Unittest for hsrb_interface.utils module."""
 
-from nose.tools import eq_
-
 from hsrb_interface import utils
+
+from nose.tools import eq_
 
 
 def test_iterate():

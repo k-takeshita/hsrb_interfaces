@@ -85,9 +85,9 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
         """Moving end-effector with following specified waypoints"""
         self.whole_body.move_to_neutral()
         waypoints = [
-            geometry.pose(0.0, 0.0, 0.7, ej=-math.pi/2.0, ek=-math.pi),
+            geometry.pose(0.0, 0.0, 0.7, ej=-math.pi / 2.0, ek=-math.pi),
             geometry.pose(0.5, 0.5, 0.7),
-            geometry.pose(1.0, 1.0, 0.7, ej=-math.pi/2.0, ek=math.pi),
+            geometry.pose(1.0, 1.0, 0.7, ej=-math.pi / 2.0, ek=math.pi),
             geometry.pose(0.5, 0.5, 0.7, ei=math.pi)]
         self.whole_body.move_cartesian_path(waypoints, ref_frame_id='odom')
 

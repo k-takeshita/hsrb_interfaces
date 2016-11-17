@@ -26,6 +26,7 @@ Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 Pose = collections.namedtuple('Pose', 'pos ori')
 
+
 def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
     """Create a new pose-tuple representation.
 

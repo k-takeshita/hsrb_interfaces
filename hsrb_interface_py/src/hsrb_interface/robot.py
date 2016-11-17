@@ -8,14 +8,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import sys
-import warnings
-import weakref
-
 import enum
 import importlib
 
+import sys
+
+import warnings
+import weakref
+
 import rospy
+
 import tf2_ros
 
 from . import exceptions

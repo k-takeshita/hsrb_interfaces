@@ -1,26 +1,24 @@
 """Unittest for collision_world module"""
 from __future__ import absolute_import
 
-import sys
 import os
+import sys
 
-import unittest
-from mock import patch
-from mock import call
+import hsrb_interface
+
+from hsrb_interface import geometry
+
+import hsrb_interface.collision_world
+import hsrb_interface.exceptions
+
+from mock import ANY
 from mock import MagicMock
 from mock import PropertyMock
-from mock import ANY
-from nose.tools import assert_raises
-from nose.tools import ok_
 from nose.tools import eq_
 
-import actionlib
-import tf
-
-from geometry_msgs.msg import Pose
+import testing
 
 from tmc_geometric_shapes_msgs.msg import Shape
-from tmc_manipulation_msgs.msg import CollisionEnvironment
 from tmc_manipulation_msgs.msg import CollisionObject
 from tmc_manipulation_msgs.msg import CollisionObjectOperation
 from tmc_manipulation_msgs.srv import GetCollisionEnvironment
@@ -28,19 +26,14 @@ from tmc_manipulation_msgs.srv import GetCollisionEnvironmentRequest
 from tmc_msgs.msg import ObjectIdentifier
 from tmc_msgs.msg import ObjectIdentifierArray
 
-import hsrb_interface
-import hsrb_interface.exceptions
-import hsrb_interface.collision_world
-from hsrb_interface import geometry
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import testing
 
 
 class CollisionWorldTest(testing.RosMockTestCase):
+
     def test_creation(self):
         """Test simple use case of MobileBase class"""
-        collision_world = self.create()
+        self.create()
         self.publisher_mock.assert_called_with("/known_object",
                                                CollisionObject,
                                                queue_size=ANY)
@@ -62,9 +55,10 @@ class CollisionWorldTest(testing.RosMockTestCase):
     def test_snapshot(self):
         collision_world = self.create()
         proxy_instance_mock = self.service_proxy_mock.return_value
-        result = collision_world.snapshot()
-        self.service_proxy_mock.assert_called_with("/get_collision_environment",
-                                                   GetCollisionEnvironment)
+        collision_world.snapshot()
+        self.service_proxy_mock.assert_called_with(
+            "/get_collision_environment",
+            GetCollisionEnvironment)
         req = GetCollisionEnvironmentRequest()
         req.known_object_only = True
         req.origin_frame_id = 'map'
