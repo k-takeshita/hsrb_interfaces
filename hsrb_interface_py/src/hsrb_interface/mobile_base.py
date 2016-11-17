@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 # vim: fileencoding=utf-8
 """Provide abstract inteface for a mobile base."""
 
@@ -9,12 +10,13 @@ from __future__ import unicode_literals
 import math
 
 import actionlib
-import rospy
-import tf
 
 from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseAction
 from move_base_msgs.msg import MoveBaseGoal
+
+import rospy
+import tf
 
 from . import exceptions
 from . import geometry
@@ -25,6 +27,7 @@ from . import settings
 _TF_TIMEOUT = 1.0
 
 _ACTION_WAIT_TIMEOUT = 30.0
+
 
 def _validate_timeout(timeout):
     """Validate a given timeout value is meaning time value."""
@@ -59,7 +62,8 @@ class MobileBase(robot.Item):
         action_name = self._setting['move_base_action']
         self._action_client = actionlib.SimpleActionClient(action_name,
                                                            MoveBaseAction)
-        self._action_client.wait_for_server(rospy.Duration(_ACTION_WAIT_TIMEOUT))
+        self._action_client.wait_for_server(
+            rospy.Duration(_ACTION_WAIT_TIMEOUT))
 
     def move(self, pose, timeout=0.0, ref_frame_id=None):
         """Move to a specified pose.

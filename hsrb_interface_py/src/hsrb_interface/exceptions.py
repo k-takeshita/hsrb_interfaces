@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 # vim: fileencoding=utf-8
 """Defitions of common exceptions."""
 
@@ -44,6 +45,7 @@ class TrajectoryFilterError(HsrbInterfaceError):
         message (str): Error message
         error_code (ArmManipulationErrorCodes): An error code
     """
+
     def __init__(self, message, error_code):
         super(TrajectoryFilterError, self).__init__(message)
         self._error_code = error_code
@@ -68,6 +70,7 @@ class MotionPlanningError(PlannerError):
         message (str): Error message
         error_code (ArmManipulationErrorCodes): An error code
     """
+
     def __init__(self, message, error_code):
         super(MotionPlanningError, self).__init__(message)
         self._error_code = error_code
@@ -99,5 +102,3 @@ class MobileBaseError(HsrbInterfaceError):
 
 class DeprecationWarning(Warning):
     """Indicate a feature is deprecated."""
-
-

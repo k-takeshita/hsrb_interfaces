@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
+# Copyright (C) 2016 Toyota Motor Corporation
 """Testing autonomous navigation interface in Gazebo simulator.
 
 A tf frame 'my_frame' is published as::
@@ -10,8 +11,8 @@ Its static_transform_publisher is launched in .test file.
 """
 import math
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
-import testing
 from tf import transformations
 import tf2_geometry_msgs
 assert tf2_geometry_msgs  # silence flake8

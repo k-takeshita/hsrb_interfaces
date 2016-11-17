@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
+# Copyright (C) 2016 Toyota Motor Corporation
 """Testing LINEMOD interface in Gazebo simulator.
 
 Target objects are spawen within simtest_linemod.test launch file.
 """
 import math
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
-import testing
 
 
 class LinemodTest(testing.HsrbInterfaceTest):

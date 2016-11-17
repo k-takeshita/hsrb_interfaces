@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 # vim: fileencoding=utf-8
 """This module classes and functions that manipulate joint trajectories"""
 
@@ -383,6 +384,7 @@ class ImpedanceController(TrajectoryController):
         return self._config_names
 
     config_names = property(_get_config_names)
+
 
 def wait_controllers(controllers):
     watch_rate = settings.get_entry('trajectory', 'watch_rate')

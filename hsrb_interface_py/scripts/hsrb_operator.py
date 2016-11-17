@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (C) 2016 Toyota Motor Corporation
 
 from hsrb_interface import Robot
 
@@ -11,10 +12,14 @@ if __name__ == '__main__':
     robot = Robot()
     whole_body = robot.get('whole_body', robot.Items.JOINT_GROUP)
     omni_base = robot.get('omni_base', robot.Items.MOBILE_BASE)
-    head_r_stereo_camera = robot.get('head_r_stereo_camera', robot.Items.CAMERA)
-    head_l_stereo_camera = robot.get('head_l_stereo_camera', robot.Items.CAMERA)
-    head_rgbd_sensor_depth = robot.get('head_rgbd_sensor_depth', robot.Items.CAMERA)
-    head_rgbd_sensor_rgb = robot.get('head_rgbd_sensor_rgb', robot.Items.CAMERA)
+    head_r_stereo_camera = robot.get('head_r_stereo_camera',
+                                     robot.Items.CAMERA)
+    head_l_stereo_camera = robot.get('head_l_stereo_camera',
+                                     robot.Items.CAMERA)
+    head_rgbd_sensor_depth = robot.get('head_rgbd_sensor_depth',
+                                       robot.Items.CAMERA)
+    head_rgbd_sensor_rgb = robot.get('head_rgbd_sensor_rgb',
+                                     robot.Items.CAMERA)
     collision_world = robot.get('default', robot.Items.COLLISION_WORLD)
     suction = robot.get('suction', robot.Items.END_EFFECTOR)
     gripper = robot.get('gripper', robot.Items.END_EFFECTOR)

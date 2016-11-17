@@ -1,15 +1,18 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Testing Utilities"""
-import copy
+
 import math
+
 import sys
-import time
 import unittest
-from mock import patch
 
 from geometry_msgs.msg import PoseStamped
 import hsrb_interface
 from hsrb_interface import geometry
 import hsrb_interface.robot
+
+from mock import patch
+
 import rospy
 import tf2_ros
 
@@ -35,6 +38,7 @@ def quaternion_distance(q1, q2):
 
 
 class RosMockTestCase(unittest.TestCase):
+
     def setUp(self):
         patcher = patch("hsrb_interface.Robot._connecting")
         self.robot_connecting_mock = patcher.start()
@@ -84,6 +88,7 @@ class RosMockTestCase(unittest.TestCase):
         patcher = patch("actionlib.SimpleActionClient")
         self.action_client_mock = patcher.start()
         self.addCleanup(patcher.stop)
+
 
 class HsrbInterfaceTest(unittest.TestCase):
     """Base class for simulation tests."""

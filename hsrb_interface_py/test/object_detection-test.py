@@ -1,9 +1,11 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface.object_detection"""
-from mock import patch
-from nose.tools import ok_
 
 import hsrb_interface
 from hsrb_interface import object_detection
+
+from mock import patch
+from nose.tools import ok_
 
 
 @patch.object(hsrb_interface.Robot, '_connecting')

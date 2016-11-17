@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
+# Copyright (C) 2016 Toyota Motor Corporation
 """Test fetching a box with marker."""
 import math
 
+from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
-import testing
 
 BOX_ID = 27
 

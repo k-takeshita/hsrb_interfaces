@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 # vim: fileencoding=utf-8
 """HSR-B Interface for Python."""
 

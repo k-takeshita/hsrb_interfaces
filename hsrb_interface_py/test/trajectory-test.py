@@ -1,41 +1,38 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface.trajectory module"""
 from __future__ import absolute_import
 
-import sys
+import copy
 import os
-
-from mock import patch
-from mock import call
-from nose.tools import eq_
+import sys
 
 import actionlib
-import copy
-import rospy
-
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
 from control_msgs.msg import FollowJointTrajectoryResult
+from hsrb_interface import _testing as testing
+from hsrb_interface import trajectory
+from mock import call
+from nose.tools import eq_
+import rospy
 from sensor_msgs.msg import JointState
-from trajectory_msgs.msg import JointTrajectory
-from trajectory_msgs.msg import JointTrajectoryPoint
-
-from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
-from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
 from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
 from tmc_manipulation_msgs.srv import FilterJointTrajectory
 from tmc_manipulation_msgs.srv import FilterJointTrajectoryRequest
 from tmc_manipulation_msgs.srv import FilterJointTrajectoryWithConstraints
-from tmc_manipulation_msgs.srv import FilterJointTrajectoryWithConstraintsRequest
+from tmc_manipulation_msgs.srv import \
+    FilterJointTrajectoryWithConstraintsRequest
 from tmc_manipulation_msgs.srv import SelectConfig
 from tmc_manipulation_msgs.srv import SelectConfigRequest
+from trajectory_msgs.msg import JointTrajectory
+from trajectory_msgs.msg import JointTrajectoryPoint
 
-from hsrb_interface import trajectory
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import testing
 
 
 class TrajectoryTestCase(testing.RosMockTestCase):
+
     def trajectory_fixture(self):
         """Create a example joint trajectory"""
         traj = JointTrajectory()
@@ -62,6 +59,7 @@ class TrajectoryTestCase(testing.RosMockTestCase):
 
 
 class TrajectoryModuleTest(TrajectoryTestCase):
+
     def test_extract_ok(self):
         """Test hsrb_interface.trajectory.extract()"""
         traj = self.trajectory_fixture()
@@ -197,8 +195,9 @@ class TrajectoryModuleTest(TrajectoryTestCase):
             call('trajectory', 'constraint_filter_service'),
             call('trajectory', 'filter_timeout')
         ])
-        self.service_proxy_mock.assert_called_with("/filter_trajectory",
-                                                   FilterJointTrajectoryWithConstraints)
+        self.service_proxy_mock.assert_called_with(
+            "/filter_trajectory",
+            FilterJointTrajectoryWithConstraints)
         req = FilterJointTrajectoryWithConstraintsRequest()
         req.trajectory = traj
         req.allowed_time = rospy.Duration(10.0)
@@ -228,9 +227,10 @@ class TrajectoryModuleTest(TrajectoryTestCase):
 
 
 class TrajectoryControllerTest(TrajectoryTestCase):
+
     def test_creation_ok(self):
         # Create an instance of target class
-        controller = trajectory.TrajectoryController("test")
+        trajectory.TrajectoryController("test")
         self.action_client_mock.assert_called_with(
             "test/follow_joint_trajectory",
             FollowJointTrajectoryAction)
@@ -251,7 +251,7 @@ class TrajectoryControllerTest(TrajectoryTestCase):
     def test_cancel_ok(self):
         action_client_mock = self.action_client_mock.return_value
         controller = trajectory.TrajectoryController("test")
-        traj = self.trajectory_fixture()
+        self.trajectory_fixture()
         controller.cancel()
 
         # Check post-conditions
@@ -260,7 +260,7 @@ class TrajectoryControllerTest(TrajectoryTestCase):
     def test_get_state_ok(self):
         action_client_mock = self.action_client_mock.return_value
         controller = trajectory.TrajectoryController("test")
-        traj = self.trajectory_fixture()
+        self.trajectory_fixture()
         controller.get_state()
 
         # Check post-conditions
@@ -270,10 +270,12 @@ class TrajectoryControllerTest(TrajectoryTestCase):
         action_client_mock = self.action_client_mock.return_value
         expected_result = FollowJointTrajectoryResult()
         expected_result.error_code = FollowJointTrajectoryResult.SUCCESSFUL
-        action_client_mock.get_state.return_value = actionlib.GoalStatus.SUCCEEDED
-        action_client_mock.get_result.return_value = copy.deepcopy(expected_result)
+        action_client_mock.get_state.return_value = \
+            actionlib.GoalStatus.SUCCEEDED
+        action_client_mock.get_result.return_value = copy.deepcopy(
+            expected_result)
         controller = trajectory.TrajectoryController("test")
-        traj = self.trajectory_fixture()
+        self.trajectory_fixture()
         result = controller.get_result()
 
         # Check post-conditions
@@ -283,9 +285,10 @@ class TrajectoryControllerTest(TrajectoryTestCase):
 
 
 class ImpedanceControllerTest(TrajectoryTestCase):
+
     def test_creation_ok(self):
         # Create an instance of target class
-        controller = trajectory.ImpedanceController("test")
+        trajectory.ImpedanceController("test")
 
         # Check post-conditions
         self.action_client_mock.assert_called_with(
@@ -320,5 +323,3 @@ class ImpedanceControllerTest(TrajectoryTestCase):
         goal = FollowJointTrajectoryGoal()
         goal.trajectory = traj
         action_client_mock.send_goal.assert_called_with(goal)
-
-

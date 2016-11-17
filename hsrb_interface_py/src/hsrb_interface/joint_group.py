@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 # vim: fileencoding=utf-8
 """This module contains classes and functions to move joints."""
 
@@ -6,27 +7,23 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import sys
 import math
+import sys
 import warnings
 
-import actionlib
+from geometry_msgs.msg import Pose as RosPose
+from geometry_msgs.msg import TransformStamped
+
 import numpy as np
 import rospy
+
+from sensor_msgs.msg import JointState
+
 import tf.transformations as T
 import tf2_ros
-
-from geometry_msgs.msg import TransformStamped
-from geometry_msgs.msg import Pose as RosPose
-from sensor_msgs.msg import JointState
-from visualization_msgs.msg import Marker
-from visualization_msgs.msg import MarkerArray
-
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
 from tmc_manipulation_msgs.msg import BaseMovementType
 from tmc_planning_msgs.msg import JointPosition
-from trajectory_msgs.msg import JointTrajectory
-from trajectory_msgs.msg import JointTrajectoryPoint
 
 from tmc_planning_msgs.msg import TaskSpaceRegion
 from tmc_planning_msgs.srv import PlanWithHandGoals
@@ -38,14 +35,21 @@ from tmc_planning_msgs.srv import PlanWithJointGoalsRequest
 from tmc_planning_msgs.srv import PlanWithTsrConstraints
 from tmc_planning_msgs.srv import PlanWithTsrConstraintsRequest
 
+from trajectory_msgs.msg import JointTrajectory
+from trajectory_msgs.msg import JointTrajectoryPoint
+
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
+
 from . import collision_world
 from . import exceptions
-from . import trajectory
 from . import geometry
 from . import robot
-from . import settings
-from . import utils
 from . import robot_model
+from . import settings
+from . import trajectory
+from . import utils
+
 
 _DEBUG = False
 
@@ -187,14 +191,16 @@ class JointGroup(robot.Item):
         hand_config = self._setting["hand_controller_prefix"]
         self._hand_client = trajectory.TrajectoryController(hand_config)
         base_config = self._setting["omni_base_controller_prefix"]
-        self._base_client = trajectory.TrajectoryController(base_config,
-                                                            "/base_coordinates")
+        self._base_client = trajectory.TrajectoryController(
+            base_config,
+            "/base_coordinates")
         imp_config = settings.get_entry("trajectory", "impedance_control")
         self._impedance_client = trajectory.ImpedanceController(imp_config)
         joint_state_topic = self._setting["joint_states_topic"]
-        self._joint_state_sub = utils.CachingSubscriber(joint_state_topic,
-                                                        JointState,
-                                                        default=JointState())
+        self._joint_state_sub = utils.CachingSubscriber(
+            joint_state_topic,
+            JointState,
+            default=JointState())
         timeout = self._setting.get('timeout', None)
         self._joint_state_sub.wait_for_message(timeout)
         self._tf2_buffer = robot._get_tf2_buffer()
@@ -482,11 +488,11 @@ class JointGroup(robot.Item):
                 A transform from robot ``odom`` to ``ref_frame_id``.
         """
         odom_to_ref_ros = self._tf2_buffer.lookup_transform(
-                              settings.get_frame('odom'),
-                              ref_frame_id,
-                              rospy.Time(0),
-                              rospy.Duration(_TF_TIMEOUT)
-                          ).transform
+            settings.get_frame('odom'),
+            ref_frame_id,
+            rospy.Time(0),
+            rospy.Duration(_TF_TIMEOUT)
+        ).transform
         odom_to_ref_tuples = geometry.transform_to_tuples(odom_to_ref_ros)
         return geometry.tuples_to_pose(odom_to_ref_tuples)
 
@@ -513,7 +519,8 @@ class JointGroup(robot.Item):
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('base')
 
-        odom_to_robot_pose = self._lookup_odom_to_ref(settings.get_frame('base'))
+        odom_to_robot_pose = self._lookup_odom_to_ref(
+            settings.get_frame('base'))
 
         odom_to_ref_transform = self._tf2_buffer.lookup_transform(
             settings.get_frame('odom'),
@@ -586,7 +593,8 @@ class JointGroup(robot.Item):
             else:
                 end_effector_frame = ref_frame_id
 
-        odom_to_robot_pose = self._lookup_odom_to_ref(settings.get_frame('base'))
+        odom_to_robot_pose = self._lookup_odom_to_ref(
+            settings.get_frame('base'))
 
         req = PlanWithHandLineRequest()
         req.base_movement_type.val = BaseMovementType.PLANAR
@@ -659,18 +667,21 @@ class JointGroup(robot.Item):
         pose1_to_axis = geometry.multiply_tuples(_invert_pose(origin_to_pose1),
                                                  origin_to_axis)
         pose1_to_axis = geometry.Pose((0, 0, 0), pose1_to_axis[1])
-        origin_to_tsr = geometry.multiply_tuples(origin_to_pose1, pose1_to_axis)
+        origin_to_tsr = geometry.multiply_tuples(
+            origin_to_pose1, pose1_to_axis)
         tsr_to_pose1 = _invert_pose(pose1_to_axis)
 
         if _DEBUG:
             print("AXIS     ", move_axis)
             print("DISTANCE ", distance)
             print("ORIGIN   ", origin_to_pose1)
-            print("CALCUD   ", geometry.multiply_tuples(origin_to_tsr, tsr_to_pose1))
+            print("CALCUD   ", geometry.multiply_tuples(
+                origin_to_tsr, tsr_to_pose1))
 
             margin = 0.1
             marker_pose = geometry.multiply_tuples(origin_to_tsr,
-                                                geometry.pose(x=distance/2.0))
+                                                   geometry.pose(
+                                                       x=distance / 2.0))
             marker = Marker()
             marker.header.frame_id = 'odom'
             marker.header.stamp = rospy.Time.now()
@@ -759,7 +770,7 @@ class JointGroup(robot.Item):
 
         # Line constraint
         tsr_c = TaskSpaceRegion()
-        tsr_c.end_frame_id  = bytes(self.end_effector_frame)
+        tsr_c.end_frame_id = bytes(self.end_effector_frame)
         tsr_c.origin_to_tsr = geometry.tuples_to_pose(origin_to_tsr)
         tsr_c.tsr_to_end = geometry.tuples_to_pose(tsr_to_pose1)
         tsr_c.min_bounds = [0, 0, 0, -math.pi, -math.pi, -math.pi]

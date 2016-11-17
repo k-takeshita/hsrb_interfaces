@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 # vim: fileencoding=utf-8
 """This module provides classes and functions to manage connections to robots.
 
@@ -8,14 +9,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import sys
-import warnings
-import weakref
-
 import enum
 import importlib
 
+import sys
+
+import warnings
+import weakref
+
 import rospy
+
 import tf2_ros
 
 from . import exceptions

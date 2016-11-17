@@ -1,11 +1,12 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface.text_to_speech module"""
-from mock import patch
-from nose.tools import eq_
-from nose.tools import raises
-
 import hsrb_interface
 import hsrb_interface.exceptions
 import hsrb_interface.text_to_speech
+
+from mock import patch
+from nose.tools import eq_
+from nose.tools import raises
 
 from tmc_msgs.msg import Voice
 
