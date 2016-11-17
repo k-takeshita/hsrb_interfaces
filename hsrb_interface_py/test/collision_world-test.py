@@ -46,7 +46,12 @@ class CollisionWorldTest(testing.RosMockTestCase):
                                                 callback=ANY)
 
     def create(self):
-        """Create a CollisionWorld instance""" self.get_frame_mock.return_value = 'map' self.get_entry_mock.return_value = { "class": ["collision_world", "CollisionWorld"], "service": "/get_collision_environment", "control_topic": "/known_object",
+        """Create a CollisionWorld instance"""
+        self.get_frame_mock.return_value = 'map'
+        self.get_entry_mock.return_value = {
+            "class": ["collision_world", "CollisionWorld"],
+            "service": "/get_collision_environment",
+            "control_topic": "/known_object",
             "listing_topic": "/known_object_ids",
         }
         return hsrb_interface.collision_world.CollisionWorld('test')
