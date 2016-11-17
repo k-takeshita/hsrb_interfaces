@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
+# Copyright (C) 2016 Toyota Motor Corporation
 """Test collision_world object."""
 
 import math

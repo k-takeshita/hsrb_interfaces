@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface.text_to_speech module"""
 import hsrb_interface
 import hsrb_interface.exceptions

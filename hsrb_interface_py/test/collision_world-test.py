@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for collision_world module"""
 from __future__ import absolute_import
 

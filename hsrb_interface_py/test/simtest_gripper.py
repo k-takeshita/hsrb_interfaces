@@ -1,6 +1,6 @@
-# Copyright (C) 2016 Toyota Motor Corporation
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
+# Copyright (C) 2016 Toyota Motor Corporation
 """Test gripper interface in Gazebo simlulator."""
 
 import testing

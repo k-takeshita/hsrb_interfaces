@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface.utils module."""
 
 from hsrb_interface import utils

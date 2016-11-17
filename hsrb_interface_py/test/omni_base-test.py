@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface.mobile_base module"""
 import actionlib
 

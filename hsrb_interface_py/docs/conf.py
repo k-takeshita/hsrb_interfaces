@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 # -*- coding: utf-8 -*-
 #
 # HSR Interface for Python documentation build configuration file, created by

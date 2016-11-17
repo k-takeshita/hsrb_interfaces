@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 from urdf_parser_py import urdf
 from urdf_parser_py.urdf import xmlr
 

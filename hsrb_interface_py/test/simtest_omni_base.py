@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8 :
+# Copyright (C) 2016 Toyota Motor Corporation
 """Testing autonomous navigation interface in Gazebo simulator.
 
 A tf frame 'my_frame' is published as::

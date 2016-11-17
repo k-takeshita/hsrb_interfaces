@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest hsrb_interface.robot module."""
 import hsrb_interface
 import hsrb_interface.robot

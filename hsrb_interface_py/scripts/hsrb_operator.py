@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (C) 2016 Toyota Motor Corporation
 
 from hsrb_interface import Robot
 

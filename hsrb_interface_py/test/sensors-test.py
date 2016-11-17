@@ -1,3 +1,4 @@
+# Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for sensor objects."""
 from geometry_msgs.msg import WrenchStamped
 import hsrb_interface.sensors
