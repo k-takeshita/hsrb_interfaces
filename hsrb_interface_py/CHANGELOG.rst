@@ -2,6 +2,12 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Update copyright
+* use pep8 style.
+* Contributors: Akiyoshi Ochiai, 寺田　耕志, 西野 環
+
 0.8.0 (2016-09-28)
 ------------------
 * Implements move_cartesian_path
