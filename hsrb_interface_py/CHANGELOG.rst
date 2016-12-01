@@ -2,8 +2,8 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.8.1 (2016-12-01)
+------------------
 * Update copyright
 * use pep8 style.
 * Contributors: Akiyoshi Ochiai, 寺田　耕志, 西野 環
