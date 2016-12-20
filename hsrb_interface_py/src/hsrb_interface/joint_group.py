@@ -341,6 +341,7 @@ class JointGroup(robot.Item):
             None
         Raises:
             ValueError: Some specified joints are not found.
+            ValueError: Target joints include some uncontrollable joints.
         """
         # Validate joint names
         initial_joint_state = self._get_joint_state()
@@ -350,6 +351,9 @@ class JointGroup(robot.Item):
             unknown_set = target_joint_set.difference(active_joint_set)
             msg = "No such joint(s): [{0}]".format(', '.join(unknown_set))
             raise ValueError(msg)
+        if 'base_roll_joint' in target_joint_set:
+            raise ValueError(
+                "base_roll_joint is not supported in change_joint_state")
 
         odom_to_robot_transform = self._tf2_buffer.lookup_transform(
             settings.get_frame('odom'),

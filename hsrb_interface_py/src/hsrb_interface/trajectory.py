@@ -8,26 +8,31 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import copy
+from itertools import repeat
 import traceback
 
-from itertools import repeat
-from trajectory_msgs.msg import JointTrajectory
-from trajectory_msgs.msg import JointTrajectoryPoint
 import actionlib
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
 from control_msgs.msg import FollowJointTrajectoryResult
-from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
-from tmc_manipulation_msgs.srv import FilterJointTrajectory
-from tmc_manipulation_msgs.srv import FilterJointTrajectoryRequest
-from tmc_manipulation_msgs.srv import FilterJointTrajectoryWithConstraints
-from tmc_manipulation_msgs.srv import FilterJointTrajectoryWithConstraintsRequest
-from tmc_manipulation_msgs.srv import SelectConfig
-from tmc_manipulation_msgs.srv import SelectConfigRequest
+
 import rospy
-from . import utils
+
+from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
+from tmc_manipulation_msgs.srv import (
+    FilterJointTrajectory,
+    FilterJointTrajectoryRequest,
+    FilterJointTrajectoryWithConstraints,
+    FilterJointTrajectoryWithConstraintsRequest,
+    SelectConfig,
+    SelectConfigRequest,
+)
+from trajectory_msgs.msg import JointTrajectory
+from trajectory_msgs.msg import JointTrajectoryPoint
+
 from . import exceptions
 from . import settings
+from . import utils
 
 
 def extract(trajectory, joint_names, joint_state):
