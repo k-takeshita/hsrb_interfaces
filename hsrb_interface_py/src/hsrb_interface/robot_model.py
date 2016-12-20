@@ -1,5 +1,6 @@
 # Copyright (C) 2016 Toyota Motor Corporation
 from urdf_parser_py import urdf
+from urdf_parser_py.urdf import Robot as RobotModel
 from urdf_parser_py.urdf import xmlr
 
 # Monkeypatching urdf_parser_py (1)
@@ -49,6 +50,4 @@ urdf.Material.check_valid = lambda self: None
 urdf.Actuator.hardwareInterfaces = []
 urdf.Actuator.get_aggregate_list = _get_aggregate_list
 
-from urdf_parser_py.urdf import Robot as RobotModel
-
-__all__ = (RobotModel)
+__all__ = ('RobotModel',)

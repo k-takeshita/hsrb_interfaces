@@ -8,10 +8,11 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from cv_bridge import CvBridge
+from geometry_msgs.msg import WrenchStamped
+
 import numpy as np
 import rospy
 
-from geometry_msgs.msg import WrenchStamped
 from sensor_msgs.msg import Image as ROSImage
 from sensor_msgs.msg import Imu as ROSImu
 from sensor_msgs.msg import LaserScan as ROSLaserScan
