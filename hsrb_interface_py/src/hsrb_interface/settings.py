@@ -63,6 +63,10 @@ _HSRB_SETTINGS = """
             "end_effector_frames": [
                 "hand_palm_link",
                 "hand_l_finger_vacuum_frame"
+            ],
+            "passive_joints": [
+                "hand_r_spring_proximal_joint",
+                "hand_l_spring_proximal_joint"
             ]
         }
     },

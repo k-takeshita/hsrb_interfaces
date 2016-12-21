@@ -206,6 +206,7 @@ class JointGroup(robot.Item):
         self._tf2_buffer = robot._get_tf2_buffer()
         self._end_effector_frames = self._setting['end_effector_frames']
         self._end_effector_frame = self._end_effector_frames[0]
+        self._passive_joints = self._setting['passive_joints']
         self._robot_urdf = robot_model.RobotModel.from_parameter_server()
 
         self._collision_world = None
@@ -354,6 +355,11 @@ class JointGroup(robot.Item):
         if 'base_roll_joint' in target_joint_set:
             raise ValueError(
                 "base_roll_joint is not supported in change_joint_state")
+        passive_joint_set = set(self._passive_joints)
+        if not target_joint_set.isdisjoint(passive_joint_set):
+            intersected = target_joint_set.intersection(passive_joint_set)
+            msg = "Passive joint(s): [{0}]".format(', '.join(intersected))
+            raise ValueError(msg)
 
         odom_to_robot_transform = self._tf2_buffer.lookup_transform(
             settings.get_frame('odom'),
@@ -959,6 +965,10 @@ class JointGroup(robot.Item):
         for joint in joint_traj.joint_names:
             if joint in self._head_client.joint_names:
                 clients.append(self._head_client)
+                break
+        for joint in joint_traj.joint_names:
+            if joint in self._hand_client.joint_names:
+                clients.append(self._hand_client)
                 break
 
         joint_states = self._get_joint_state()
