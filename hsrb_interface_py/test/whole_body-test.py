@@ -401,6 +401,16 @@ class WholeBodyTest(testing.RosMockTestCase):
         self.service_proxy_mock.assert_called_with(service, PlanWithHandLine)
         plan_service_proxy_mock.call.assert_called_with(ANY)
 
+    @raises(ValueError)
+    def test_move_end_effector_by_line_ng(self):
+        # Setup pre-conditions
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.move_end_effector_by_line(axis=(0, 0, 0), distance=0.1)
+
     def test_inverse_pose(self):
         pose = geometry.pose(1, 2, 3)
         inv = joint_group._invert_pose(pose)

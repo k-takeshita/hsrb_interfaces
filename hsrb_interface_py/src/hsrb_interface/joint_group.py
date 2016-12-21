@@ -578,6 +578,9 @@ class JointGroup(robot.Item):
         Returns:
             None
         """
+        axis_length = np.linalg.norm(np.array(axis, dtype='float64'))
+        if axis_length < sys.float_info.epsilon:
+            raise ValueError("The axis is zero vector.")
         use_joints = (
             b'wrist_flex_joint',
             b'wrist_roll_joint',
