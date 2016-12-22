@@ -119,6 +119,10 @@ class WholeBodyTest(testing.RosMockTestCase):
             "end_effector_frames": [
                 "hand_palm_link",
                 "hand_l_finger_vacuum_frame"
+            ],
+            "passive_joints": [
+                "hand_r_spring_proximal_joint",
+                "hand_l_spring_proximal_joint"
             ]
         }
         self.trajectory_setting = {
@@ -345,6 +349,16 @@ class WholeBodyTest(testing.RosMockTestCase):
         ]
         whole_body = JointGroup('whole_body')
         whole_body.move_to_joint_positions({'base_roll_joint': 1.0})
+
+    @raises(ValueError)
+    def test_move_to_passive_joint(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.move_to_joint_positions(
+            {'hand_r_spring_proximal_joint': 1.0})
 
     def test_move_end_effector_pose_ok(self):
         # Setup pre-conditions
