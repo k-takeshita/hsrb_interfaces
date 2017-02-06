@@ -288,7 +288,11 @@ class JointGroup(robot.Item):
 
     @planning_timeout.setter
     def planning_timeout(self, value):
-        self._planning_timeout = value
+        f_value = float(value)
+        if f_value > 0.0:
+            self._planning_timeout = f_value
+        else:
+            raise ValueError("value should be positive")
 
     @property
     def impedance_config(self):
