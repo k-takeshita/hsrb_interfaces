@@ -272,7 +272,11 @@ class JointGroup(robot.Item):
 
     @linear_weight.setter
     def linear_weight(self, value):
-        self._linear_weight = value
+        f_value = float(value)
+        if f_value > 0.0:
+            self._linear_weight = f_value
+        else:
+            raise ValueError("value should be positive")
 
     @property
     def angular_weight(self):
@@ -280,7 +284,11 @@ class JointGroup(robot.Item):
 
     @angular_weight.setter
     def angular_weight(self, value):
-        self._angular_weight = value
+        f_value = float(value)
+        if f_value > 0.0:
+            self._angular_weight = f_value
+        else:
+            raise ValueError("value should be positive")
 
     @property
     def planning_timeout(self):
