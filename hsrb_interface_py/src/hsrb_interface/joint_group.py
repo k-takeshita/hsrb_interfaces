@@ -214,6 +214,7 @@ class JointGroup(robot.Item):
         self._angular_weight = 1.0
         self._planning_timeout = _PLANNING_ARM_TIMEOUT
         self._use_base_timeopt = True
+        self._tf_timeout = _TF_TIMEOUT
 
         if _DEBUG:
             self._vis_pub = rospy.Publisher("tsr_marker", MarkerArray,
@@ -311,6 +312,14 @@ class JointGroup(robot.Item):
         self._use_base_timeopt = value
 
     @property
+    def tf_timeout(self):
+        return self._tf_timeout
+
+    @tf_timeout.setter
+    def tf_timeout(self, value):
+        self._tf_timeout = float(value)
+
+    @property
     def end_effector_frame(self):
         """Get or set the target end effector frame of motion planning.
 
@@ -365,7 +374,7 @@ class JointGroup(robot.Item):
             settings.get_frame('odom'),
             settings.get_frame('base'),
             rospy.Time(0),
-            rospy.Duration(_TF_TIMEOUT)
+            rospy.Duration(self._tf_timeout)
         )
         odom_to_robot_tuples = geometry.transform_to_tuples(
             odom_to_robot_transform.transform
@@ -485,7 +494,7 @@ class JointGroup(robot.Item):
             ref_frame_id,
             self._end_effector_frame,
             rospy.Time(0),
-            rospy.Duration(_TF_TIMEOUT)
+            rospy.Duration(self._tf_timeout)
         )
         result = geometry.transform_to_tuples(transform.transform)
         return result
@@ -501,7 +510,7 @@ class JointGroup(robot.Item):
             settings.get_frame('odom'),
             ref_frame_id,
             rospy.Time(0),
-            rospy.Duration(_TF_TIMEOUT)
+            rospy.Duration(self._tf_timeout)
         ).transform
         odom_to_ref_tuples = geometry.transform_to_tuples(odom_to_ref_ros)
         return geometry.tuples_to_pose(odom_to_ref_tuples)
@@ -536,7 +545,7 @@ class JointGroup(robot.Item):
             settings.get_frame('odom'),
             ref_frame_id,
             rospy.Time(0),
-            rospy.Duration(_TF_TIMEOUT)
+            rospy.Duration(self._tf_timeout)
         ).transform
         odom_to_ref = geometry.transform_to_tuples(odom_to_ref_transform)
         odom_to_hand = geometry.multiply_tuples(odom_to_ref, pose)
@@ -873,7 +882,7 @@ class JointGroup(robot.Item):
             _BASE_TRAJECTORY_ORIGIN,
             base_traj.header.frame_id,
             rospy.Time(0),
-            rospy.Duration(_TF_TIMEOUT))
+            rospy.Duration(self._tf_timeout))
         odom_to_frame = geometry.transform_to_tuples(
             odom_to_frame_transform.transform)
 
