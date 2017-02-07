@@ -297,6 +297,24 @@ class WholeBodyTest(testing.RosMockTestCase):
         eq_(whole_body.joint_limits, expected)
 
     @raises(ValueError)
+    def test_planning_timeout_non_value(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.planning_timeout = "hoge"
+
+    @raises(ValueError)
+    def test_planning_timeout_negative(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.planning_timeout = -1.0
+
+    @raises(ValueError)
     def test_linear_weight_non_value(self):
         self.get_entry_mock.side_effect = [
             self.joint_group_setting,
