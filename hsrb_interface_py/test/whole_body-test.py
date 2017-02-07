@@ -314,6 +314,42 @@ class WholeBodyTest(testing.RosMockTestCase):
         whole_body = JointGroup('whole_body')
         whole_body.planning_timeout = -1.0
 
+    @raises(ValueError)
+    def test_linear_weight_non_value(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.linear_weight = "hoge"
+
+    @raises(ValueError)
+    def test_linear_weight_negative(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.linear_weight = -1.0
+
+    @raises(ValueError)
+    def test_angular_weight_non_value(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.angular_weight = "hoge"
+
+    @raises(ValueError)
+    def test_angular_weight_negative(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.angular_weight = -1.0
+
     def test_get_end_effector_pose(self):
         # Setup pre-conditions
         self.get_entry_mock.side_effect = [
