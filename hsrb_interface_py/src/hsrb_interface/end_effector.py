@@ -161,6 +161,9 @@ class Suction(object):
         Returns:
             None
         """
+        if command < 0:
+            msg = "'{0}' is not defined.".format(command)
+            raise ValueError(msg)
         msg = Bool()
         msg.data = command
         self._pub.publish(msg)
