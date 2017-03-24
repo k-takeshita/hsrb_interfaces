@@ -101,7 +101,7 @@ class Gripper(robot.Item):
 
         Args:
             effort (float): Force applied to grasping [Nm]
-                            The range is -1[Nm] < effort < 1[Nm]
+                            The range is -1[Nm] < effort < 0[Nm]
 
         Returns:
             None
