@@ -2,6 +2,21 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add suction command normal test
+* add suction command test
+* add suction_command input check
+* add interfaces to set/get tf timeout
+* Check whether planning weights are valid or not
+* Check whether planning_timeout is valid or not
+* Add interfaces to set/get tf timeout
+* JointGroup.move_end_effector_by_line rejects zero vector axis
+* JointGroup control hand_motor_joint
+* apply pep8
+* change_joint_state() reject base_roll_joint
+* Contributors: Keisuke Takeshita, takuyaikeda, 寺田 耕志, 水野 貴文
+
 0.8.1 (2016-12-01)
 ------------------
 * Update copyright
