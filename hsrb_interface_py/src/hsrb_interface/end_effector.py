@@ -100,7 +100,8 @@ class Gripper(robot.Item):
         """Command a gripper to execute grasping move.
 
         Args:
-            effort (float): Force applied to grasping [?]
+            effort (float): Force applied to grasping [Nm]
+                            The range is -1[Nm] < effort < 0[Nm]
 
         Returns:
             None
