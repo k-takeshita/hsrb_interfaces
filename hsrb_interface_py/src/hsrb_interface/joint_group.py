@@ -382,31 +382,11 @@ class JointGroup(robot.Item):
             msg = "Passive joint(s): [{0}]".format(', '.join(intersected))
             raise ValueError(msg)
 
-        odom_to_robot_transform = self._tf2_buffer.lookup_transform(
-            settings.get_frame('odom'),
-            settings.get_frame('base'),
-            rospy.Time(0),
-            rospy.Duration(self._tf_timeout)
-        )
-        odom_to_robot_tuples = geometry.transform_to_tuples(
-            odom_to_robot_transform.transform
-        )
-        odom_to_robot_pose = geometry.tuples_to_pose(odom_to_robot_tuples)
-
-        req = PlanWithJointGoalsRequest()
+        req = self._generate_planning_request(PlanWithJointGoalsRequest)
         goal_position = JointPosition()
         goal_position.position = goal_state.position
-
-        req.origin_to_basejoint = odom_to_robot_pose
-        req.initial_joint_state = initial_joint_state
         req.use_joints = goal_state.name
         req.goal_joint_states.append(goal_position)
-        req.timeout = rospy.Duration(self._planning_timeout)
-        req.max_iteration = _PLANNING_MAX_ITERATION
-        req.base_movement_type.val = BaseMovementType.ROTATION_Z
-        if self._collision_world is not None:
-            snapshot = self._collision_world.snapshot('odom')
-            req.environment_before_planning = snapshot
 
         service_name = self._setting['plan_with_joint_goals_service']
         plan_service = rospy.ServiceProxy(service_name, PlanWithJointGoals)
@@ -538,48 +518,18 @@ class JointGroup(robot.Item):
         Returns:
             None
         """
-        use_joints = (
-            b'wrist_flex_joint',
-            b'wrist_roll_joint',
-            b'arm_roll_joint',
-            b'arm_flex_joint',
-            b'arm_lift_joint'
-        )
-
         # Default is the robot frame (the base frame)
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('base')
 
-        odom_to_robot_pose = self._lookup_odom_to_ref(
-            settings.get_frame('base'))
-
-        odom_to_ref_transform = self._tf2_buffer.lookup_transform(
-            settings.get_frame('odom'),
-            ref_frame_id,
-            rospy.Time(0),
-            rospy.Duration(self._tf_timeout)
-        ).transform
-        odom_to_ref = geometry.transform_to_tuples(odom_to_ref_transform)
+        odom_to_ref_pose = self._lookup_odom_to_ref(ref_frame_id)
+        odom_to_ref = geometry.pose_to_tuples(odom_to_ref_pose)
         odom_to_hand = geometry.multiply_tuples(odom_to_ref, pose)
         odom_to_hand_pose = geometry.tuples_to_pose(odom_to_hand)
 
-        req = PlanWithHandGoalsRequest()
-        req.base_movement_type.val = BaseMovementType.PLANAR
-        req.origin_to_basejoint = odom_to_robot_pose
-        req.initial_joint_state = self._get_joint_state()
-        req.use_joints = use_joints
-        req.weighted_joints = [b'_linear_base', b'_rotational_base']
-        req.weight = [self._linear_weight, self._angular_weight]
+        req = self._generate_planning_request(PlanWithHandGoalsRequest)
         req.origin_to_hand_goals.append(odom_to_hand_pose)
         req.ref_frame_id = self._end_effector_frame
-        req.probability_goal_generate = _PLANNING_GOAL_GENERATION
-        req.timeout = rospy.Duration(self._planning_timeout)
-        req.max_iteration = _PLANNING_MAX_ITERATION
-        req.uniform_bound_sampling = False
-        req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
-        if self._collision_world is not None:
-            snapshot = self._collision_world.snapshot('odom')
-            req.environment_before_planning = snapshot
 
         service_name = self._setting['plan_with_hand_goals_service']
         plan_service = rospy.ServiceProxy(service_name,
@@ -608,13 +558,6 @@ class JointGroup(robot.Item):
         axis_length = np.linalg.norm(np.array(axis, dtype='float64'))
         if axis_length < sys.float_info.epsilon:
             raise ValueError("The axis is zero vector.")
-        use_joints = (
-            b'wrist_flex_joint',
-            b'wrist_roll_joint',
-            b'arm_roll_joint',
-            b'arm_flex_joint',
-            b'arm_lift_joint'
-        )
         if ref_frame_id is None:
             end_effector_frame = self._end_effector_frame
         else:
@@ -627,32 +570,13 @@ class JointGroup(robot.Item):
             else:
                 end_effector_frame = ref_frame_id
 
-        odom_to_robot_pose = self._lookup_odom_to_ref(
-            settings.get_frame('base'))
-
-        req = PlanWithHandLineRequest()
-        req.base_movement_type.val = BaseMovementType.PLANAR
-        req.origin_to_basejoint = odom_to_robot_pose
-        req.initial_joint_state = self._get_joint_state()
-        req.use_joints = use_joints
-        req.weighted_joints = [b'_linear_base', b'_rotational_base']
-        req.weight = [self._linear_weight, self._angular_weight]
+        req = self._generate_planning_request(PlanWithHandLineRequest)
         req.axis.x = axis[0]
         req.axis.y = axis[1]
         req.axis.z = axis[2]
         req.local_origin_of_axis = True
         req.ref_frame_id = end_effector_frame
         req.goal_value = distance
-        req.probability_goal_generate = _PLANNING_GOAL_GENERATION
-        req.attached_objects = []
-        req.timeout = rospy.Duration(self._planning_timeout)
-        req.max_iteration = _PLANNING_MAX_ITERATION
-        req.uniform_bound_sampling = False
-        req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
-        req.extra_goal_constraints = []
-        if self._collision_world is not None:
-            snapshot = self._collision_world.snapshot('odom')
-            req.environment_before_planning = snapshot
 
         service_name = self._setting['plan_with_hand_line_service']
         plan_service = rospy.ServiceProxy(service_name,
@@ -669,29 +593,11 @@ class JointGroup(robot.Item):
     def _plan_cartesian_path(self, origin_to_pose1, origin_to_pose2,
                              odom_to_robot_pose,
                              initial_joint_state, collision_env):
-        use_joints = (
-            b'wrist_flex_joint',
-            b'wrist_roll_joint',
-            b'arm_roll_joint',
-            b'arm_flex_joint',
-            b'arm_lift_joint'
-        )
-
-        req = PlanWithTsrConstraintsRequest()
+        req = self._generate_planning_request(PlanWithTsrConstraintsRequest)
         req.origin_to_basejoint = odom_to_robot_pose
         req.initial_joint_state = initial_joint_state
-        req.base_movement_type.val = BaseMovementType.PLANAR
-        req.use_joints = use_joints
-        req.weighted_joints = [b'_linear_base', b'_rotational_base']
-        req.weight = [self._linear_weight, self._angular_weight]
-        req.probability_goal_generate = _PLANNING_GOAL_GENERATION
-        req.attached_objects = []
         if collision_env is not None:
             req.environment_before_planning = collision_env
-        req.timeout = rospy.Duration(self._planning_timeout)
-        req.max_iteration = _PLANNING_MAX_ITERATION
-        req.uniform_bound_sampling = False
-        req.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
         req.extra_constraints = []
         req.extra_goal_constraints = []
 
@@ -879,6 +785,46 @@ class JointGroup(robot.Item):
         base_traj.header.frame_id = settings.get_frame('odom')
         constrained_traj = self._constrain_trajectories(arm_traj, base_traj)
         self._execute_trajectory(constrained_traj)
+
+    def _generate_planning_request(self, request_type):
+        """Generate a planning request and assign common parameters to it
+
+        Args:
+            request_type (Types): A type of "planning service request"
+
+        Retruns:
+            "planning service request": An instance with common parameters
+        """
+        request = request_type()
+        request.origin_to_basejoint = self._lookup_odom_to_ref(
+            settings.get_frame('base'))
+        request.initial_joint_state = self._get_joint_state()
+        request.timeout = rospy.Duration(self._planning_timeout)
+        request.max_iteration = _PLANNING_MAX_ITERATION
+        if self._collision_world is not None:
+            snapshot = self._collision_world.snapshot(
+                settings.get_frame('odom'))
+            request.environment_before_planning = snapshot
+
+        if request_type is PlanWithJointGoalsRequest:
+            request.base_movement_type.val = BaseMovementType.ROTATION_Z
+            return request
+        else:
+            use_joints = (
+                b'wrist_flex_joint',
+                b'wrist_roll_joint',
+                b'arm_roll_joint',
+                b'arm_flex_joint',
+                b'arm_lift_joint'
+            )
+            request.use_joints = use_joints
+            request.base_movement_type.val = BaseMovementType.PLANAR
+            request.uniform_bound_sampling = False
+            request.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
+            request.probability_goal_generate = _PLANNING_GOAL_GENERATION
+            request.weighted_joints = ['_linear_base', '_rotational_base']
+            request.weight = [self._linear_weight, self._angular_weight]
+            return request
 
     def _transform_base_trajectory(self, base_traj):
         """Transform a base trajectory to an ``odom`` frame based trajectory.
