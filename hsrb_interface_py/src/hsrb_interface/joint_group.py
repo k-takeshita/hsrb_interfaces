@@ -178,6 +178,9 @@ class JointGroup(robot.Item):
             Default is None.
         use_base_timeopt (bool):
             If true, time-optimal filter is applied to a base trajectory.
+        looking_hand_constraint (bool):
+            If true, the robot hand is in the robot view after the execution
+            of move_end_effector_*.
     """
 
     def __init__(self, name):
@@ -214,6 +217,7 @@ class JointGroup(robot.Item):
         self._angular_weight = 1.0
         self._planning_timeout = _PLANNING_ARM_TIMEOUT
         self._use_base_timeopt = True
+        self._looking_hand_constraint = False
         self._tf_timeout = _TF_TIMEOUT
 
         if _DEBUG:
@@ -353,6 +357,14 @@ class JointGroup(robot.Item):
     @property
     def end_effector_frames(self):
         return tuple(self._end_effector_frames)
+
+    @property
+    def looking_hand_constraint(self):
+        return self._looking_hand_constraint
+
+    @looking_hand_constraint.setter
+    def looking_hand_constraint(self, value):
+        self._looking_hand_constraint = value
 
     def _change_joint_state(self, goal_state):
         """Move joints to specified joint state while checking self collision.
@@ -810,13 +822,17 @@ class JointGroup(robot.Item):
             request.base_movement_type.val = BaseMovementType.ROTATION_Z
             return request
         else:
-            use_joints = (
-                b'wrist_flex_joint',
-                b'wrist_roll_joint',
-                b'arm_roll_joint',
-                b'arm_flex_joint',
-                b'arm_lift_joint'
+            use_joints = set([b'wrist_flex_joint',
+                              b'wrist_roll_joint',
+                              b'arm_roll_joint',
+                              b'arm_flex_joint',
+                              b'arm_lift_joint']
             )
+            if self._looking_hand_constraint:
+                use_joints.update(
+                    self._setting['looking_hand_constraint']['use_joints'])
+                request.extra_goal_constraints.append(
+                    self._setting['looking_hand_constraint']['plugin_name'])
             request.use_joints = use_joints
             request.base_movement_type.val = BaseMovementType.PLANAR
             request.uniform_bound_sampling = False
