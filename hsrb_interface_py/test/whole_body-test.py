@@ -425,7 +425,7 @@ class WholeBodyTest(testing.RosMockTestCase):
         whole_body.move_to_joint_positions(
             {'hand_r_spring_proximal_joint': 1.0})
 
-    def test_move_end_effector_pose_ok(self):
+    def test_move_end_effector_pose_single(self):
         # Setup pre-conditions
         self.get_entry_mock.side_effect = [
             self.joint_group_setting,
@@ -452,6 +452,41 @@ class WholeBodyTest(testing.RosMockTestCase):
         service = self.joint_group_setting["plan_with_hand_goals_service"]
         self.service_proxy_mock.assert_called_with(service, PlanWithHandGoals)
         plan_service_proxy_mock.call.assert_called_with(ANY)
+
+        request = plan_service_proxy_mock.call.call_args[0][0]
+        eq_(len(request.origin_to_hand_goals), 1)
+
+    def test_move_end_effector_pose_multi(self):
+        # Setup pre-conditions
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+
+        odom_to_robot_transform, odom_to_hand_transform = \
+            self.initial_tf_fixtures()
+        self.tf2_buffer_mock.lookup_transform.side_effect = [
+            odom_to_robot_transform,
+            odom_to_hand_transform,
+        ]
+        plan_service_proxy_mock = self.service_proxy_mock.return_value
+        plan_result_mock = MagicMock()
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
+        type(plan_result_mock.error_code).val = error_code_mock
+        plan_service_proxy_mock.call.return_value = plan_result_mock
+
+        whole_body = JointGroup('whole_body')
+        whole_body.move_end_effector_pose([geometry.pose(1, 0, 1),
+                                           geometry.pose(2, 1, 0)])
+
+        # Check post-conditions
+        service = self.joint_group_setting["plan_with_hand_goals_service"]
+        self.service_proxy_mock.assert_called_with(service, PlanWithHandGoals)
+        plan_service_proxy_mock.call.assert_called_with(ANY)
+
+        request = plan_service_proxy_mock.call.call_args[0][0]
+        eq_(len(request.origin_to_hand_goals), 2)
 
     def test_move_end_effector_by_line_ok(self):
         # Setup pre-conditions

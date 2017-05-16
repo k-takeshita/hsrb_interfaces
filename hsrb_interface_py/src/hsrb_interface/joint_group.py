@@ -521,8 +521,8 @@ class JointGroup(robot.Item):
         """Move an end effector to a given pose.
 
         Args
-            pose (Tuple[Vector3, Quaternion]):
-                A target pose of the end effector frame.
+            pose (geometry.Pose or list(geometry.Pose)):
+                The target pose(s) of the end effector frame.
             ref_frame_id (str): A base frame of an end effector.
                 The default is the robot frame(```base_footprint``).
         Returns:
@@ -532,13 +532,20 @@ class JointGroup(robot.Item):
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('base')
 
+        if isinstance(pose, list):
+            ref_to_hand_poses = pose
+        else:
+            ref_to_hand_poses = [pose]
+
         odom_to_ref_pose = self._lookup_odom_to_ref(ref_frame_id)
         odom_to_ref = geometry.pose_to_tuples(odom_to_ref_pose)
-        odom_to_hand = geometry.multiply_tuples(odom_to_ref, pose)
-        odom_to_hand_pose = geometry.tuples_to_pose(odom_to_hand)
+        odom_to_hand_poses = []
+        for ref_to_hand in ref_to_hand_poses:
+            odom_to_hand = geometry.multiply_tuples(odom_to_ref, ref_to_hand)
+            odom_to_hand_poses.append(geometry.tuples_to_pose(odom_to_hand))
 
         req = self._generate_planning_request(PlanWithHandGoalsRequest)
-        req.origin_to_hand_goals.append(odom_to_hand_pose)
+        req.origin_to_hand_goals = odom_to_hand_poses
         req.ref_frame_id = self._end_effector_frame
 
         service_name = self._setting['plan_with_hand_goals_service']
