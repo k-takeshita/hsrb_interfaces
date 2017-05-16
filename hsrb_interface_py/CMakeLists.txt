@@ -9,13 +9,13 @@ find_package(PythonLibs REQUIRED)
 
 catkin_python_setup()
 
-catkin_package(CATKIN_DEPENDS)
+catkin_package(CATKIN_DEPENDS hsr_kinematics)
 
 include_directories(
-    ${catkin_INCLUDE_DIR}
-    ${Boost_INCLUDE_DIR}
-    ${EIGEN_INCLUDE_DIR}
-    ${PYTHON_INCLUDE_DIR}
+    ${catkin_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
+    ${EIGEN_INCLUDE_DIRS}
+    ${PYTHON_INCLUDE_DIRS}
 )
 
 set(_package_namespace hsrb_interface)
