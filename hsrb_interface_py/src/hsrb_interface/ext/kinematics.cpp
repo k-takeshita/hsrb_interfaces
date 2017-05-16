@@ -1,5 +1,7 @@
 /// @brief 運動学ライブラリのpython wrapper
 /// @brief Copyright (C) 2017 TOYOTA MOTOR CORPORATION
+#include <string>
+#include <vector>
 #include <boost/python.hpp>
 #include <hsr_kinematics/head_kinematics.hpp>
 
@@ -19,7 +21,7 @@ class KinematicsInterface {
  public:
   /// コンストラクタ
   /// @param[in] robot_description  ロボットモデル
-  KinematicsInterface(const std::string& robot_description) {
+  explicit KinematicsInterface(const std::string& robot_description) {
     std::vector<std::string> head_joint_names;
     head_joint_names.push_back(kHeadYawJoint);
     head_joint_names.push_back(kHeadPitchJoint);
@@ -63,6 +65,6 @@ class KinematicsInterface {
 
 BOOST_PYTHON_MODULE(_extension) {
   bp::class_<hsrb_interface_plugin::KinematicsInterface>("KinematicsInterface", bp::init<std::string>())
-      .def("calculate_angles", &hsrb_interface_plugin::KinematicsInterface::CalculateAngles);
+      .def("calculate_gazing_angles", &hsrb_interface_plugin::KinematicsInterface::CalculateAngles);
 }
 }  // namespace hsrb_interface_plugin
