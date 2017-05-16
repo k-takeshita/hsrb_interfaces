@@ -36,6 +36,7 @@ from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
 from tmc_planning_msgs.srv import PlanWithHandGoals
 from tmc_planning_msgs.srv import PlanWithHandLine
 from tmc_planning_msgs.srv import PlanWithJointGoals
+from tmc_planning_msgs.srv import PlanWithTsrConstraints
 
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -524,6 +525,45 @@ class WholeBodyTest(testing.RosMockTestCase):
         ]
         whole_body = JointGroup('whole_body')
         whole_body.move_end_effector_by_line(axis=(0, 0, 0), distance=0.1)
+
+    def test_move_end_effector_by_arc_ok(self):
+        # Setup pre-conditions
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        odom_to_robot_transform, odom_to_hand_transform = \
+            self.initial_tf_fixtures()
+        self.tf2_buffer_mock.lookup_transform.side_effect = [
+            odom_to_robot_transform,
+            odom_to_hand_transform,
+            odom_to_robot_transform,
+        ]
+        plan_service_proxy_mock = self.service_proxy_mock.return_value
+        plan_result_mock = MagicMock()
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
+        type(plan_result_mock.error_code).val = error_code_mock
+        plan_service_proxy_mock.call.return_value = plan_result_mock
+
+        whole_body = JointGroup('whole_body')
+        whole_body.move_end_effector_by_arc(geometry.pose(), 1.0)
+
+        # Check post-conditions
+        service = self.joint_group_setting["plan_with_constraints_service"]
+        self.service_proxy_mock.assert_called_with(service,
+                                                   PlanWithTsrConstraints)
+        plan_service_proxy_mock.call.assert_called_with(ANY)
+
+    @raises(ValueError)
+    def test_move_end_effector_by_arc_ng(self):
+        # Setup pre-conditions
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        whole_body = JointGroup('whole_body')
+        whole_body.move_end_effector_by_arc(geometry.pose(), 10.0)
 
     def test_inverse_pose(self):
         pose = geometry.pose(1, 2, 3)

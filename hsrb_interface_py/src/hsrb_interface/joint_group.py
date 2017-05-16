@@ -607,6 +607,69 @@ class JointGroup(robot.Item):
                                                         res.base_solution)
         self._execute_trajectory(constrained_traj)
 
+    def move_end_effector_by_arc(self, center, angle, ref_frame_id=None):
+        """Move an end effector along with an arc in a 3D space.
+
+        Args:
+            center (Tuple[Vector3, Quaternion]):
+                A center pose of rotation. The z axis is used as rotation axis.
+            angle (float): Angle to move [rad]. The range is (-PI, PI)
+            ref_frame_id (str): A base frame of an end effector.
+                The default is the robot frame(```base_footprint``).
+        Returns:
+            None
+        """
+        # Check angle value
+        if (angle <= -math.pi) or (math.pi <= angle):
+            raise ValueError("The angle value is out of range.")
+
+        # Default is the robot frame (the base frame)
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('base')
+
+        odom_to_ref_pose = self._lookup_odom_to_ref(ref_frame_id)
+        odom_to_ref = geometry.pose_to_tuples(odom_to_ref_pose)
+        odom_to_center = geometry.multiply_tuples(odom_to_ref, center)
+
+        center_to_odom = _invert_pose(odom_to_center)
+        odom_to_hand_pose = self._lookup_odom_to_ref(self._end_effector_frame)
+        odom_to_hand = geometry.pose_to_tuples(odom_to_hand_pose)
+        center_to_hand = geometry.multiply_tuples(center_to_odom, odom_to_hand)
+
+        rotation_tsr = TaskSpaceRegion()
+        rotation_tsr.end_frame_id = bytes(self.end_effector_frame)
+        rotation_tsr.origin_to_tsr = geometry.tuples_to_pose(odom_to_center)
+        rotation_tsr.tsr_to_end = geometry.tuples_to_pose(center_to_hand)
+        if angle < 0:
+            rotation_tsr.min_bounds = [0, 0, 0, 0, 0, angle]
+            rotation_tsr.max_bounds = [0, 0, 0, 0, 0, 0]
+        else:
+            rotation_tsr.min_bounds = [0, 0, 0, 0, 0, 0]
+            rotation_tsr.max_bounds = [0, 0, 0, 0, 0, angle]
+
+        goal_tsr = TaskSpaceRegion()
+        goal_tsr.end_frame_id = bytes(self.end_effector_frame)
+        goal_tsr.origin_to_tsr = geometry.tuples_to_pose(odom_to_center)
+        goal_tsr.tsr_to_end = geometry.tuples_to_pose(center_to_hand)
+        goal_tsr.min_bounds = [0, 0, 0, 0, 0, angle]
+        goal_tsr.max_bounds = [0, 0, 0, 0, 0, angle]
+
+        req = self._generate_planning_request(PlanWithTsrConstraintsRequest)
+        req.constraint_tsrs = [rotation_tsr]
+        req.goal_tsrs = [goal_tsr]
+
+        service_name = self._setting['plan_with_constraints_service']
+        plan_service = rospy.ServiceProxy(service_name,
+                                          PlanWithTsrConstraints)
+        res = plan_service.call(req)
+        if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
+            msg = "Fail to plan"
+            raise exceptions.MotionPlanningError(msg, res.error_code)
+        res.base_solution.header.frame_id = settings.get_frame('odom')
+        constrained_traj = self._constrain_trajectories(res.solution,
+                                                        res.base_solution)
+        self._execute_trajectory(constrained_traj)
+
     def _plan_cartesian_path(self, origin_to_pose1, origin_to_pose2,
                              odom_to_robot_pose,
                              initial_joint_state, collision_env):
