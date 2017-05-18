@@ -18,10 +18,15 @@ from move_base_msgs.msg import MoveBaseGoal
 import rospy
 import tf
 
+from tmc_manipulation_msgs.msg import MultiDOFJointTrajectory
+from tmc_manipulation_msgs.msg import MultiDOFJointTrajectoryPoint
+
 from . import exceptions
 from . import geometry
 from . import robot
 from . import settings
+from . import trajectory
+from . import utils
 
 # Timeout to receve enough tf transform [sec]
 _TF_TIMEOUT = 1.0
@@ -64,6 +69,9 @@ class MobileBase(robot.Item):
                                                            MoveBaseAction)
         self._action_client.wait_for_server(
             rospy.Duration(_ACTION_WAIT_TIMEOUT))
+
+        self._follow_client = trajectory.TrajectoryController(
+            self._setting['follow_trajectory_action'], '/base_coordinates')
 
     def move(self, pose, timeout=0.0, ref_frame_id=None):
         """Move to a specified pose.
@@ -146,6 +154,65 @@ class MobileBase(robot.Item):
         else:
             ref_frame_id = settings.get_frame('map')
         self.move(pose, timeout, ref_frame_id)
+
+    def follow(self, poses, time_from_starts=[], ref_frame_id=None):
+        """Follow given poses and timing with ignoring the map.
+
+        Args:
+            poses (List[Tuple[Vector3, Quaternion]]):
+                Target poses of the robot base.
+            time_from_starts (List[float]):
+                Times of each "poses". If empty, the times are optimized by
+                time-optimal trajectory filter.
+            ref_frame_id (str):
+                A reference frame of a goal. Default is ``map`` frame.
+        Returns:
+            None
+
+        Examples:
+
+            .. sourcecode:: python
+
+               with hsrb_interface.Robot() as robot:
+                   omni_base = robot.try_get('omni_base')
+                   poses = [geometry.pose(x=1.0, y=0.0, ek=0.0),
+                            geometry.pose(x=1.0, y=1.0, ek=math.pi)]
+                   omni_base.follow(poses)
+        """
+        num_poses = len(poses)
+        num_times = len(time_from_starts)
+        if (num_times != 0) and (num_poses != num_times):
+            raise ValueError("The size of time_from_starts should be zero"
+                             " or same as the size of poses")
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('map')
+
+        ref_to_current = self.get_pose(ref_frame_id)
+        input_trajectory = MultiDOFJointTrajectory()
+        input_trajectory.header.frame_id = ref_frame_id
+        input_trajectory.points = list(
+            utils.iterate(MultiDOFJointTrajectoryPoint, num_poses + 1))
+        input_trajectory.points[0].transforms.append(
+            geometry.tuples_to_transform(ref_to_current))
+        for index in range(num_poses):
+            input_trajectory.points[index + 1].transforms.append(
+                geometry.tuples_to_transform(poses[index]))
+
+        transformed_trajectory = trajectory.transform_base_trajectory(
+            input_trajectory, self._tf2_buffer, _TF_TIMEOUT,
+            self._follow_client.joint_names)
+
+        if num_times == 0:
+            base_trajectory = trajectory.timeopt_filter(transformed_trajectory)
+        else:
+            base_trajectory = transformed_trajectory
+            base_trajectory.points[0].time_from_start = rospy.Duration(0.0)
+            for index in range(num_times):
+                tfs = rospy.Duration(time_from_starts[index])
+                base_trajectory.points[index + 1].time_from_start = tfs
+
+        self._follow_client.submit(base_trajectory)
+        trajectory.wait_controllers([self._follow_client])
 
     @property
     def pose(self):

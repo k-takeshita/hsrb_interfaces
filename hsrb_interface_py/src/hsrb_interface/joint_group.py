@@ -35,9 +35,6 @@ from tmc_planning_msgs.srv import PlanWithJointGoalsRequest
 from tmc_planning_msgs.srv import PlanWithTsrConstraints
 from tmc_planning_msgs.srv import PlanWithTsrConstraintsRequest
 
-from trajectory_msgs.msg import JointTrajectory
-from trajectory_msgs.msg import JointTrajectoryPoint
-
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 
@@ -67,9 +64,6 @@ _PLANNING_GOAL_DEVIATION = 0.3
 
 # Timeout to receive a tf message [sec]
 _TF_TIMEOUT = 1.0
-
-# Base frame of a mobile base in moition planning
-_BASE_TRAJECTORY_ORIGIN = "odom"
 
 
 def _normalize_np(vec):
@@ -880,55 +874,6 @@ class JointGroup(robot.Item):
         constrained_traj = self._constrain_trajectories(arm_traj, base_traj)
         self._execute_trajectory(constrained_traj)
 
-    def _transform_base_trajectory(self, base_traj):
-        """Transform a base trajectory to an ``odom`` frame based trajectory.
-
-        Args:
-            base_traj (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory):
-                A base trajectory
-        Returns:
-            trajectory_msgs.msg.JointTrajectory:
-                A base trajectory based on ``odom`` frame.
-        """
-        odom_to_frame_transform = self._tf2_buffer.lookup_transform(
-            _BASE_TRAJECTORY_ORIGIN,
-            base_traj.header.frame_id,
-            rospy.Time(0),
-            rospy.Duration(self._tf_timeout))
-        odom_to_frame = geometry.transform_to_tuples(
-            odom_to_frame_transform.transform)
-
-        num_points = len(base_traj.points)
-        odom_base_traj = JointTrajectory()
-        odom_base_traj.points = list(utils.iterate(JointTrajectoryPoint,
-                                                   num_points))
-        odom_base_traj.header = base_traj.header
-        odom_base_traj.joint_names = self._base_client.joint_names
-
-        # Transform each point into odom frame
-        previous_theta = 0.0
-        for i in range(num_points):
-            t = base_traj.points[i].transforms[0]
-            frame_to_base = geometry.transform_to_tuples(t)
-
-            # odom_to_base = odom_to_frame * frame_to_base
-            (odom_to_base_trans, odom_to_base_rot) = geometry.multiply_tuples(
-                odom_to_frame,
-                frame_to_base
-            )
-
-            odom_base_traj.points[i].positions = [odom_to_base_trans[0],
-                                                  odom_to_base_trans[1],
-                                                  0]
-            roll, pitch, yaw = T.euler_from_quaternion(
-                odom_to_base_rot)
-            dtheta = geometry.shortest_angular_distance(previous_theta, yaw)
-            theta = previous_theta + dtheta
-
-            odom_base_traj.points[i].positions[2] = theta
-            previous_theta = theta
-        return odom_base_traj
-
     def _constrain_trajectories(self, joint_trajectory, base_trajectory):
         """Apply constraints to given trajectories.
 
@@ -944,7 +889,9 @@ class JointGroup(robot.Item):
             TrajectoryFilterError:
                 Failed to execute trajectory-filtering
         """
-        odom_base_trajectory = self._transform_base_trajectory(base_trajectory)
+        odom_base_trajectory = trajectory.transform_base_trajectory(
+            base_trajectory, self._tf2_buffer, self._tf_timeout,
+            self._base_client.joint_names)
         merged_traj = trajectory.merge(joint_trajectory, odom_base_trajectory)
 
         filtered_merged_traj = trajectory.constraint_filter(merged_traj)
