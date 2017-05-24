@@ -67,7 +67,11 @@ _HSRB_SETTINGS = """
             "passive_joints": [
                 "hand_r_spring_proximal_joint",
                 "hand_l_spring_proximal_joint"
-            ]
+            ],
+            "looking_hand_constraint": {
+                "plugin_name": "hsrb_planner_plugins/LookHand",
+                "use_joints": ["head_pan_joint", "head_tilt_joint"]
+            }
         }
     },
     "end_effector": {

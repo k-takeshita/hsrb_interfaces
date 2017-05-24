@@ -23,6 +23,8 @@ from mock import patch
 from mock import PropertyMock
 
 from nose.tools import assert_almost_equals
+from nose.tools import assert_false
+from nose.tools import assert_true
 from nose.tools import eq_
 from nose.tools import raises
 
@@ -123,7 +125,11 @@ class WholeBodyTest(testing.RosMockTestCase):
             "passive_joints": [
                 "hand_r_spring_proximal_joint",
                 "hand_l_spring_proximal_joint"
-            ]
+            ],
+            "looking_hand_constraint": {
+                "plugin_name": "LookHand",
+                "use_joints": ["head_joint"]
+            }
         }
         self.trajectory_setting = {
             "impedance_control": "/hsrb/impedance_control",
@@ -524,3 +530,54 @@ class WholeBodyTest(testing.RosMockTestCase):
         assert_almost_equals(axis[1], 0)
         assert_almost_equals(axis[2], 0)
         assert_almost_equals(distance, 2)
+
+    def test_looking_hand_constraint(self):
+        # Setup pre-conditions
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        plan_service_proxy_mock = self.service_proxy_mock.return_value
+        plan_result_mock = MagicMock()
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
+        type(plan_result_mock.error_code).val = error_code_mock
+        plan_service_proxy_mock.call.return_value = plan_result_mock
+
+        whole_body = JointGroup('whole_body')
+        whole_body.move_end_effector_by_line(axis=(0, 0, 1), distance=1.0)
+
+        # Check planning request
+        request = plan_service_proxy_mock.call.call_args[0][0]
+        assert_false("LookHand" in request.extra_goal_constraints)
+        assert_false("head_joint" in request.use_joints)
+
+        # Activate and check the request
+        whole_body.looking_hand_constraint = True
+        whole_body.move_end_effector_by_line(axis=(0, 0, 1), distance=1.0)
+
+        request = plan_service_proxy_mock.call.call_args[0][0]
+        assert_true("LookHand" in request.extra_goal_constraints)
+        assert_true("head_joint" in request.use_joints)
+
+        # Check with move_end_effector_pose
+        odom_to_robot_transform, odom_to_hand_transform = \
+            self.initial_tf_fixtures()
+        self.tf2_buffer_mock.lookup_transform.side_effect = [
+            odom_to_robot_transform, odom_to_hand_transform,
+            odom_to_robot_transform, odom_to_hand_transform,
+        ]
+
+        whole_body.looking_hand_constraint = False
+        whole_body.move_end_effector_pose(geometry.pose(1, 0, 1))
+
+        request = plan_service_proxy_mock.call.call_args[0][0]
+        assert_false("LookHand" in request.extra_goal_constraints)
+        assert_false("head_joint" in request.use_joints)
+
+        whole_body.looking_hand_constraint = True
+        whole_body.move_end_effector_pose(geometry.pose(1, 0, 1))
+
+        request = plan_service_proxy_mock.call.call_args[0][0]
+        assert_true("LookHand" in request.extra_goal_constraints)
+        assert_true("head_joint" in request.use_joints)
