@@ -799,13 +799,20 @@ class JointGroup(robot.Item):
         self._execute_trajectory(constrained_traj)
 
     def _generate_planning_request(self, request_type):
-        """Generate a planning request and assign common parameters to it
+        """Generate a planning request and assign common parameters to it.
 
         Args:
-            request_type (Types): A type of "planning service request"
+            request_type (Types):
+                A type of "planning service request".
+                The following are available types.
+                    - tmc_planning_msgs.srv.PlanWithHandGoalsRequest
+                    - tmc_planning_msgs.srv.PlanWithHandLineRequest
+                    - tmc_planning_msgs.srv.PlanWithJointGoalsRequest
+                    - tmc_planning_msgs.srv.PlanWithTsrConstraintsRequest
 
         Retruns:
-            "planning service request": An instance with common parameters
+            tmc_planning_msgs.srv.PlanWithXXX:
+                An instance with common parameters.
         """
         request = request_type()
         request.origin_to_basejoint = self._lookup_odom_to_ref(
@@ -826,8 +833,7 @@ class JointGroup(robot.Item):
                               b'wrist_roll_joint',
                               b'arm_roll_joint',
                               b'arm_flex_joint',
-                              b'arm_lift_joint']
-            )
+                              b'arm_lift_joint'])
             if self._looking_hand_constraint:
                 use_joints.update(
                     self._setting['looking_hand_constraint']['use_joints'])
