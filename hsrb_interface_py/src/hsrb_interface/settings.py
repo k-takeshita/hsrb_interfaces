@@ -91,10 +91,11 @@ _HSRB_SETTINGS = """
     "mobile_base": {
         "omni_base": {
             "class": ["mobile_base", "MobileBase"],
-            "move_base_action":  "/move_base/move",
-            "pose_topic":        "/global_pose",
-            "goal_topic":        "/base_goal",
-            "timeout":           1.0
+            "move_base_action":          "/move_base/move",
+            "follow_trajectory_action":  "/hsrb/omni_base_controller",
+            "pose_topic":                "/global_pose",
+            "goal_topic":                "/base_goal",
+            "timeout":                   1.0
         }
     },
     "camera": {

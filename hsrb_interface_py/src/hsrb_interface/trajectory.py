@@ -17,6 +17,7 @@ from control_msgs.msg import FollowJointTrajectoryGoal
 from control_msgs.msg import FollowJointTrajectoryResult
 
 import rospy
+import tf.transformations as T
 
 from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
 from tmc_manipulation_msgs.srv import (
@@ -31,8 +32,13 @@ from trajectory_msgs.msg import JointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 from . import exceptions
+from . import geometry
 from . import settings
 from . import utils
+
+
+# Base frame of a mobile base in moition planning
+_BASE_TRAJECTORY_ORIGIN = "odom"
 
 
 def extract(trajectory, joint_names, joint_state):
@@ -244,6 +250,57 @@ def timeopt_filter(base_trajectory):
         raise
     filtered_traj = res.trajectory
     return filtered_traj
+
+
+def transform_base_trajectory(base_traj, tf2_buffer, tf_timeout, joint_names):
+    """Transform a base trajectory to an ``odom`` frame based trajectory.
+
+    Args:
+        base_traj (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory):
+            A base trajectory
+        tf2_buffer (tf2_ros.Buffer): Tf2 buffer
+        tf_timeout (float): Timeout to get transform [sec]
+        joint_names (list[str]):
+            Joint names of [X-axis position, Y-axis position, Yaw position]
+    Returns:
+        trajectory_msgs.msg.JointTrajectory:
+            A base trajectory based on ``odom`` frame.
+    """
+    odom_to_frame_transform = tf2_buffer.lookup_transform(
+        _BASE_TRAJECTORY_ORIGIN,
+        base_traj.header.frame_id,
+        rospy.Time(0),
+        rospy.Duration(tf_timeout))
+    odom_to_frame = geometry.transform_to_tuples(
+        odom_to_frame_transform.transform)
+
+    num_points = len(base_traj.points)
+    odom_base_traj = JointTrajectory()
+    odom_base_traj.points = list(utils.iterate(JointTrajectoryPoint,
+                                               num_points))
+    odom_base_traj.header = base_traj.header
+    odom_base_traj.joint_names = joint_names
+
+    # Transform each point into odom frame
+    previous_theta = 0.0
+    for i in range(num_points):
+        t = base_traj.points[i].transforms[0]
+        frame_to_base = geometry.transform_to_tuples(t)
+
+        # odom_to_base = odom_to_frame * frame_to_base
+        (odom_to_base_trans, odom_to_base_rot) = geometry.multiply_tuples(
+            odom_to_frame, frame_to_base)
+        odom_base_traj.points[i].positions = [odom_to_base_trans[0],
+                                              odom_to_base_trans[1],
+                                              0]
+        roll, pitch, yaw = T.euler_from_quaternion(
+            odom_to_base_rot)
+        dtheta = geometry.shortest_angular_distance(previous_theta, yaw)
+        theta = previous_theta + dtheta
+
+        odom_base_traj.points[i].positions[2] = theta
+        previous_theta = theta
+    return odom_base_traj
 
 
 class TrajectoryController(object):

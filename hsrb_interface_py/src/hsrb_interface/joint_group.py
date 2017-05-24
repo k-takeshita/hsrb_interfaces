@@ -35,9 +35,6 @@ from tmc_planning_msgs.srv import PlanWithJointGoalsRequest
 from tmc_planning_msgs.srv import PlanWithTsrConstraints
 from tmc_planning_msgs.srv import PlanWithTsrConstraintsRequest
 
-from trajectory_msgs.msg import JointTrajectory
-from trajectory_msgs.msg import JointTrajectoryPoint
-
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 
@@ -67,9 +64,6 @@ _PLANNING_GOAL_DEVIATION = 0.3
 
 # Timeout to receive a tf message [sec]
 _TF_TIMEOUT = 1.0
-
-# Base frame of a mobile base in moition planning
-_BASE_TRAJECTORY_ORIGIN = "odom"
 
 
 def _normalize_np(vec):
@@ -912,7 +906,9 @@ class JointGroup(robot.Item):
             TrajectoryFilterError:
                 Failed to execute trajectory-filtering
         """
-        odom_base_trajectory = self._transform_base_trajectory(base_trajectory)
+        odom_base_trajectory = trajectory.transform_base_trajectory(
+            base_trajectory, self._tf2_buffer, self._tf_timeout,
+            self._base_client.joint_names)
         merged_traj = trajectory.merge(joint_trajectory, odom_base_trajectory)
 
         filtered_merged_traj = trajectory.constraint_filter(merged_traj)
