@@ -180,14 +180,14 @@ def test_mobile_base_go_failure(mock_get_entry,
 @patch("actionlib.SimpleActionClient")
 @patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
-def test_mobile_base_follow_poses(mock_get_entry,
-                                  mock_connecting,
-                                  mock_action_client_cls,
-                                  mock_trajectory_controller,
-                                  mock_get_frame,
-                                  mock_transform_trajectory,
-                                  mock_timeopt_filter,
-                                  mock_wait_controllers):
+def test_mobile_base_follow_trajectory(mock_get_entry,
+                                       mock_connecting,
+                                       mock_action_client_cls,
+                                       mock_trajectory_controller,
+                                       mock_get_frame,
+                                       mock_transform_trajectory,
+                                       mock_timeopt_filter,
+                                       mock_wait_controllers):
     """Test MobileBase.follow with poses"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
@@ -207,7 +207,7 @@ def test_mobile_base_follow_poses(mock_get_entry,
 
     poses = [hsrb_interface.geometry.pose(x=1.0),
              hsrb_interface.geometry.pose(x=0.0)]
-    mobile_base.follow(poses)
+    mobile_base.follow_trajectory(poses)
 
     mock_get_frame.assert_called_with("map")
     mock_timeopt_filter.assert_called_with("piyo")
@@ -224,7 +224,7 @@ def test_mobile_base_follow_poses(mock_get_entry,
 
     # Set ref_frame_id
     mock_get_frame.reset_mock()
-    mobile_base.follow(poses, ref_frame_id="var")
+    mobile_base.follow_trajectory(poses, ref_frame_id="var")
 
     mock_get_frame.assert_not_called()
     trajectory = mock_transform_trajectory.call_args[0][0]
@@ -238,13 +238,13 @@ def test_mobile_base_follow_poses(mock_get_entry,
 @patch("actionlib.SimpleActionClient")
 @patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
-def test_mobile_base_follow_stamped_poses(mock_get_entry,
-                                          mock_connecting,
-                                          mock_action_client_cls,
-                                          mock_trajectory_controller,
-                                          mock_get_frame,
-                                          mock_transform_trajectory,
-                                          mock_wait_controllers):
+def test_mobile_base_follow_trajectory_with_stamp(mock_get_entry,
+                                                  mock_connecting,
+                                                  mock_action_client_cls,
+                                                  mock_trajectory_controller,
+                                                  mock_get_frame,
+                                                  mock_transform_trajectory,
+                                                  mock_wait_controllers):
     """Test MobileBase.follow with stamped poses"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
@@ -267,7 +267,7 @@ def test_mobile_base_follow_stamped_poses(mock_get_entry,
 
     poses = [hsrb_interface.geometry.pose(x=1.0),
              hsrb_interface.geometry.pose(x=0.0)]
-    mobile_base.follow(poses, [3.0, 6.0])
+    mobile_base.follow_trajectory(poses, [3.0, 6.0])
 
     mock_get_frame.assert_called_with("map")
     mock_follow_client = mock_trajectory_controller.return_value
@@ -283,5 +283,7 @@ def test_mobile_base_follow_stamped_poses(mock_get_entry,
         submitted_trajectory.points[2].time_from_start.to_sec(), 6.0)
 
     # Length of time_from_starts and poses should be same
-    assert_raises(ValueError, mobile_base.follow, poses, [3.0])
-    assert_raises(ValueError, mobile_base.follow, poses, [0.0, 3.0, 6.0])
+    assert_raises(ValueError, mobile_base.follow_trajectory,
+                  poses, [3.0])
+    assert_raises(ValueError, mobile_base.follow_trajectory,
+                  poses, [0.0, 3.0, 6.0])

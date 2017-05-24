@@ -259,7 +259,7 @@ def transform_base_trajectory(base_traj, tf2_buffer, tf_timeout, joint_names):
         base_traj (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory):
             A base trajectory
         tf2_buffer (tf2_ros.Buffer): Tf2 buffer
-        tf_timeout (float): Timeout to get transform
+        tf_timeout (float): Timeout to get transform [sec]
         joint_names (list[str]):
             Joint names of [X-axis position, Y-axis position, Yaw position]
     Returns:

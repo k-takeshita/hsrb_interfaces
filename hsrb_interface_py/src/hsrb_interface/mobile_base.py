@@ -155,15 +155,15 @@ class MobileBase(robot.Item):
             ref_frame_id = settings.get_frame('map')
         self.move(pose, timeout, ref_frame_id)
 
-    def follow(self, poses, time_from_starts=[], ref_frame_id=None):
+    def follow_trajectory(self, poses, time_from_starts=[], ref_frame_id=None):
         """Follow given poses and timing with ignoring the map.
 
         Args:
             poses (List[Tuple[Vector3, Quaternion]]):
                 Target poses of the robot base.
             time_from_starts (List[float]):
-                Times of each "poses". If empty, the times are optimized by
-                time-optimal trajectory filter.
+                Times of each "poses" [sec]. If empty, the times are optimized
+                by time-optimal trajectory filter.
             ref_frame_id (str):
                 A reference frame of a goal. Default is ``map`` frame.
         Returns:
@@ -177,7 +177,7 @@ class MobileBase(robot.Item):
                    omni_base = robot.try_get('omni_base')
                    poses = [geometry.pose(x=1.0, y=0.0, ek=0.0),
                             geometry.pose(x=1.0, y=1.0, ek=math.pi)]
-                   omni_base.follow(poses)
+                   omni_base.follow_trajectory(poses)
         """
         num_poses = len(poses)
         num_times = len(time_from_starts)
