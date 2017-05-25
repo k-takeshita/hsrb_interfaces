@@ -2,6 +2,8 @@
 """Unittest for hsrb_interface.mobile_base module"""
 import actionlib
 
+from geometry_msgs.msg import PoseStamped
+
 import hsrb_interface
 import hsrb_interface.exceptions
 import hsrb_interface.geometry
@@ -14,14 +16,16 @@ from move_base_msgs.msg import MoveBaseAction
 from move_base_msgs.msg import MoveBaseGoal
 
 from nose.tools import assert_almost_equal
+from nose.tools import assert_false
 from nose.tools import assert_raises
+from nose.tools import assert_true
 from nose.tools import eq_
 from nose.tools import ok_
 
 import tf
 
-from tmc_manipulation_msgs.msg import MultiDOFJointTrajectory
-from tmc_manipulation_msgs.msg import MultiDOFJointTrajectoryPoint
+from trajectory_msgs.msg import JointTrajectory
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 
 @patch("hsrb_interface.trajectory.TrajectoryController")
@@ -199,7 +203,7 @@ def test_mobile_base_follow_trajectory(mock_get_entry,
     mock_action_client.wait_for_server.return_value = True
     mock_get_frame.return_value = "hoge"
     mock_transform_trajectory.return_value = "piyo"
-    mock_timeopt_filter.return_value = "foo"
+    mock_timeopt_filter.return_value = JointTrajectory()
 
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
     mobile_base.get_pose = MagicMock()
@@ -212,7 +216,7 @@ def test_mobile_base_follow_trajectory(mock_get_entry,
     mock_get_frame.assert_called_with("map")
     mock_timeopt_filter.assert_called_with("piyo")
     mock_follow_client = mock_trajectory_controller.return_value
-    mock_follow_client.submit.assert_called_with("foo")
+    mock_follow_client.submit.assert_called_with(JointTrajectory())
     mock_wait_controllers.assert_called_with([mock_follow_client])
 
     trajectory = mock_transform_trajectory.call_args[0][0]
@@ -256,9 +260,9 @@ def test_mobile_base_follow_trajectory_with_stamp(mock_get_entry,
     mock_action_client.wait_for_server.return_value = True
     mock_get_frame.return_value = "hoge"
 
-    trajectory = MultiDOFJointTrajectory()
+    trajectory = JointTrajectory()
     for index in range(3):
-        trajectory.points.append(MultiDOFJointTrajectoryPoint())
+        trajectory.points.append(JointTrajectoryPoint())
     mock_transform_trajectory.return_value = trajectory
 
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
@@ -287,3 +291,259 @@ def test_mobile_base_follow_trajectory_with_stamp(mock_get_entry,
                   poses, [3.0])
     assert_raises(ValueError, mobile_base.follow_trajectory,
                   poses, [0.0, 3.0, 6.0])
+
+
+@patch("hsrb_interface.settings.get_frame")
+@patch("hsrb_interface.trajectory.TrajectoryController")
+@patch("actionlib.SimpleActionClient")
+@patch("hsrb_interface.Robot._connecting")
+@patch('hsrb_interface.settings.get_entry')
+def test_create_move_goal(mock_get_entry,
+                          mock_connecting,
+                          mock_action_client_cls,
+                          mock_trajectory_controller,
+                          mock_get_frame):
+    """Test MobileBase.create_move_goal"""
+    mock_connecting.return_value = True
+    mock_get_entry.return_value = {
+        "pose_topic": "/pose",
+        "move_base_action": "/move_base",
+        "follow_trajectory_action": "/follow_trajectory"
+    }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
+    mock_get_frame.return_value = "hoge"
+
+    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
+
+    goal = mobile_base.create_move_goal(hsrb_interface.geometry.pose(x=1.0))
+    eq_(goal.header.frame_id, "hoge")
+    assert_almost_equal(goal.pose.position.x, 1.0)
+
+    goal = mobile_base.create_move_goal(hsrb_interface.geometry.pose(), "piyo")
+    eq_(goal.header.frame_id, "piyo")
+    assert_almost_equal(goal.pose.position.x, 0.0)
+
+
+@patch("hsrb_interface.settings.get_frame")
+@patch("hsrb_interface.trajectory.TrajectoryController")
+@patch("actionlib.SimpleActionClient")
+@patch("hsrb_interface.Robot._connecting")
+@patch('hsrb_interface.settings.get_entry')
+def test_create_go_goal(mock_get_entry,
+                        mock_connecting,
+                        mock_action_client_cls,
+                        mock_trajectory_controller,
+                        mock_get_frame):
+    """Test MobileBase.create_go_goal"""
+    mock_connecting.return_value = True
+    mock_get_entry.return_value = {
+        "pose_topic": "/pose",
+        "move_base_action": "/move_base",
+        "follow_trajectory_action": "/follow_trajectory"
+    }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
+
+    def get_frame(frame_id):
+        frames = {"map": "hoge", "base": "piyo"}
+        return frames[frame_id]
+    mock_get_frame.side_effect = get_frame
+
+    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
+
+    goal = mobile_base.create_go_goal(1.0, 0.0, 0.0)
+    eq_(goal.header.frame_id, "hoge")
+    assert_almost_equal(goal.pose.position.x, 1.0)
+
+    goal = mobile_base.create_go_goal(0.0, 0.0, 0.0, True)
+    eq_(goal.header.frame_id, "piyo")
+    assert_almost_equal(goal.pose.position.x, 0.0)
+
+
+@patch("hsrb_interface.trajectory.timeopt_filter")
+@patch("hsrb_interface.trajectory.transform_base_trajectory")
+@patch("hsrb_interface.settings.get_frame")
+@patch("hsrb_interface.trajectory.TrajectoryController")
+@patch("actionlib.SimpleActionClient")
+@patch("hsrb_interface.Robot._connecting")
+@patch('hsrb_interface.settings.get_entry')
+def test_create_follow_goal(mock_get_entry,
+                            mock_connecting,
+                            mock_action_client_cls,
+                            mock_trajectory_controller,
+                            mock_get_frame,
+                            mock_transform_trajectory,
+                            mock_timeopt_filter):
+    """Test MobileBase.create_follow_trajectory_goal"""
+    mock_connecting.return_value = True
+    mock_get_entry.return_value = {
+        "pose_topic": "/pose",
+        "move_base_action": "/move_base",
+        "follow_trajectory_action": "/follow_trajectory"
+    }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
+    mock_get_frame.return_value = "hoge"
+    mock_transform_trajectory.return_value = "piyo"
+    mock_timeopt_filter.return_value = JointTrajectory()
+
+    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
+    mobile_base.get_pose = MagicMock()
+    mobile_base.get_pose.return_value = hsrb_interface.geometry.pose(x=2.0)
+
+    # Without time_from_starts
+    poses = [hsrb_interface.geometry.pose(x=1.0),
+             hsrb_interface.geometry.pose(x=0.0)]
+    goal = mobile_base.create_follow_trajectory_goal(poses)
+
+    mock_get_frame.assert_called_with("map")
+    mock_timeopt_filter.assert_called_with("piyo")
+    trajectory = mock_transform_trajectory.call_args[0][0]
+    eq_(trajectory.header.frame_id, "hoge")
+    eq_(len(trajectory.points), 3)
+    assert_almost_equal(trajectory.points[0].transforms[0].translation.x, 2.0)
+    assert_almost_equal(trajectory.points[1].transforms[0].translation.x, 1.0)
+    assert_almost_equal(trajectory.points[2].transforms[0].translation.x, 0.0)
+
+    # Set ref_frame_id
+    mock_get_frame.reset_mock()
+    goal = mobile_base.create_follow_trajectory_goal(poses, ref_frame_id="var")
+
+    mock_get_frame.assert_not_called()
+    trajectory = mock_transform_trajectory.call_args[0][0]
+    eq_(trajectory.header.frame_id, "var")
+
+    # With time_from_starts
+    mock_get_frame.reset_mock()
+    trajectory = JointTrajectory()
+    for index in range(3):
+        trajectory.points.append(JointTrajectoryPoint())
+    mock_transform_trajectory.return_value = trajectory
+    goal = mobile_base.create_follow_trajectory_goal(poses, [3.0, 6.0])
+
+    mock_get_frame.assert_called_with("map")
+    eq_(len(goal.points), 3)
+    assert_almost_equal(goal.points[0].time_from_start.to_sec(), 0.0)
+    assert_almost_equal(goal.points[1].time_from_start.to_sec(), 3.0)
+    assert_almost_equal(goal.points[2].time_from_start.to_sec(), 6.0)
+
+    # Length of time_from_starts and poses should be same
+    assert_raises(ValueError, mobile_base.create_follow_trajectory_goal,
+                  poses, [3.0])
+    assert_raises(ValueError, mobile_base.create_follow_trajectory_goal,
+                  poses, [0.0, 3.0, 6.0])
+
+
+@patch("hsrb_interface.trajectory.TrajectoryController")
+@patch("actionlib.SimpleActionClient")
+@patch("hsrb_interface.Robot._connecting")
+@patch('hsrb_interface.settings.get_entry')
+def test_execute(mock_get_entry,
+                 mock_connecting,
+                 mock_action_client_cls,
+                 mock_trajectory_controller):
+    """Test MobileBase.execute"""
+    mock_connecting.return_value = True
+    mock_get_entry.return_value = {
+        "pose_topic": "/pose",
+        "move_base_action": "/move_base",
+        "follow_trajectory_action": "/follow_trajectory"
+    }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
+    mock_follow_client = mock_trajectory_controller.return_value
+
+    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
+
+    input_goal = PoseStamped()
+    mobile_base.execute(input_goal)
+    action_goal = mock_action_client.send_goal.call_args[0][0]
+    eq_(action_goal.target_pose, input_goal)
+
+    mobile_base.execute(JointTrajectory())
+    mock_follow_client.submit.assert_called_with(JointTrajectory())
+
+    assert_raises(ValueError, mobile_base.execute, "hoge")
+
+
+@patch("hsrb_interface.trajectory.TrajectoryController")
+@patch("actionlib.SimpleActionClient")
+@patch("hsrb_interface.Robot._connecting")
+@patch('hsrb_interface.settings.get_entry')
+def test_is_moving(mock_get_entry,
+                   mock_connecting,
+                   mock_action_client_cls,
+                   mock_trajectory_controller):
+    """Test MobileBase.is_moving"""
+    mock_connecting.return_value = True
+    mock_get_entry.return_value = {
+        "pose_topic": "/pose",
+        "move_base_action": "/move_base",
+        "follow_trajectory_action": "/follow_trajectory"
+    }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
+    mock_follow_client = mock_trajectory_controller.return_value
+
+    # mobile_base.execute is not called
+    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
+    assert_false(mobile_base.is_moving())
+
+    # Send pose
+    mobile_base.execute(PoseStamped())
+    mock_action_client.get_state.return_value = actionlib.GoalStatus.ACTIVE
+    assert_true(mobile_base.is_moving())
+
+    mock_action_client.get_state.return_value = actionlib.GoalStatus.SUCCEEDED
+    assert_false(mobile_base.is_moving())
+
+    # Send trajetory
+    mobile_base.execute(JointTrajectory())
+    mock_follow_client.get_state.return_value = actionlib.GoalStatus.ACTIVE
+    assert_true(mobile_base.is_moving())
+
+    mock_follow_client.get_state.return_value = actionlib.GoalStatus.SUCCEEDED
+    assert_false(mobile_base.is_moving())
+
+
+@patch("hsrb_interface.trajectory.TrajectoryController")
+@patch("actionlib.SimpleActionClient")
+@patch("hsrb_interface.Robot._connecting")
+@patch('hsrb_interface.settings.get_entry')
+def test_cancel_goal(mock_get_entry,
+                     mock_connecting,
+                     mock_action_client_cls,
+                     mock_trajectory_controller):
+    """Test MobileBase.cancel_goal"""
+    mock_connecting.return_value = True
+    mock_get_entry.return_value = {
+        "pose_topic": "/pose",
+        "move_base_action": "/move_base",
+        "follow_trajectory_action": "/follow_trajectory"
+    }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
+    mock_follow_client = mock_trajectory_controller.return_value
+
+    # Cancel without goal
+    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
+    mobile_base.cancel_goal()
+
+    mock_action_client.cancel_goal.assert_not_called()
+    mock_follow_client.cancel.assert_not_called()
+
+    # Send pose and cancel
+    mobile_base.execute(PoseStamped())
+    mock_action_client.get_state.return_value = actionlib.GoalStatus.ACTIVE
+    mobile_base.cancel_goal()
+
+    mock_action_client.cancel_goal.assert_called_once_with()
+    mock_follow_client.cancel.assert_not_called()
+
+    # Send trajectory and cancel
+    mobile_base.execute(JointTrajectory())
+    mock_follow_client.get_state.return_value = actionlib.GoalStatus.ACTIVE
+    mobile_base.cancel_goal()
+
+    mock_follow_client.cancel.assert_called_once_with()
