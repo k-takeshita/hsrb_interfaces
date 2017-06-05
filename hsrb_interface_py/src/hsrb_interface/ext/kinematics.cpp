@@ -30,7 +30,7 @@ class KinematicsInterface {
                                               head_joint_names));
   }
 
-  /// 頭部関節角度と台車の旋回量を計算する
+  /// 与えられた場所を見る頭部関節角度を計算する
   /// @param[in] baselink_to_point ロボット基準の注視点座標, [x, y, z]
   /// @param[in] camera_frame 対象とするカメラのフレーム名
   /// @return boost::python::dict 頭部パン・チルトの関節角度
@@ -46,9 +46,10 @@ class KinematicsInterface {
         static_cast<double>(bp::extract<double>(baselink_to_point[2])));
     // 第1引数robot_base_frameは，実は使われていない
     // 第4引数current_joint_stateは，HSR-Bの頭部構成では空で十分
+    // head_joint_stateは，関節角度リミットを超えた場合，その値に丸められる
     tmc_manipulation_types::JointState head_joint_state;
     if (!head_kinematics_->CalculateAngleToGazePoint(
-            "hoge", target, camera_frame,
+            "", target, camera_frame,
             tmc_manipulation_types::JointState(), head_joint_state)) {
       return bp::dict();
     }

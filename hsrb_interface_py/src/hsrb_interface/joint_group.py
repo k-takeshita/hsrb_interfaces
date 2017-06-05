@@ -811,6 +811,8 @@ class JointGroup(robot.Item):
                 The default is the robot frame(```base_footprint``).
         Returns:
             None
+        Notes:
+            If the calculated angle is over the limit, the angle is rounded.
         """
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('base')
