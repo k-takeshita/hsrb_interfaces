@@ -1,5 +1,7 @@
 # Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface.mobile_base module"""
+import warnings
+
 import actionlib
 
 from geometry_msgs.msg import PoseStamped
@@ -52,30 +54,29 @@ def test_mobile_base(mock_get_entry, mock_connecting,
 @patch("rospy.Time")
 @patch("actionlib.SimpleActionClient")
 @patch("hsrb_interface.Robot._connecting")
+@patch("hsrb_interface.settings.get_frame")
 @patch('hsrb_interface.settings.get_entry')
-def test_mobile_base_goto_x_y_yaw(mock_get_entry, mock_connecting,
+def test_mobile_base_goto_x_y_yaw(mock_get_entry, mock_get_frame,
+                                  mock_connecting,
                                   mock_action_client_cls,
                                   mock_time_cls, mock_duraiton_cls,
                                   mock_trajectory_controller):
-    """Test MobileBase.go"""
+    """Test MobileBase.go_abs and MobileBase.go_rel"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
         "pose_topic": "/pose",
         "move_base_action": "/move_base",
         "follow_trajectory_action": "/follow_trajectory"
     }
+    mock_get_frame.return_value = "hoge"
     mock_action_client = mock_action_client_cls.return_value
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
 
     mock_action_client.get_state.return_value = actionlib.GoalStatus.SUCCEEDED
-
-    mock_get_entry.return_value = {
-        'frame_id': 'map'
-    }
-    mobile_base.go(0, 1, 2, timeout=3.0)
+    mobile_base.go_abs(0, 1, 2, timeout=3.0)
 
     expected_goal = MoveBaseGoal()
-    expected_goal.target_pose.header.frame_id = "map"
+    expected_goal.target_pose.header.frame_id = "hoge"
     expected_goal.target_pose.header.stamp = mock_time_cls(0)
     expected_goal.target_pose.pose.position.x = 0
     expected_goal.target_pose.pose.position.y = 1
@@ -85,8 +86,23 @@ def test_mobile_base_goto_x_y_yaw(mock_get_entry, mock_connecting,
     expected_goal.target_pose.pose.orientation.z = q[2]
     expected_goal.target_pose.pose.orientation.w = q[3]
 
+    mock_get_frame.assert_called_with("map")
     mock_action_client.send_goal.call_with_args(expected_goal)
     mock_action_client.wait_for_result.call_with_args(mock_duraiton_cls(3.0))
+
+    mobile_base.go_rel(0, 1, 2, timeout=3.0)
+    mock_get_frame.assert_called_with("base")
+
+    warnings.simplefilter("always")
+    with warnings.catch_warnings(record=True) as w:
+        mobile_base.go(0, 1, 2, timeout=3.0, relative=False)
+        mock_get_frame.assert_called_with("map")
+        eq_(w[0].category, hsrb_interface.exceptions.DeprecationWarning)
+
+    with warnings.catch_warnings(record=True) as w:
+        mobile_base.go(0, 1, 2, timeout=3.0, relative=True)
+        mock_get_frame.assert_called_with("base")
+        eq_(w[0].category, hsrb_interface.exceptions.DeprecationWarning)
 
 
 @patch("hsrb_interface.trajectory.TrajectoryController")
@@ -99,7 +115,7 @@ def test_mobile_base_goto_pos_ori(mock_get_entry, mock_connecting,
                                   mock_action_client_cls,
                                   mock_time_cls, mock_duraiton_cls,
                                   mock_trajectory_controller):
-    """Test MobileBase.move"""
+    """Test MobileBase.go_pose"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
         "pose_topic": "/pose",
@@ -111,11 +127,8 @@ def test_mobile_base_goto_pos_ori(mock_get_entry, mock_connecting,
 
     mock_action_client.get_state.return_value = actionlib.GoalStatus.SUCCEEDED
 
-    mock_get_entry.return_value = {
-        'frame_id': 'map'
-    }
     pose = ((0, 1, 2), (0.5, 0.5, 0.5, 0.5))
-    mobile_base.move(pose, timeout=3.0, ref_frame_id="map")
+    mobile_base.go_pose(pose, timeout=3.0, ref_frame_id="map")
 
     expected_goal = MoveBaseGoal()
     expected_goal.target_pose.header.frame_id = "map"
@@ -130,6 +143,11 @@ def test_mobile_base_goto_pos_ori(mock_get_entry, mock_connecting,
 
     mock_action_client.send_goal.call_with_args(expected_goal)
     mock_action_client.wait_for_result.call_with_args(mock_duraiton_cls(3.0))
+
+    warnings.simplefilter("always")
+    with warnings.catch_warnings(record=True) as w:
+        mobile_base.move(pose, timeout=3.0, ref_frame_id="map")
+        eq_(w[0].category, hsrb_interface.exceptions.DeprecationWarning)
 
 
 @patch("hsrb_interface.trajectory.TrajectoryController")
@@ -171,9 +189,13 @@ def test_mobile_base_go_failure(mock_get_entry,
     mock_action_client.wait_for_server.return_value = True
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
 
-    assert_raises(ValueError, mobile_base.go, 0, 0, 0, -1)
-    assert_raises(ValueError, mobile_base.go, 0, 0, 0, float("inf"))
-    assert_raises(ValueError, mobile_base.go, 0, 0, 0, float("nan"))
+    assert_raises(ValueError, mobile_base.go_abs, 0, 0, 0, -1)
+    assert_raises(ValueError, mobile_base.go_abs, 0, 0, 0, float("inf"))
+    assert_raises(ValueError, mobile_base.go_abs, 0, 0, 0, float("nan"))
+
+    assert_raises(ValueError, mobile_base.go_rel, 0, 0, 0, -1)
+    assert_raises(ValueError, mobile_base.go_rel, 0, 0, 0, float("inf"))
+    assert_raises(ValueError, mobile_base.go_rel, 0, 0, 0, float("nan"))
 
 
 @patch("hsrb_interface.trajectory.wait_controllers")
@@ -298,11 +320,11 @@ def test_mobile_base_follow_trajectory_with_stamp(mock_get_entry,
 @patch("actionlib.SimpleActionClient")
 @patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
-def test_create_move_goal(mock_get_entry,
-                          mock_connecting,
-                          mock_action_client_cls,
-                          mock_trajectory_controller,
-                          mock_get_frame):
+def test_create_go_pose_goal(mock_get_entry,
+                             mock_connecting,
+                             mock_action_client_cls,
+                             mock_trajectory_controller,
+                             mock_get_frame):
     """Test MobileBase.create_move_goal"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
@@ -316,47 +338,12 @@ def test_create_move_goal(mock_get_entry,
 
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
 
-    goal = mobile_base.create_move_goal(hsrb_interface.geometry.pose(x=1.0))
+    goal = mobile_base.create_go_pose_goal(hsrb_interface.geometry.pose(x=1.0))
     eq_(goal.header.frame_id, "hoge")
     assert_almost_equal(goal.pose.position.x, 1.0)
 
-    goal = mobile_base.create_move_goal(hsrb_interface.geometry.pose(), "piyo")
-    eq_(goal.header.frame_id, "piyo")
-    assert_almost_equal(goal.pose.position.x, 0.0)
-
-
-@patch("hsrb_interface.settings.get_frame")
-@patch("hsrb_interface.trajectory.TrajectoryController")
-@patch("actionlib.SimpleActionClient")
-@patch("hsrb_interface.Robot._connecting")
-@patch('hsrb_interface.settings.get_entry')
-def test_create_go_goal(mock_get_entry,
-                        mock_connecting,
-                        mock_action_client_cls,
-                        mock_trajectory_controller,
-                        mock_get_frame):
-    """Test MobileBase.create_go_goal"""
-    mock_connecting.return_value = True
-    mock_get_entry.return_value = {
-        "pose_topic": "/pose",
-        "move_base_action": "/move_base",
-        "follow_trajectory_action": "/follow_trajectory"
-    }
-    mock_action_client = mock_action_client_cls.return_value
-    mock_action_client.wait_for_server.return_value = True
-
-    def get_frame(frame_id):
-        frames = {"map": "hoge", "base": "piyo"}
-        return frames[frame_id]
-    mock_get_frame.side_effect = get_frame
-
-    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
-
-    goal = mobile_base.create_go_goal(1.0, 0.0, 0.0)
-    eq_(goal.header.frame_id, "hoge")
-    assert_almost_equal(goal.pose.position.x, 1.0)
-
-    goal = mobile_base.create_go_goal(0.0, 0.0, 0.0, True)
+    goal = mobile_base.create_go_pose_goal(hsrb_interface.geometry.pose(),
+                                           "piyo")
     eq_(goal.header.frame_id, "piyo")
     assert_almost_equal(goal.pose.position.x, 0.0)
 

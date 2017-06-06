@@ -8,6 +8,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import math
+import warnings
 
 import actionlib
 
@@ -76,7 +77,7 @@ class MobileBase(robot.Item):
 
         self._current_client = None
 
-    def move(self, pose, timeout=0.0, ref_frame_id=None):
+    def go_pose(self, pose=geometry.pose(), timeout=0.0, ref_frame_id=None):
         """Move to a specified pose.
 
         Args:
@@ -92,13 +93,80 @@ class MobileBase(robot.Item):
             .. sourcecode:: python
 
                with hsrb_interface.Robot() as robot:
-                   base = robot.get('omni_base', robot.Items.MOBILE_BASE)
+                   base = robot.try_get('omni_base')
                    pose = (Vector3(0.1, 0.2, 0.0), Quaternion())
-                   base.move(pose, 10.0, 'base_footprint')
+                   base.go_pose(pose, 10.0, 'base_footprint')
         """
         _validate_timeout(timeout)
-        goal = self.create_move_goal(pose, ref_frame_id)
+        goal = self.create_go_pose_goal(pose, ref_frame_id)
         self._send_goal_pose_and_wait(goal, timeout)
+
+    def go_rel(self, x=0.0, y=0.0, yaw=0.0, timeout=0.0):
+        """Move base from current position.
+
+        Args:
+            x   (float): X-axis position on ``robot`` frame [m]
+            y   (float): Y-axis position on ``robot`` frame [m]
+            yaw (float): Yaw position on ``robot`` frame [rad]
+            timeout (float): Timeout until movement finish [sec].
+                Default is 0.0 and wait forever.
+
+        Examples:
+
+            .. sourcecode:: python
+
+               with hsrb_interface.Robot() as robot:
+                   base = robot.try_get('omni_base')
+                   base.go_rel(1.0, 0.0, 0.0)
+        """
+        _validate_timeout(timeout)
+        pose = geometry.pose(x, y, 0.0, 0.0, 0.0, yaw)
+        ref_frame_id = settings.get_frame('base')
+        goal = self.create_go_pose_goal(pose, ref_frame_id)
+        self._send_goal_pose_and_wait(goal, timeout)
+
+    def go_abs(self, x=0.0, y=0.0, yaw=0.0, timeout=0.0):
+        """Move to a specified pose on map.
+
+        Args:
+            x   (float): X-axis position on ``map`` frame [m]
+            y   (float): Y-axis position on ``map`` frame [m]
+            yaw (float): Yaw position on ``map`` frame [rad]
+            timeout (float): Timeout until movement finish [sec].
+                Default is 0.0 and wait forever.
+
+        Examples:
+
+            .. sourcecode:: python
+
+               with hsrb_interface.Robot() as robot:
+                   base = robot.try_get('omni_base')
+                   base.go_abs(1.0, 0.0, 0.0)
+        """
+        _validate_timeout(timeout)
+        pose = geometry.pose(x, y, 0.0, 0.0, 0.0, yaw)
+        ref_frame_id = settings.get_frame('map')
+        goal = self.create_go_pose_goal(pose, ref_frame_id)
+        self._send_goal_pose_and_wait(goal, timeout)
+
+    def move(self, pose, timeout=0.0, ref_frame_id=None):
+        """Move to a specified pose.
+
+        Args:
+            pose (Tuple[Vector3, Quaternion]):
+                A pose from a ``ref_frame_id`` coordinate
+            timeout (float): Timeout to movement [sec].
+                If not specified, deafult is 0 and wait forever.
+            ref_frame_id (str):
+                A reference frame of a goal. Default is ``map`` frame.
+
+        Warning:
+            This function is deprecated. Use :py:func:`go_pose()` instead.
+        """
+        msg = ' '.join(["MobileBase.move() is depreacated."
+                        "Use MobileBase.go_pose() instead."])
+        warnings.warn(msg, exceptions.DeprecationWarning)
+        self.go_pose(pose, timeout, ref_frame_id)
 
     def go(self, x, y, yaw, timeout=0.0, relative=False):
         """Move base to a specified pose.
@@ -112,20 +180,18 @@ class MobileBase(robot.Item):
             relative (bool): If ``True``, a robot move on robot frame.
                 Otherwise a robot move on ``map`` frame.
 
-        Raises:
-            ValueError: `timeout` < 0.
-
-        Example:
-
-            .. sourcecode:: python
-
-               with hsrb_interface.Robot() as robot:
-                   base = robot.get('omni_base', robot.Items.MOBILE_BASE)
-                   base.go(0.1, 0.2, 0.0, 10.0)
+        Warning:
+            This function is deprecated.
+            Use :py:func:`go_rel()` or :py:func:`go_abs()` instead.
         """
-        _validate_timeout(timeout)
-        goal = self.create_go_goal(x, y, yaw, relative)
-        self._send_goal_pose_and_wait(goal, timeout)
+        msg = ' '.join(["MobileBase.go() is depreacated."
+                        "Use MobileBase.go_rel() or"
+                        "MobileBase.go_abs() instead."])
+        warnings.warn(msg, exceptions.DeprecationWarning)
+        if relative:
+            self.go_rel(x, y, yaw, timeout)
+        else:
+            self.go_abs(x, y, yaw, timeout)
 
     def _send_goal_pose_and_wait(self, goal, timeout=0.0):
         self.execute(goal)
@@ -203,7 +269,7 @@ class MobileBase(robot.Item):
                                                   rospy.Duration(_TF_TIMEOUT))
         return geometry.transform_to_tuples(trans.transform)
 
-    def create_move_goal(self, pose, ref_frame_id=None):
+    def create_go_pose_goal(self, pose, ref_frame_id=None):
         """Create goal pose to move to a specified pose
 
         Args:
@@ -222,29 +288,6 @@ class MobileBase(robot.Item):
         target_pose.header.stamp = rospy.Time(0)
         target_pose.pose = geometry.tuples_to_pose(pose)
         return target_pose
-
-    def create_go_goal(self, x, y, yaw, relative=False):
-        """Create goal pose to move to a specified pose.
-
-        Args:
-            x   (float): X-axis position on ``map`` frame [m]
-            y   (float): Y-axis position on ``map`` frame [m]
-            yaw (float): Yaw position on ``map`` frame [rad]
-            relative (bool): If ``True``, a robot move on robot frame.
-                Otherwise a robot move on ``map`` frame.
-        Returns:
-            geometry_msgs.msg.PoseStamped: A goal pose
-        """
-        position = geometry.Vector3(x, y, 0)
-        quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
-        orientation = geometry.Quaternion(*quat)
-        pose = (position, orientation)
-
-        if relative:
-            ref_frame_id = settings.get_frame('base')
-        else:
-            ref_frame_id = settings.get_frame('map')
-        return self.create_move_goal(pose, ref_frame_id)
 
     def create_follow_trajectory_goal(self, poses,
                                       time_from_starts=[], ref_frame_id=None):
