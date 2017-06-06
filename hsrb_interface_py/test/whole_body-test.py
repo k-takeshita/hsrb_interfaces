@@ -88,6 +88,10 @@ class WholeBodyTest(testing.RosMockTestCase):
         self.constrain_trajectories_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
+        patcher = patch("hsrb_interface.joint_group.KinematicsInterface")
+        self.kinematics_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
         def get_frame_side_effect(key):
             mapping = {
                 "map": {
@@ -122,6 +126,7 @@ class WholeBodyTest(testing.RosMockTestCase):
                 "hand_palm_link",
                 "hand_l_finger_vacuum_frame"
             ],
+            "rgbd_sensor_frame": "rgbd_sensor_frame",
             "passive_joints": [
                 "hand_r_spring_proximal_joint",
                 "hand_l_spring_proximal_joint"
@@ -581,3 +586,82 @@ class WholeBodyTest(testing.RosMockTestCase):
         request = plan_service_proxy_mock.call.call_args[0][0]
         assert_true("LookHand" in request.extra_goal_constraints)
         assert_true("head_joint" in request.use_joints)
+
+    def test_gaze_point_ok(self):
+        # ref_frame_id is not given
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        odom_to_robot_transform, _ = self.initial_tf_fixtures()
+        self.tf2_buffer_mock.lookup_transform.side_effect = [
+            odom_to_robot_transform,
+            odom_to_robot_transform,
+            odom_to_robot_transform,
+        ]
+        plan_service_proxy_mock = self.service_proxy_mock.return_value
+        plan_result_mock = MagicMock()
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
+        type(plan_result_mock.error_code).val = error_code_mock
+        plan_service_proxy_mock.call.return_value = plan_result_mock
+
+        instance_mock = self.kinematics_mock.return_value
+        instance_mock.calculate_gazing_angles.return_value = {
+            'head_pan_joint': -0.1, 'head_tilt_joint': -0.2}
+
+        whole_body = JointGroup('whole_body')
+        whole_body.gaze_point(geometry.vector3(x=1.0, y=2.0, z=3.0))
+
+        instance_mock.calculate_gazing_angles.assert_called_with(
+            [1.0, 2.0, 3.0], "rgbd_sensor_frame")
+        request = plan_service_proxy_mock.call.call_args[0][0]
+        eq_(len(request.use_joints), 2)
+        eq_(len(request.goal_joint_states[0].position), 2)
+        goal_state = {}
+        for index in range(2):
+            name = request.use_joints[index]
+            value = request.goal_joint_states[0].position[index]
+            goal_state[name] = value
+        eq_(goal_state['head_pan_joint'], -0.1)
+        eq_(goal_state['head_tilt_joint'], -0.2)
+
+        # ref_frame_id is given
+        odom_to_map_transform = TransformStamped()
+        odom_to_map_transform.header.stamp.secs = 130
+        odom_to_map_transform.header.stamp.nsecs = 422000000
+        odom_to_map_transform.header.frame_id = 'odom'
+        odom_to_map_transform.child_frame_id = 'map'
+        odom_to_map_transform.transform.translation.x = 1.0
+        odom_to_map_transform.transform.translation.y = 2.0
+        odom_to_map_transform.transform.translation.z = 3.0
+        odom_to_map_transform.transform.rotation.x = 0
+        odom_to_map_transform.transform.rotation.y = 0
+        odom_to_map_transform.transform.rotation.z = 0
+        odom_to_map_transform.transform.rotation.w = 1
+        self.tf2_buffer_mock.lookup_transform.side_effect = [
+            odom_to_map_transform,
+            odom_to_robot_transform,
+            odom_to_robot_transform,
+        ]
+
+        whole_body.gaze_point(geometry.vector3(x=1.0, y=2.0, z=3.0), "map")
+        instance_mock.calculate_gazing_angles.assert_called_with(
+            [2.0, 4.0, 6.0], "rgbd_sensor_frame")
+
+    @raises(RuntimeError)
+    def test_gaze_point_ng(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        odom_to_robot_transform, _ = self.initial_tf_fixtures()
+        self.tf2_buffer_mock.lookup_transform.side_effect = [
+            odom_to_robot_transform,
+            odom_to_robot_transform,
+        ]
+        instance_mock = self.kinematics_mock.return_value
+        instance_mock.calculate_gazing_angles.return_value = {}
+
+        whole_body = JointGroup('whole_body')
+        whole_body.gaze_point()

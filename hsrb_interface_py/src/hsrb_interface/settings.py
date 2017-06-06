@@ -64,6 +64,7 @@ _HSRB_SETTINGS = """
                 "hand_palm_link",
                 "hand_l_finger_vacuum_frame"
             ],
+            "rgbd_sensor_frame": "head_rgbd_sensor_link",
             "passive_joints": [
                 "hand_r_spring_proximal_joint",
                 "hand_l_spring_proximal_joint"

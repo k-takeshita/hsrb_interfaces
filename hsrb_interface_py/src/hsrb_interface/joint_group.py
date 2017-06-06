@@ -14,6 +14,8 @@ import warnings
 from geometry_msgs.msg import Pose as RosPose
 from geometry_msgs.msg import TransformStamped
 
+from hsrb_interface._extension import KinematicsInterface
+
 import numpy as np
 import rospy
 
@@ -205,6 +207,8 @@ class JointGroup(robot.Item):
         self._end_effector_frame = self._end_effector_frames[0]
         self._passive_joints = self._setting['passive_joints']
         self._robot_urdf = robot_model.RobotModel.from_parameter_server()
+        description = rospy.get_param('robot_description')
+        self._kinematics_interface = KinematicsInterface(description)
 
         self._collision_world = None
         self._linear_weight = 3.0
@@ -791,6 +795,39 @@ class JointGroup(robot.Item):
         base_traj.header.frame_id = settings.get_frame('odom')
         constrained_traj = self._constrain_trajectories(arm_traj, base_traj)
         self._execute_trajectory(constrained_traj)
+
+    def gaze_point(self, point=geometry.vector3(), ref_frame_id=None):
+        """Point the rgbd sensor at given place.
+
+        Args:
+            point (Vector3): A position to point.
+            ref_frame_id (str): A base frame of the point.
+                The default is the robot frame(```base_footprint``).
+        Returns:
+            None
+        Notes:
+            If the calculated angle is over the limit, the angle is rounded.
+        """
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('base')
+        origin_to_ref_ros_pose = self._lookup_odom_to_ref(ref_frame_id)
+        origin_to_ref = geometry.pose_to_tuples(origin_to_ref_ros_pose)
+
+        origin_to_base_ros_pose = self._lookup_odom_to_ref(
+            settings.get_frame('base'))
+        origin_to_base = geometry.pose_to_tuples(origin_to_base_ros_pose)
+        base_to_origin = _invert_pose(origin_to_base)
+
+        ref_to_point = geometry.Pose(point, geometry.quaterion())
+
+        base_to_ref = geometry.multiply_tuples(base_to_origin, origin_to_ref)
+        base_to_point = geometry.multiply_tuples(base_to_ref, ref_to_point)
+
+        result = self._kinematics_interface.calculate_gazing_angles(
+            list(base_to_point.pos), str(self._setting['rgbd_sensor_frame']))
+        if len(result) == 0:
+            raise RuntimeError("Cannot gaze the given point.")
+        self.move_to_joint_positions(result)
 
     def _generate_planning_request(self, request_type):
         """Generate a planning request and assign common parameters to it.
