@@ -360,6 +360,7 @@ class MobileBase(robot.Item):
                            break
                    print("Result: " + str(omni_base.is_succeeded())
         """
+        self.cancel_goal()
         if isinstance(goal, PoseStamped):
             action_goal = MoveBaseGoal()
             action_goal.target_pose = goal
@@ -389,8 +390,11 @@ class MobileBase(robot.Item):
         Returns:
             bool: True if success
         """
-        state = self._current_client.get_state()
-        return state == actionlib.GoalStatus.SUCCEEDED
+        if self._current_client is None:
+            return False
+        else:
+            state = self._current_client.get_state()
+            return state == actionlib.GoalStatus.SUCCEEDED
 
     def cancel_goal(self):
         """Cancel moving."""

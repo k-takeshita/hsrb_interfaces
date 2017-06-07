@@ -498,6 +498,46 @@ def test_is_moving(mock_get_entry,
 @patch("actionlib.SimpleActionClient")
 @patch("hsrb_interface.Robot._connecting")
 @patch('hsrb_interface.settings.get_entry')
+def test_is_succeeded(mock_get_entry,
+                      mock_connecting,
+                      mock_action_client_cls,
+                      mock_trajectory_controller):
+    """Test MobileBase.is_moving"""
+    mock_connecting.return_value = True
+    mock_get_entry.return_value = {
+        "pose_topic": "/pose",
+        "move_base_action": "/move_base",
+        "follow_trajectory_action": "/follow_trajectory"
+    }
+    mock_action_client = mock_action_client_cls.return_value
+    mock_action_client.wait_for_server.return_value = True
+    mock_follow_client = mock_trajectory_controller.return_value
+
+    # mobile_base.execute is not called
+    mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
+    assert_false(mobile_base.is_succeeded())
+
+    # Send pose
+    mobile_base.execute(PoseStamped())
+    mock_action_client.get_state.return_value = actionlib.GoalStatus.ACTIVE
+    assert_false(mobile_base.is_succeeded())
+
+    mock_action_client.get_state.return_value = actionlib.GoalStatus.SUCCEEDED
+    assert_true(mobile_base.is_succeeded())
+
+    # Send trajetory
+    mobile_base.execute(JointTrajectory())
+    mock_follow_client.get_state.return_value = actionlib.GoalStatus.ACTIVE
+    assert_false(mobile_base.is_succeeded())
+
+    mock_follow_client.get_state.return_value = actionlib.GoalStatus.SUCCEEDED
+    assert_true(mobile_base.is_succeeded())
+
+
+@patch("hsrb_interface.trajectory.TrajectoryController")
+@patch("actionlib.SimpleActionClient")
+@patch("hsrb_interface.Robot._connecting")
+@patch('hsrb_interface.settings.get_entry')
 def test_cancel_goal(mock_get_entry,
                      mock_connecting,
                      mock_action_client_cls,
