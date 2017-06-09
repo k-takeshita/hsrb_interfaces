@@ -8,6 +8,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import math
+import warnings
 
 import actionlib
 
@@ -20,6 +21,7 @@ import tf
 
 from tmc_manipulation_msgs.msg import MultiDOFJointTrajectory
 from tmc_manipulation_msgs.msg import MultiDOFJointTrajectoryPoint
+from trajectory_msgs.msg import JointTrajectory
 
 from . import exceptions
 from . import geometry
@@ -73,7 +75,9 @@ class MobileBase(robot.Item):
         self._follow_client = trajectory.TrajectoryController(
             self._setting['follow_trajectory_action'], '/base_coordinates')
 
-    def move(self, pose, timeout=0.0, ref_frame_id=None):
+        self._current_client = None
+
+    def go_pose(self, pose=geometry.pose(), timeout=0.0, ref_frame_id=None):
         """Move to a specified pose.
 
         Args:
@@ -89,35 +93,80 @@ class MobileBase(robot.Item):
             .. sourcecode:: python
 
                with hsrb_interface.Robot() as robot:
-                   base = robot.get('omni_base', robot.Items.MOBILE_BASE)
+                   base = robot.try_get('omni_base')
                    pose = (Vector3(0.1, 0.2, 0.0), Quaternion())
-                   base.move(pose, 10.0, 'base_footprint')
+                   base.go_pose(pose, 10.0, 'base_footprint')
         """
         _validate_timeout(timeout)
+        goal = self.create_go_pose_goal(pose, ref_frame_id)
+        self._send_goal_pose_and_wait(goal, timeout)
 
-        if ref_frame_id is None:
-            ref_frame_id = settings.get_frame('map')
+    def go_rel(self, x=0.0, y=0.0, yaw=0.0, timeout=0.0):
+        """Move base from current position.
 
-        target_pose = PoseStamped()
-        target_pose.header.frame_id = ref_frame_id
-        target_pose.header.stamp = rospy.Time(0)
-        target_pose.pose = geometry.tuples_to_pose(pose)
-        goal = MoveBaseGoal()
-        goal.target_pose = target_pose
-        self._action_client.send_goal(goal)
+        Args:
+            x   (float): X-axis position on ``robot`` frame [m]
+            y   (float): Y-axis position on ``robot`` frame [m]
+            yaw (float): Yaw position on ``robot`` frame [rad]
+            timeout (float): Timeout until movement finish [sec].
+                Default is 0.0 and wait forever.
 
-        try:
-            if self._action_client.wait_for_result(rospy.Duration(timeout)):
-                state = self._action_client.get_state()
-                if state != actionlib.GoalStatus.SUCCEEDED:
-                    error_text = self._action_client.get_goal_status_text()
-                    msg = 'Failed to reach goal ({0})'.format(error_text)
-                    raise exceptions.MobileBaseError(msg)
-            else:
-                self._action_client.cancel_goal()
-                raise exceptions.MobileBaseError('Timed out')
-        except KeyboardInterrupt:
-            self._action_client.cancel_goal()
+        Examples:
+
+            .. sourcecode:: python
+
+               with hsrb_interface.Robot() as robot:
+                   base = robot.try_get('omni_base')
+                   base.go_rel(1.0, 0.0, 0.0)
+        """
+        _validate_timeout(timeout)
+        pose = geometry.pose(x, y, 0.0, 0.0, 0.0, yaw)
+        ref_frame_id = settings.get_frame('base')
+        goal = self.create_go_pose_goal(pose, ref_frame_id)
+        self._send_goal_pose_and_wait(goal, timeout)
+
+    def go_abs(self, x=0.0, y=0.0, yaw=0.0, timeout=0.0):
+        """Move to a specified pose on map.
+
+        Args:
+            x   (float): X-axis position on ``map`` frame [m]
+            y   (float): Y-axis position on ``map`` frame [m]
+            yaw (float): Yaw position on ``map`` frame [rad]
+            timeout (float): Timeout until movement finish [sec].
+                Default is 0.0 and wait forever.
+
+        Examples:
+
+            .. sourcecode:: python
+
+               with hsrb_interface.Robot() as robot:
+                   base = robot.try_get('omni_base')
+                   base.go_abs(1.0, 0.0, 0.0)
+        """
+        _validate_timeout(timeout)
+        pose = geometry.pose(x, y, 0.0, 0.0, 0.0, yaw)
+        ref_frame_id = settings.get_frame('map')
+        goal = self.create_go_pose_goal(pose, ref_frame_id)
+        self._send_goal_pose_and_wait(goal, timeout)
+
+    def move(self, pose, timeout=0.0, ref_frame_id=None):
+        """Move to a specified pose.
+
+        Args:
+            pose (Tuple[Vector3, Quaternion]):
+                A pose from a ``ref_frame_id`` coordinate
+            timeout (float): Timeout to movement [sec].
+                If not specified, deafult is 0 and wait forever.
+            ref_frame_id (str):
+                A reference frame of a goal. Default is ``map`` frame.
+
+        Warning:
+            This function is deprecated. Use :py:func:`go_pose()` instead.
+        """
+        msg = ' '.join(["MobileBase.move() is depreacated."
+                        "Use MobileBase.go_pose() instead."])
+        warnings.warn(msg, exceptions.DeprecationWarning)
+        self.go_pose(pose, timeout, ref_frame_id)
 
     def go(self, x, y, yaw, timeout=0.0, relative=False):
         """Move base to a specified pose.
@@ -131,29 +180,33 @@ class MobileBase(robot.Item):
             relative (bool): If ``True``, a robot move on robot frame.
                 Otherwise a robot move on ``map`` frame.
 
-        Raises:
-            ValueError: `timeout` < 0.
-
-        Example:
-
-            .. sourcecode:: python
-
-               with hsrb_interface.Robot() as robot:
-                   base = robot.get('omni_base', robot.Items.MOBILE_BASE)
-                   base.go(0.1, 0.2, 0.0, 10.0)
+        Warning:
+            This function is deprecated.
+            Use :py:func:`go_rel()` or :py:func:`go_abs()` instead.
         """
-        _validate_timeout(timeout)
-
-        position = geometry.Vector3(x, y, 0)
-        quat = tf.transformations.quaternion_from_euler(0, 0, yaw)
-        orientation = geometry.Quaternion(*quat)
-        pose = (position, orientation)
-
+        msg = ' '.join(["MobileBase.go() is depreacated."
+                        "Use MobileBase.go_rel() or"
+                        "MobileBase.go_abs() instead."])
+        warnings.warn(msg, exceptions.DeprecationWarning)
         if relative:
-            ref_frame_id = settings.get_frame('base')
+            self.go_rel(x, y, yaw, timeout)
         else:
-            ref_frame_id = settings.get_frame('map')
-        self.move(pose, timeout, ref_frame_id)
+            self.go_abs(x, y, yaw, timeout)
+
+    def _send_goal_pose_and_wait(self, goal, timeout=0.0):
+        self.execute(goal)
+        try:
+            if self._action_client.wait_for_result(rospy.Duration(timeout)):
+                state = self._action_client.get_state()
+                if state != actionlib.GoalStatus.SUCCEEDED:
+                    error_text = self._action_client.get_goal_status_text()
+                    msg = 'Failed to reach goal ({0})'.format(error_text)
+                    raise exceptions.MobileBaseError(msg)
+            else:
+                self._action_client.cancel_goal()
+                raise exceptions.MobileBaseError('Timed out')
+        except KeyboardInterrupt:
+            self._action_client.cancel_goal()
 
     def follow_trajectory(self, poses, time_from_starts=[], ref_frame_id=None):
         """Follow given poses and timing with ignoring the map.
@@ -179,39 +232,9 @@ class MobileBase(robot.Item):
                             geometry.pose(x=1.0, y=1.0, ek=math.pi)]
                    omni_base.follow_trajectory(poses)
         """
-        num_poses = len(poses)
-        num_times = len(time_from_starts)
-        if (num_times != 0) and (num_poses != num_times):
-            raise ValueError("The size of time_from_starts should be zero"
-                             " or same as the size of poses")
-        if ref_frame_id is None:
-            ref_frame_id = settings.get_frame('map')
-
-        ref_to_current = self.get_pose(ref_frame_id)
-        input_trajectory = MultiDOFJointTrajectory()
-        input_trajectory.header.frame_id = ref_frame_id
-        input_trajectory.points = list(
-            utils.iterate(MultiDOFJointTrajectoryPoint, num_poses + 1))
-        input_trajectory.points[0].transforms.append(
-            geometry.tuples_to_transform(ref_to_current))
-        for index in range(num_poses):
-            input_trajectory.points[index + 1].transforms.append(
-                geometry.tuples_to_transform(poses[index]))
-
-        transformed_trajectory = trajectory.transform_base_trajectory(
-            input_trajectory, self._tf2_buffer, _TF_TIMEOUT,
-            self._follow_client.joint_names)
-
-        if num_times == 0:
-            base_trajectory = trajectory.timeopt_filter(transformed_trajectory)
-        else:
-            base_trajectory = transformed_trajectory
-            base_trajectory.points[0].time_from_start = rospy.Duration(0.0)
-            for index in range(num_times):
-                tfs = rospy.Duration(time_from_starts[index])
-                base_trajectory.points[index + 1].time_from_start = tfs
-
-        self._follow_client.submit(base_trajectory)
+        goal = self.create_follow_trajectory_goal(
+            poses, time_from_starts, ref_frame_id)
+        self.execute(goal)
         trajectory.wait_controllers([self._follow_client])
 
     @property
@@ -246,7 +269,139 @@ class MobileBase(robot.Item):
                                                   rospy.Duration(_TF_TIMEOUT))
         return geometry.transform_to_tuples(trans.transform)
 
-    def _cancel(self):
-        """Cancel autonomous driving."""
-        self._action_client.cancel_goal()
-        raise exceptions.MobileBaseError('move_base was canceled from client')
+    def create_go_pose_goal(self, pose, ref_frame_id=None):
+        """Create goal pose to move to a specified pose
+
+        Args:
+            pose (Tuple[Vector3, Quaternion]):
+                A pose from a ``ref_frame_id`` coordinate
+            ref_frame_id (str):
+                A reference frame of a goal. Default is ``map`` frame.
+        Returns:
+            geometry_msgs.msg.PoseStamped: A goal pose
+        """
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('map')
+
+        target_pose = PoseStamped()
+        target_pose.header.frame_id = ref_frame_id
+        target_pose.header.stamp = rospy.Time(0)
+        target_pose.pose = geometry.tuples_to_pose(pose)
+        return target_pose
+
+    def create_follow_trajectory_goal(self, poses,
+                                      time_from_starts=[], ref_frame_id=None):
+        """Create trajectory to follow given poses and timing.
+
+        Args:
+            poses (List[Tuple[Vector3, Quaternion]]):
+                Target poses of the robot base.
+            time_from_starts (List[float]):
+                Times of each "poses" [sec]. If empty, the times are optimized
+                by time-optimal trajectory filter.
+            ref_frame_id (str):
+                A reference frame of a goal. Default is ``map`` frame.
+        Returns:
+            trajectory_msgs.msg.JointTrajectory: A base trajectory
+        """
+        num_poses = len(poses)
+        num_times = len(time_from_starts)
+        if (num_times != 0) and (num_poses != num_times):
+            raise ValueError("The size of time_from_starts should be zero"
+                             " or same as the size of poses")
+        if ref_frame_id is None:
+            ref_frame_id = settings.get_frame('map')
+
+        ref_to_current = self.get_pose(ref_frame_id)
+        input_trajectory = MultiDOFJointTrajectory()
+        input_trajectory.header.frame_id = ref_frame_id
+        input_trajectory.points = list(
+            utils.iterate(MultiDOFJointTrajectoryPoint, num_poses + 1))
+        input_trajectory.points[0].transforms.append(
+            geometry.tuples_to_transform(ref_to_current))
+        for index in range(num_poses):
+            input_trajectory.points[index + 1].transforms.append(
+                geometry.tuples_to_transform(poses[index]))
+
+        transformed_trajectory = trajectory.transform_base_trajectory(
+            input_trajectory, self._tf2_buffer, _TF_TIMEOUT,
+            self._follow_client.joint_names)
+
+        if num_times == 0:
+            base_trajectory = trajectory.timeopt_filter(transformed_trajectory)
+        else:
+            base_trajectory = transformed_trajectory
+            base_trajectory.points[0].time_from_start = rospy.Duration(0.0)
+            for index in range(num_times):
+                tfs = rospy.Duration(time_from_starts[index])
+                base_trajectory.points[index + 1].time_from_start = tfs
+        return base_trajectory
+
+    def execute(self, goal):
+        """Send a goal and not wait the result.
+
+        Args:
+            goal (geometry_msgs.msg.PoseStamped or
+                  trajectory_msgs.msg.JointTrajectory): A goal to move
+
+        Examples:
+
+            .. sourcecode:: python
+
+               with hsrb_interface.Robot() as robot:
+                   omni_base = robot.try_get('omni_base')
+                   poses = [geometry.pose(x=1.0, y=0.0, ek=0.0),
+                            geometry.pose(x=1.0, y=1.0, ek=math.pi)]
+                   goal = omni_base.create_follow_trajectory_goal(poses)
+                   omni_base.execute(goal)
+                   while not rospy.is_shutdown():
+                       rospy.sleep(1.0)
+                       if not omni_base.is_moving():
+                           break
+                   print("Result: " + str(omni_base.is_succeeded())
+        """
+        self.cancel_goal()
+        if isinstance(goal, PoseStamped):
+            action_goal = MoveBaseGoal()
+            action_goal.target_pose = goal
+            self._action_client.send_goal(action_goal)
+            self._current_client = self._action_client
+        elif isinstance(goal, JointTrajectory):
+            self._follow_client.submit(goal)
+            self._current_client = self._follow_client
+        else:
+            raise ValueError("Invalid goal.")
+
+    def is_moving(self):
+        """Get the state as if the robot is moving.
+
+        Returns:
+            bool: True if the robot is moving
+        """
+        if self._current_client is None:
+            return False
+        else:
+            state = self._current_client.get_state()
+            return state == actionlib.GoalStatus.ACTIVE
+
+    def is_succeeded(self):
+        """Get the state as if the robot moving was succeeded.
+
+        Returns:
+            bool: True if success
+        """
+        if self._current_client is None:
+            return False
+        else:
+            state = self._current_client.get_state()
+            return state == actionlib.GoalStatus.SUCCEEDED
+
+    def cancel_goal(self):
+        """Cancel moving."""
+        if not self.is_moving():
+            return
+
+        if self._current_client is self._action_client:
+            self._action_client.cancel_goal()
+        elif self._current_client is self._follow_client:
+            self._follow_client.cancel()
