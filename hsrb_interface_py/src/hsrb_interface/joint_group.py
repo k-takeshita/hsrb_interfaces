@@ -620,8 +620,8 @@ class JointGroup(robot.Item):
             None
         """
         # Check angle value
-        if (angle <= -math.pi) or (math.pi <= angle):
-            raise ValueError("The angle value is out of range.")
+        if not -math.pi < angle < math.pi:
+            raise ValueError("The range of the angle is (-PI, PI).")
 
         # Default is the robot frame (the base frame)
         if ref_frame_id is None:
