@@ -269,7 +269,7 @@ def transform_base_trajectory(base_traj, tf2_buffer, tf_timeout, joint_names):
     odom_to_frame_transform = tf2_buffer.lookup_transform(
         _BASE_TRAJECTORY_ORIGIN,
         base_traj.header.frame_id,
-        rospy.Time(0),
+        rospy.Time.now(),
         rospy.Duration(tf_timeout))
     odom_to_frame = geometry.transform_to_tuples(
         odom_to_frame_transform.transform)

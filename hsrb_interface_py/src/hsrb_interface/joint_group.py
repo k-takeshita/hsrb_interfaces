@@ -495,7 +495,7 @@ class JointGroup(robot.Item):
         transform = self._tf2_buffer.lookup_transform(
             ref_frame_id,
             self._end_effector_frame,
-            rospy.Time(0),
+            rospy.Time.now(),
             rospy.Duration(self._tf_timeout)
         )
         result = geometry.transform_to_tuples(transform.transform)
@@ -511,7 +511,7 @@ class JointGroup(robot.Item):
         odom_to_ref_ros = self._tf2_buffer.lookup_transform(
             settings.get_frame('odom'),
             ref_frame_id,
-            rospy.Time(0),
+            rospy.Time.now(),
             rospy.Duration(self._tf_timeout)
         ).transform
         odom_to_ref_tuples = geometry.transform_to_tuples(odom_to_ref_ros)
