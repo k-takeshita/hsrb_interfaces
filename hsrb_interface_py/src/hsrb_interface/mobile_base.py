@@ -265,7 +265,7 @@ class MobileBase(robot.Item):
 
         trans = self._tf2_buffer.lookup_transform(ref_frame_id,
                                                   settings.get_frame('base'),
-                                                  rospy.Time(0),
+                                                  rospy.Time.now(),
                                                   rospy.Duration(_TF_TIMEOUT))
         return geometry.transform_to_tuples(trans.transform)
 

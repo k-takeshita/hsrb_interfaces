@@ -376,7 +376,7 @@ class WholeBodyTest(testing.RosMockTestCase):
         self.tf2_buffer_mock.lookup_transform.assert_called_with(
             settings.get_frame('base'),
             settings.get_frame('hand'),
-            rospy.Time(0),
+            rospy.Time.now(),
             rospy.Duration(1.0)
         )
 
@@ -509,7 +509,7 @@ class WholeBodyTest(testing.RosMockTestCase):
         self.tf2_buffer_mock.lookup_transform.assert_called_with(
             settings.get_frame('odom'),
             settings.get_frame('base'),
-            rospy.Time(0),
+            rospy.Time.now(),
             rospy.Duration(1.0)
         )
         service = self.joint_group_setting["plan_with_hand_line_service"]
