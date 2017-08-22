@@ -20,7 +20,7 @@ from . import geometry
 from . import robot
 from . import settings
 
-_TF_TIMEOUT = 1.0
+_TF_TIMEOUT = 5.0
 
 
 def _expired(now, expiration, stamped):
