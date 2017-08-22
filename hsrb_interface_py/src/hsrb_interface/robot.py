@@ -132,7 +132,7 @@ class _ConnectionManager(object):
         rospy.init_node(b'hsrb_interface_py', anonymous=True,
                         disable_signals=disable_signals)
         self._tf2_buffer = tf2_ros.Buffer()
-        self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer)
+        self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer, queue_size=1)
         self._registry = {}
 
     def __del__(self):
