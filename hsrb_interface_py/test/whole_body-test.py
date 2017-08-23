@@ -71,7 +71,7 @@ class WholeBodyTest(testing.RosMockTestCase):
         self.addCleanup(patcher.stop)
         rp = rospkg.RosPack()
         urdf_xml = os.path.join(rp.get_path('hsrb_description'),
-                                'robots', 'hsrb3s.urdf')
+                                'robots', 'hsrb.urdf')
         with open(urdf_xml) as f:
             model = robot_model.RobotModel.from_xml_string(f.read())
         self.from_parameter_server_mock.return_value = model

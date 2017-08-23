@@ -18,7 +18,7 @@ class KinematicsInterfaceTest(unittest.TestCase):
     def setUp(self):
         rp = rospkg.RosPack()
         urdf_xml = os.path.join(rp.get_path('hsrb_description'),
-                                'robots', 'hsrb3s.urdf')
+                                'robots', 'hsrb.urdf')
         f = open(urdf_xml)
         self._kinematics = KinematicsInterface(f.read())
 
