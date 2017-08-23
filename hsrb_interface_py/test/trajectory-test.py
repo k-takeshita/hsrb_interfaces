@@ -255,7 +255,7 @@ class TrajectoryControllerTest(TrajectoryTestCase):
         controller.cancel()
 
         # Check post-conditions
-        action_client_mock.cancel.assert_called()
+        action_client_mock.cancel_goal.assert_called_with()
 
     def test_get_state_ok(self):
         action_client_mock = self.action_client_mock.return_value
@@ -264,7 +264,7 @@ class TrajectoryControllerTest(TrajectoryTestCase):
         controller.get_state()
 
         # Check post-conditions
-        action_client_mock.get_state.assert_called()
+        action_client_mock.get_state.assert_called_with()
 
     def test_get_result_ok(self):
         action_client_mock = self.action_client_mock.return_value
@@ -279,8 +279,8 @@ class TrajectoryControllerTest(TrajectoryTestCase):
         result = controller.get_result()
 
         # Check post-conditions
-        action_client_mock.get_state.assert_called()
-        action_client_mock.get_result.assert_called()
+        action_client_mock.get_state.assert_called_with()
+        action_client_mock.get_result.assert_called_with()
         eq_(expected_result, result)
 
 
