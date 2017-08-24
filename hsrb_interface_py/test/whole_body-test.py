@@ -377,7 +377,7 @@ class WholeBodyTest(testing.RosMockTestCase):
             settings.get_frame('base'),
             settings.get_frame('hand'),
             rospy.Time.now(),
-            rospy.Duration(1.0)
+            rospy.Duration(5.0)
         )
 
     def test_move_to_joint_positions_ok(self):
@@ -510,7 +510,7 @@ class WholeBodyTest(testing.RosMockTestCase):
             settings.get_frame('odom'),
             settings.get_frame('base'),
             rospy.Time.now(),
-            rospy.Duration(1.0)
+            rospy.Duration(5.0)
         )
         service = self.joint_group_setting["plan_with_hand_line_service"]
         self.service_proxy_mock.assert_called_with(service, PlanWithHandLine)

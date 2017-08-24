@@ -65,7 +65,7 @@ _PLANNING_GOAL_GENERATION = 0.3
 _PLANNING_GOAL_DEVIATION = 0.3
 
 # Timeout to receive a tf message [sec]
-_TF_TIMEOUT = 1.0
+_TF_TIMEOUT = 5.0
 
 
 def _normalize_np(vec):

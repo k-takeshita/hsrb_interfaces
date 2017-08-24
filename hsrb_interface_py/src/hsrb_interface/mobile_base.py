@@ -31,7 +31,7 @@ from . import trajectory
 from . import utils
 
 # Timeout to receve enough tf transform [sec]
-_TF_TIMEOUT = 1.0
+_TF_TIMEOUT = 5.0
 
 _ACTION_WAIT_TIMEOUT = 30.0
 
