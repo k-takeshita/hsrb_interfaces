@@ -51,4 +51,4 @@ def test_robot_with_statement(init_mock, shutdown_mock, mock_get_master,
         eq_(robot.ok(), True)
         init_mock.assert_called_with('hsrb_interface_py',
                                      disable_signals=False, anonymous=True)
-    shutdown_mock.assert_caleed_with('shutdown')
+    shutdown_mock.assert_called_with('shutdown')
