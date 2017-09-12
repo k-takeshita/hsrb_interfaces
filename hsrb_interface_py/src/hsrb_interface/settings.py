@@ -42,7 +42,8 @@ _HSRB_SETTINGS = """
             "impedance_control": "/hsrb/impedance_control",
             "constraint_filter_service":
                 "/trajectory_filter/filter_trajectory_with_constraints",
-            "timeopt_filter_service": "/hsrb/omni_base_timeopt_filter",
+            "timeopt_filter_service": "/filter_hsrb_trajectory",
+            "caster_joint": "base_roll_joint"
             "filter_timeout": 30.0,
             "action_timeout": 30.0,
             "watch_rate": 30.0

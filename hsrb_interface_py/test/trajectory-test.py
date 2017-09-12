@@ -57,6 +57,14 @@ class TrajectoryTestCase(testing.RosMockTestCase):
         traj.points.append(point3)
         return traj
 
+    def start_fixture(self):
+        """Create a example joint state"""
+        state = JointState()
+        state.name = ['a', 'b', 'c']
+        state.position = [0, 0, 0]
+        state.velocity = [1, 2, 3]
+        state.effort = [4, 5, 6]
+        return state
 
 class TrajectoryModuleTest(TrajectoryTestCase):
 
@@ -201,20 +209,20 @@ class TrajectoryModuleTest(TrajectoryTestCase):
         req = FilterJointTrajectoryWithConstraintsRequest()
         req.trajectory = traj
         req.allowed_time = rospy.Duration(10.0)
-
         service_proxy_mock.call.assert_called_with(req)
 
-    def test_timeopt_filter_ok(self):
-        """Test hsrb_interface.trajectory.timeopt_filter()"""
+    def test_hsr_timeopt_filter_ok(self):
+        """Test hsrb_interface.trajectory.hsr_timeopt_filter()"""
         # Setup pre-conditions
         self.get_entry_mock.return_value = '/timeopt_filter'
         service_proxy_mock = self.service_proxy_mock.return_value
         result = service_proxy_mock.call.return_value
         result.error_code.val = ArmNavigationErrorCodes.SUCCESS
         traj = self.trajectory_fixture()
+        state = self.state_fixture()
 
         # Call the target method
-        trajectory.timeopt_filter(traj)
+        trajectory.hsr_timeopt_filter(traj, state)
 
         # Check post-conditions
         self.get_entry_mock.assert_called_with('trajectory',
