@@ -100,7 +100,7 @@ How to use
 
 .. note:: 詳細はチュートリアルおよびAPIリファレンスをご覧ください。
 
-Releated Tutorials
+Related Tutorials
 -------------------
 
 チュートリアルおよびリファレンスはHSR-Bマニュアルの関連する章をご覧ください。
