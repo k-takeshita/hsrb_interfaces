@@ -250,27 +250,6 @@ def timeopt_filter(base_trajectory):
     filtered_traj = res.trajectory
     return filtered_traj
 
-def test_timeopt_filter_ok(self):
-    """Test hsrb_interface.trajectory.timeopt_filter()"""
-    # Setup pre-conditions
-    self.get_entry_mock.return_value = '/timeopt_filter'
-    service_proxy_mock = self.service_proxy_mock.return_value
-    result = service_proxy_mock.call.return_value
-    result.error_code.val = ArmNavigationErrorCodes.SUCCESS
-    traj = self.trajectory_fixture()
-
-    # Call the target method
-    trajectory.timeopt_filter(traj)
-
-    # Check post-conditions
-    self.get_entry_mock.assert_called_with('trajectory',
-                                           'timeopt_filter_service')
-    self.service_proxy_mock.assert_called_with("/timeopt_filter",
-                                               FilterJointTrajectory)
-    req = FilterJointTrajectoryRequest()
-    req.trajectory = traj
-    service_proxy_mock.call.assert_called_with(req)
-
 def hsr_timeopt_filter(merged_trajectory, start_state):
     """whole body timeopt filter.
 
