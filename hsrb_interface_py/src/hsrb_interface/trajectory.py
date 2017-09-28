@@ -255,7 +255,7 @@ def hsr_timeopt_filter(merged_trajectory, start_state):
 
     Args:
        merged_trajectory (trajectory_msgs.msg.JointTrajectory):
-       A trajectory that will be applied this filter
+           A trajectory that will be applied this filter
        start_state: states
     Returns:
         trajectory_msgs.msg.JointTrajectory:
