@@ -225,7 +225,6 @@ def constraint_filter(joint_trajectory):
         raise
     return res.trajectory
 
-
 def timeopt_filter(base_trajectory):
     """Apply timeopt filter to a omni-base trajectory.
 
@@ -245,6 +244,39 @@ def timeopt_filter(base_trajectory):
         if res.error_code.val != ArmNavigationErrorCodes.SUCCESS:
             msg = "Failed to filter trajectory" + str(type(res.error_code))
             raise exceptions.TrajectoryFilterError(msg, res.error_code)
+    except rospy.ServiceException:
+        traceback.print_exc()
+        raise
+    filtered_traj = res.trajectory
+    return filtered_traj
+
+def hsr_timeopt_filter(merged_trajectory, start_state):
+    """whole body timeopt filter.
+
+    Args:
+       merged_trajectory (trajectory_msgs.msg.JointTrajectory):
+           A trajectory that will be applied this filter
+       start_state: states
+    Returns:
+        trajectory_msgs.msg.JointTrajectory:
+            Filtered trajectory
+    """
+    service = settings.get_entry("trajectory", "whole_timeopt_filter_service")
+    caster_joint = settings.get_entry("trajectory", "caster_joint")
+    filter_service = rospy.ServiceProxy(service, FilterJointTrajectory)
+    req = FilterJointTrajectoryRequest()
+    req.trajectory = merged_trajectory
+
+    whole_name = merged_trajectory.joint_names + [caster_joint]
+    req.start_state.joint_state.name = whole_name
+    whole_pos = [start_state.position[start_state.name.index(joint)]
+                 for joint in whole_name]
+    req.start_state.joint_state.position = whole_pos
+
+    try:
+        res = filter_service.call(req)
+        if res.error_code.val != ArmNavigationErrorCodes.SUCCESS:
+            return None
     except rospy.ServiceException:
         traceback.print_exc()
         raise

@@ -57,6 +57,14 @@ class TrajectoryTestCase(testing.RosMockTestCase):
         traj.points.append(point3)
         return traj
 
+    def state_fixture(self):
+        """Create a example joint state"""
+        state = JointState()
+        state.name = ['a', 'b', 'c']
+        state.position = [0, 0, 0]
+        state.velocity = [1, 2, 3]
+        state.effort = [4, 5, 6]
+        return state
 
 class TrajectoryModuleTest(TrajectoryTestCase):
 
@@ -201,7 +209,6 @@ class TrajectoryModuleTest(TrajectoryTestCase):
         req = FilterJointTrajectoryWithConstraintsRequest()
         req.trajectory = traj
         req.allowed_time = rospy.Duration(10.0)
-
         service_proxy_mock.call.assert_called_with(req)
 
     def test_timeopt_filter_ok(self):
@@ -223,6 +230,36 @@ class TrajectoryModuleTest(TrajectoryTestCase):
                                                    FilterJointTrajectory)
         req = FilterJointTrajectoryRequest()
         req.trajectory = traj
+        service_proxy_mock.call.assert_called_with(req)
+
+    def test_hsr_timeopt_filter_ok(self):
+        """Test hsrb_interface.trajectory.hsr_timeopt_filter()"""
+        # Setup pre-conditions
+        self.get_entry_mock.side_effect = ['/timeopt_filter', 'a']
+        service_proxy_mock = self.service_proxy_mock.return_value
+        result = service_proxy_mock.call.return_value
+        result.error_code.val = ArmNavigationErrorCodes.SUCCESS
+        traj = self.trajectory_fixture()
+        state = self.state_fixture()
+
+        # Call the target method
+        trajectory.hsr_timeopt_filter(traj, state)
+
+        # Check post-conditions
+        self.get_entry_mock.assert_has_calls([
+            call('trajectory', 'whole_timeopt_filter_service'),
+            call('trajectory', 'caster_joint')
+        ])
+        self.service_proxy_mock.assert_called_with("/timeopt_filter",
+                                                   FilterJointTrajectory)
+        req = FilterJointTrajectoryRequest()
+        req.trajectory = traj
+        whole_name = traj.joint_names + ['a']
+        req.start_state.joint_state.name = whole_name
+        whole_pos = [state.position[state.name.index(joint)]
+                     for joint in whole_name]
+        req.start_state.joint_state.position = whole_pos
+
         service_proxy_mock.call.assert_called_with(req)
 
 
