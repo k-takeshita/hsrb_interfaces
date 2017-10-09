@@ -878,6 +878,8 @@ class JointGroup(robot.Item):
         Notes:
             If the calculated angle is over the limit, the angle is rounded.
         """
+        if any([math.isinf(x) for x in point]):
+            raise ValueError("The point includes inf.")
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('base')
         origin_to_ref_ros_pose = self._lookup_odom_to_ref(ref_frame_id)
