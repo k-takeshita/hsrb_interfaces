@@ -328,7 +328,10 @@ class MobileBase(robot.Item):
             self._follow_client.joint_names)
 
         if num_times == 0:
-            base_trajectory = trajectory.timeopt_filter(transformed_trajectory)
+            # TODO(Keisuke Takeshita): Use hsr_timeopt_filter
+            base_trajectory = trajectory.timeopt_filter(
+                transformed_trajectory)
+            base_trajectory.header.stamp = rospy.Time(0)
         else:
             base_trajectory = transformed_trajectory
             base_trajectory.points[0].time_from_start = rospy.Duration(0.0)
