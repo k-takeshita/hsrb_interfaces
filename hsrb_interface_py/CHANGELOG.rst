@@ -2,8 +2,8 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.9.0 (2017-10-27)
+------------------
 * Reset stamp in omni_base.create_follow_trajectory_goal().
 * fix method comment
 * use base_only fitler for mobile
