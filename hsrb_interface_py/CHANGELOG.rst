@@ -2,6 +2,28 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.9.0 (2017-10-27)
+------------------
+* Reset stamp in omni_base.create_follow_trajectory_goal().
+* fix method comment
+* use base_only fitler for mobile
+* add new_timeopt
+* Fix document misspelling
+* update default tf_timeout
+* Use default robot model
+* fix dependency
+* change tf listener queue_size
+* use current time for tf
+* Fix Python extenstion library install destination
+* Add move_end_effector_by_arc to JointGroup.
+* Add async interfaces to MobileBase.
+* JointGroup.move_end_effector_pose can receive multi-poses.
+* Add gaze_point() to JointGroup.
+* Add a follow trajectory interface to MobileBase.
+* Add an attribute; looking_hand_constraint
+* Add a function to generate a planning service request
+* Contributors: Keisuke Takeshita, koji_terada, minori_higuchi, 西野 環
+
 0.8.2 (2017-04-11)
 ------------------
 * add suction command normal test

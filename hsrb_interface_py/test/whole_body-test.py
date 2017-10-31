@@ -740,3 +740,55 @@ class WholeBodyTest(testing.RosMockTestCase):
 
         whole_body = JointGroup('whole_body')
         whole_body.gaze_point()
+
+    @raises(ValueError)
+    def test_gaze_point_with_inf(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        odom_to_robot_transform, _ = self.initial_tf_fixtures()
+        self.tf2_buffer_mock.lookup_transform.side_effect = [
+            odom_to_robot_transform,
+            odom_to_robot_transform,
+            odom_to_robot_transform,
+        ]
+        plan_service_proxy_mock = self.service_proxy_mock.return_value
+        plan_result_mock = MagicMock()
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
+        type(plan_result_mock.error_code).val = error_code_mock
+        plan_service_proxy_mock.call.return_value = plan_result_mock
+
+        instance_mock = self.kinematics_mock.return_value
+        instance_mock.calculate_gazing_angles.return_value = {
+            'head_pan_joint': -0.1, 'head_tilt_joint': -0.2}
+
+        whole_body = JointGroup('whole_body')
+        whole_body.gaze_point(geometry.vector3(x=float('inf'), y=2.0, z=3.0))
+
+    @raises(ValueError)
+    def test_gaze_point_with_nan(self):
+        self.get_entry_mock.side_effect = [
+            self.joint_group_setting,
+            self.trajectory_setting,
+        ]
+        odom_to_robot_transform, _ = self.initial_tf_fixtures()
+        self.tf2_buffer_mock.lookup_transform.side_effect = [
+            odom_to_robot_transform,
+            odom_to_robot_transform,
+            odom_to_robot_transform,
+        ]
+        plan_service_proxy_mock = self.service_proxy_mock.return_value
+        plan_result_mock = MagicMock()
+        error_code_mock = PropertyMock(
+            return_value=ArmManipulationErrorCodes.SUCCESS)
+        type(plan_result_mock.error_code).val = error_code_mock
+        plan_service_proxy_mock.call.return_value = plan_result_mock
+
+        instance_mock = self.kinematics_mock.return_value
+        instance_mock.calculate_gazing_angles.return_value = {
+            'head_pan_joint': -0.1, 'head_tilt_joint': -0.2}
+
+        whole_body = JointGroup('whole_body')
+        whole_body.gaze_point(geometry.vector3(x=float('nan'), y=2.0, z=3.0))

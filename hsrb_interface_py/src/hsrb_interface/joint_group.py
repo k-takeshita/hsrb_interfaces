@@ -80,7 +80,7 @@ def _normalize_np(vec):
     if length < sys.float_info.epsilon:
         return vec
     else:
-        vec /= length
+        vec = vec / length
         return vec
 
 
@@ -878,6 +878,8 @@ class JointGroup(robot.Item):
         Notes:
             If the calculated angle is over the limit, the angle is rounded.
         """
+        if np.isinf(point).any() or np.isnan(point).any():
+            raise ValueError("The point includes inf or nan.")
         if ref_frame_id is None:
             ref_frame_id = settings.get_frame('base')
         origin_to_ref_ros_pose = self._lookup_odom_to_ref(ref_frame_id)
@@ -969,27 +971,18 @@ class JointGroup(robot.Item):
             self._base_client.joint_names)
         merged_traj = trajectory.merge(joint_trajectory, odom_base_trajectory)
 
-        filtered_merged_traj = trajectory.constraint_filter(merged_traj)
-        if not self._use_base_timeopt:
-            return filtered_merged_traj
-
-        # Transform arm and base trajectories to time-series trajectories
-        filtered_joint_traj = trajectory.constraint_filter(joint_trajectory)
-        filtered_base_traj = trajectory.timeopt_filter(odom_base_trajectory)
-        last_joint_point = filtered_joint_traj.points[-1]
-        last_base_point = filtered_base_traj.points[-1]
-        arm_joint_time = last_joint_point.time_from_start.to_sec()
-        base_timeopt_time = last_base_point.time_from_start.to_sec()
-
-        # If end of a base trajectory is later than arm one,
-        # an arm trajectory is made slower.
-        # (1) arm_joint_time < base_timeopt_time: use timeopt trajectory
-        if arm_joint_time < base_timeopt_time:
-            # Adjusting arm trajectory points to base ones as much as possible
-            trajectory.adjust_time(filtered_base_traj, filtered_joint_traj)
-            return trajectory.merge(filtered_joint_traj, filtered_base_traj)
-        else:
-            return filtered_merged_traj
+        filtered_merged_traj = None
+        if self._use_base_timeopt:
+            start_state = self.joint_state
+            # use traj first point for odom
+            start_state.name += self._base_client.joint_names
+            start_state.position += \
+                tuple(odom_base_trajectory.points[0].positions)
+            filtered_merged_traj = trajectory.hsr_timeopt_filter(
+                merged_traj, start_state)
+        if filtered_merged_traj is None:
+            filtered_merged_traj = trajectory.constraint_filter(merged_traj)
+        return filtered_merged_traj
 
     def _execute_trajectory(self, joint_traj):
         """Execute a trajectory with given action clients.
