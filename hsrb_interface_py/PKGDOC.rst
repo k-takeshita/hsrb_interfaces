@@ -73,7 +73,7 @@ How to use
         whole_body.move_to_joint_positions(goals)
 
         whole_body.move_to_joint_positions(
-            head_tilt_joint=math.radians(30)
+            head_tilt_joint=math.radians(25)
         )
 
 通信制御
