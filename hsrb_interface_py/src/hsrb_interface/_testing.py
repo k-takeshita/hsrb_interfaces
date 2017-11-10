@@ -2,7 +2,6 @@
 """Testing Utilities"""
 
 import math
-
 import sys
 import unittest
 
@@ -10,9 +9,7 @@ from geometry_msgs.msg import PoseStamped
 import hsrb_interface
 from hsrb_interface import geometry
 import hsrb_interface.robot
-
 from mock import patch
-
 import rospy
 import tf2_ros
 

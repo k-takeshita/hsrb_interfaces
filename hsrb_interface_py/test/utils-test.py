@@ -4,7 +4,6 @@
 """Unittest for hsrb_interface.utils module."""
 
 from hsrb_interface import utils
-
 from nose.tools import eq_
 
 

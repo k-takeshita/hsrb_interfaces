@@ -9,19 +9,14 @@ import os
 import sys
 
 import hsrb_interface
-
 from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
-
 import hsrb_interface.collision_world
 import hsrb_interface.exceptions
-
 from mock import ANY
 from mock import MagicMock
 from mock import PropertyMock
 from nose.tools import eq_
-
-
 from tmc_geometric_shapes_msgs.msg import Shape
 from tmc_manipulation_msgs.msg import CollisionObject
 from tmc_manipulation_msgs.msg import CollisionObjectOperation

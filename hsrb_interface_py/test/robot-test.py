@@ -2,7 +2,6 @@
 """Unittest hsrb_interface.robot module."""
 import hsrb_interface
 import hsrb_interface.robot
-
 from mock import patch
 from nose.tools import eq_
 from nose.tools import ok_

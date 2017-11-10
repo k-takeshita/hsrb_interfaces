@@ -66,6 +66,7 @@ class TrajectoryTestCase(testing.RosMockTestCase):
         state.effort = [4, 5, 6]
         return state
 
+
 class TrajectoryModuleTest(TrajectoryTestCase):
 
     def test_extract_ok(self):

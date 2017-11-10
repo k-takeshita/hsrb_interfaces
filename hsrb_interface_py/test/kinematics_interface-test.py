@@ -4,12 +4,10 @@ import os
 import unittest
 
 from hsrb_interface._extension import KinematicsInterface
-
 from nose.tools import assert_almost_equals
 from nose.tools import assert_raises
 from nose.tools import assert_true
 from nose.tools import eq_
-
 import rospkg
 
 

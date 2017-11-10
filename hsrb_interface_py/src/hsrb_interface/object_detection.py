@@ -13,7 +13,6 @@ import copy
 import threading
 
 import rospy
-
 from tmc_vision_msgs.msg import RecognizedObject
 
 from . import geometry

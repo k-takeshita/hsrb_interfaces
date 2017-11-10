@@ -15,10 +15,8 @@ import actionlib
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
 from control_msgs.msg import FollowJointTrajectoryResult
-
 import rospy
 import tf.transformations as T
-
 from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
 from tmc_manipulation_msgs.srv import (
     FilterJointTrajectory,
@@ -225,6 +223,7 @@ def constraint_filter(joint_trajectory):
         raise
     return res.trajectory
 
+
 def timeopt_filter(base_trajectory):
     """Apply timeopt filter to a omni-base trajectory.
 
@@ -249,6 +248,7 @@ def timeopt_filter(base_trajectory):
         raise
     filtered_traj = res.trajectory
     return filtered_traj
+
 
 def hsr_timeopt_filter(merged_trajectory, start_state):
     """whole body timeopt filter.
