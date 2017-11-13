@@ -3,10 +3,8 @@
 
 import hsrb_interface
 import hsrb_interface.battery
-
 from mock import patch
 from nose.tools import eq_
-
 from tmc_msgs.msg import BatteryState
 
 

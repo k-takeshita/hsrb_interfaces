@@ -4,10 +4,8 @@
 import hsrb_interface
 from hsrb_interface import _testing as testing
 import hsrb_interface.end_effector
-
 from nose.tools import assert_raises
 from nose.tools import ok_
-
 from std_msgs.msg import Bool
 
 

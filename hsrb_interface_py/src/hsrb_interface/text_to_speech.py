@@ -8,7 +8,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import rospy
-
 from tmc_msgs.msg import Voice
 
 from . import exceptions

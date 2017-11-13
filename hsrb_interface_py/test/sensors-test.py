@@ -2,10 +2,8 @@
 """Unittest for sensor objects."""
 from geometry_msgs.msg import WrenchStamped
 import hsrb_interface.sensors
-
 from mock import patch
 from nose.tools import eq_
-
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import LaserScan

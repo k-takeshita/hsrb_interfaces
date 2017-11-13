@@ -8,17 +8,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import actionlib
-
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
-
 import rospy
-
 from std_msgs.msg import Bool
-
 from tmc_control_msgs.msg import GripperApplyEffortAction
 from tmc_control_msgs.msg import GripperApplyEffortGoal
-
 from trajectory_msgs.msg import JointTrajectoryPoint
 
 from . import exceptions

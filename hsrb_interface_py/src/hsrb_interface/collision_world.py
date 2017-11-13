@@ -10,20 +10,14 @@ from __future__ import unicode_literals
 
 
 from hsrb_interface import geometry
-
 import rospy
-
 from tmc_geometric_shapes_msgs.msg import Shape
-
 from tmc_manipulation_msgs.msg import CollisionEnvironment
 from tmc_manipulation_msgs.msg import CollisionObject
 from tmc_manipulation_msgs.msg import CollisionObjectOperation
-
 from tmc_manipulation_msgs.srv import GetCollisionEnvironment
 from tmc_manipulation_msgs.srv import GetCollisionEnvironmentRequest
-
 from tmc_msgs.msg import ObjectIdentifierArray
-
 
 from . import robot
 from . import settings

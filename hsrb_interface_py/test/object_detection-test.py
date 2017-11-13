@@ -3,7 +3,6 @@
 
 import hsrb_interface
 from hsrb_interface import object_detection
-
 from mock import patch
 from nose.tools import ok_
 

@@ -11,14 +11,11 @@ from __future__ import unicode_literals
 
 import enum
 import importlib
-
 import sys
-
 import warnings
 import weakref
 
 import rospy
-
 import tf2_ros
 
 from . import exceptions
@@ -132,7 +129,8 @@ class _ConnectionManager(object):
         rospy.init_node(b'hsrb_interface_py', anonymous=True,
                         disable_signals=disable_signals)
         self._tf2_buffer = tf2_ros.Buffer()
-        self._tf2_listener = tf2_ros.TransformListener(self._tf2_buffer, queue_size=1)
+        self._tf2_listener = tf2_ros.TransformListener(
+            self._tf2_buffer, queue_size=1)
         self._registry = {}
 
     def __del__(self):

@@ -3,29 +3,22 @@
 import warnings
 
 import actionlib
-
 from geometry_msgs.msg import PoseStamped
-
 import hsrb_interface
 import hsrb_interface.exceptions
 import hsrb_interface.geometry
 import hsrb_interface.mobile_base
-
 from mock import MagicMock
 from mock import patch
-
 from move_base_msgs.msg import MoveBaseAction
 from move_base_msgs.msg import MoveBaseGoal
-
 from nose.tools import assert_almost_equal
 from nose.tools import assert_false
 from nose.tools import assert_raises
 from nose.tools import assert_true
 from nose.tools import eq_
 from nose.tools import ok_
-
 import tf
-
 from trajectory_msgs.msg import JointTrajectory
 from trajectory_msgs.msg import JointTrajectoryPoint
 

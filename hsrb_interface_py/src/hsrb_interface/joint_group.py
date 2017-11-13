@@ -13,20 +13,15 @@ import warnings
 
 from geometry_msgs.msg import Pose as RosPose
 from geometry_msgs.msg import TransformStamped
-
 from hsrb_interface._extension import KinematicsInterface
-
 import numpy as np
 import rospy
-
 from sensor_msgs.msg import JointState
-
 import tf.transformations as T
 import tf2_ros
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
 from tmc_manipulation_msgs.msg import BaseMovementType
 from tmc_planning_msgs.msg import JointPosition
-
 from tmc_planning_msgs.msg import TaskSpaceRegion
 from tmc_planning_msgs.srv import PlanWithHandGoals
 from tmc_planning_msgs.srv import PlanWithHandGoalsRequest
@@ -36,7 +31,6 @@ from tmc_planning_msgs.srv import PlanWithJointGoals
 from tmc_planning_msgs.srv import PlanWithJointGoalsRequest
 from tmc_planning_msgs.srv import PlanWithTsrConstraints
 from tmc_planning_msgs.srv import PlanWithTsrConstraintsRequest
-
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 

@@ -7,31 +7,25 @@ import os
 import sys
 
 from geometry_msgs.msg import TransformStamped
-
 from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
 from hsrb_interface import joint_group
 from hsrb_interface import robot_model
 from hsrb_interface import settings
-
 from hsrb_interface.joint_group import JointGroup
-
 from mock import ANY
 from mock import call
 from mock import MagicMock
 from mock import patch
 from mock import PropertyMock
-
 from nose.tools import assert_almost_equals
 from nose.tools import assert_false
 from nose.tools import assert_true
 from nose.tools import eq_
 from nose.tools import raises
-
 import rospkg
 import rospy
 from sensor_msgs.msg import JointState
-
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
 from tmc_planning_msgs.srv import PlanWithHandGoals
 from tmc_planning_msgs.srv import PlanWithHandLine
