@@ -331,10 +331,11 @@ class MobileBase(robot.Item):
             base_trajectory.header.stamp = rospy.Time(0)
         else:
             base_trajectory = transformed_trajectory
-            base_trajectory.points[0].time_from_start = rospy.Duration(0.0)
             for index in range(num_times):
                 tfs = rospy.Duration(time_from_starts[index])
                 base_trajectory.points[index + 1].time_from_start = tfs
+        # Remove current point
+        del base_trajectory.points[0]
         return base_trajectory
 
     def execute(self, goal):
