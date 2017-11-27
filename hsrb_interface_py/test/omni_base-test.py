@@ -218,7 +218,10 @@ def test_mobile_base_follow_trajectory(mock_get_entry,
     mock_action_client.wait_for_server.return_value = True
     mock_get_frame.return_value = "hoge"
     mock_transform_trajectory.return_value = "piyo"
-    mock_timeopt_filter.return_value = JointTrajectory()
+    trajectory = JointTrajectory()
+    for index in range(3):
+        trajectory.points.append(JointTrajectoryPoint())
+    mock_timeopt_filter.return_value = trajectory
 
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
     mobile_base.get_pose = MagicMock()
@@ -231,7 +234,7 @@ def test_mobile_base_follow_trajectory(mock_get_entry,
     mock_get_frame.assert_called_with("map")
     mock_timeopt_filter.assert_called_with("piyo")
     mock_follow_client = mock_trajectory_controller.return_value
-    mock_follow_client.submit.assert_called_with(JointTrajectory())
+    mock_follow_client.submit.assert_called_with(trajectory)
     mock_wait_controllers.assert_called_with([mock_follow_client])
 
     trajectory = mock_transform_trajectory.call_args[0][0]
@@ -293,13 +296,11 @@ def test_mobile_base_follow_trajectory_with_stamp(mock_get_entry,
     mock_wait_controllers.assert_called_with([mock_follow_client])
 
     submitted_trajectory = mock_follow_client.submit.call_args[0][0]
-    eq_(len(submitted_trajectory.points), 3)
+    eq_(len(submitted_trajectory.points), 2)
     assert_almost_equal(
-        submitted_trajectory.points[0].time_from_start.to_sec(), 0.0)
+        submitted_trajectory.points[0].time_from_start.to_sec(), 3.0)
     assert_almost_equal(
-        submitted_trajectory.points[1].time_from_start.to_sec(), 3.0)
-    assert_almost_equal(
-        submitted_trajectory.points[2].time_from_start.to_sec(), 6.0)
+        submitted_trajectory.points[1].time_from_start.to_sec(), 6.0)
 
     # Length of time_from_starts and poses should be same
     assert_raises(ValueError, mobile_base.follow_trajectory,
@@ -366,7 +367,10 @@ def test_create_follow_goal(mock_get_entry,
     mock_action_client.wait_for_server.return_value = True
     mock_get_frame.return_value = "hoge"
     mock_transform_trajectory.return_value = "piyo"
-    mock_timeopt_filter.return_value = JointTrajectory()
+    trajectory = JointTrajectory()
+    for index in range(3):
+        trajectory.points.append(JointTrajectoryPoint())
+    mock_timeopt_filter.return_value = trajectory
 
     mobile_base = hsrb_interface.mobile_base.MobileBase('omni_base')
     mobile_base.get_pose = MagicMock()
@@ -403,10 +407,9 @@ def test_create_follow_goal(mock_get_entry,
     goal = mobile_base.create_follow_trajectory_goal(poses, [3.0, 6.0])
 
     mock_get_frame.assert_called_with("map")
-    eq_(len(goal.points), 3)
-    assert_almost_equal(goal.points[0].time_from_start.to_sec(), 0.0)
-    assert_almost_equal(goal.points[1].time_from_start.to_sec(), 3.0)
-    assert_almost_equal(goal.points[2].time_from_start.to_sec(), 6.0)
+    eq_(len(goal.points), 2)
+    assert_almost_equal(goal.points[0].time_from_start.to_sec(), 3.0)
+    assert_almost_equal(goal.points[1].time_from_start.to_sec(), 6.0)
 
     # Length of time_from_starts and poses should be same
     assert_raises(ValueError, mobile_base.create_follow_trajectory_goal,
