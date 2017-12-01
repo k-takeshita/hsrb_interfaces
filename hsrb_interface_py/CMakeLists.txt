@@ -35,6 +35,8 @@ install(TARGETS ${PROJECT_NAME}_extension LIBRARY DESTINATION ${CATKIN_GLOBAL_PY
 if(CATKIN_ENABLE_TESTING)
     find_package(rostest REQUIRED)
     catkin_add_nosetests(test)
+    add_rostest(test/robot_auto_init.test)
+    add_rostest(test/robot_duplicate_init.test)
     #    add_rostest(test/simtest_gripper.test)
     #    add_rostest(test/simtest_omni_base.test)
     #    add_rostest(test/simtest_whole_body.test)
