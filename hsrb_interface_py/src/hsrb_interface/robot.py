@@ -126,7 +126,7 @@ class _ConnectionManager(object):
         except Exception as e:
             raise exceptions.RobotConnectionError(e)
         disable_signals = _is_interactive()
-        if not rospy.client._init_node_args:
+        if not rospy.core.is_initilized():
             rospy.init_node(b'hsrb_interface_py', anonymous=True,
                             disable_signals=disable_signals)
         self._tf2_buffer = tf2_ros.Buffer()
