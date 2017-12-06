@@ -11,6 +11,7 @@ import sys
 import hsrb_interface
 from hsrb_interface import _testing as testing
 from hsrb_interface import geometry
+
 import hsrb_interface.collision_world
 import hsrb_interface.exceptions
 from mock import ANY
