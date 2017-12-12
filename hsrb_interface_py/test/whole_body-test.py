@@ -12,7 +12,9 @@ from hsrb_interface import geometry
 from hsrb_interface import joint_group
 from hsrb_interface import robot_model
 from hsrb_interface import settings
+
 from hsrb_interface.joint_group import JointGroup
+
 from mock import ANY
 from mock import call
 from mock import MagicMock
