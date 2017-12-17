@@ -136,7 +136,7 @@ def _invert_pose(pose):
                          angles=T.euler_from_quaternion(pose[1]))
     (_, _, euler, trans, _) = T.decompose_matrix(T.inverse_matrix(m))
     q = T.quaternion_from_euler(euler[0], euler[1], euler[2])
-    return geometry.Pose(trans, q)
+    return geometry.Pose(geometry.Vector3(*trans), geometry.Quaternion(*q))
 
 
 class JointGroup(robot.Item):
