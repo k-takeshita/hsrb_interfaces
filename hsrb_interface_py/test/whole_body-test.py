@@ -564,6 +564,8 @@ class WholeBodyTest(testing.RosMockTestCase):
     def test_inverse_pose(self):
         pose = geometry.pose(1, 2, 3)
         inv = joint_group._invert_pose(pose)
+        assert_true(isinstance(inv.pos, geometry.Vector3))
+        assert_true(isinstance(inv.ori, geometry.Quaternion))
         result = geometry.multiply_tuples(inv, pose)
         assert_almost_equals(result[0][0], 0)
         assert_almost_equals(result[0][1], 0)
