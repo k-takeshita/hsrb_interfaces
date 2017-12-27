@@ -160,6 +160,9 @@ class JointGroup(robot.Item):
         angular_weight (float):
             How much laying weight on angular movement of a mobile base.
             This attirbute affect a output trajectory of motion planning.
+        joint_weights (dict):
+            How much laying weight on each joint of robot.
+            This attirbute affect a output trajectory of motion planning.
         planning_timeout (float):
             Timeout for motion planning [sec].
         impedance_config (str):
@@ -207,6 +210,7 @@ class JointGroup(robot.Item):
         self._collision_world = None
         self._linear_weight = 3.0
         self._angular_weight = 1.0
+        self._joint_weights = {}
         self._planning_timeout = _PLANNING_ARM_TIMEOUT
         self._use_base_timeopt = True
         self._looking_hand_constraint = False
@@ -274,6 +278,22 @@ class JointGroup(robot.Item):
             self._linear_weight = f_value
         else:
             raise ValueError("value should be positive")
+
+    @property
+    def joint_weights(self):
+        return self._joint_weights
+
+    @joint_weights.setter
+    def joint_weights(self, value):
+        if not isinstance(value, dict):
+            raise ValueError("value should be dictionary")
+        for key, weight in value.iteritems():
+            if key not in self._setting['motion_planning_joints']:
+                raise ValueError(key + " is not in motion planning joints")
+            if float(weight) <= 0.0:
+                raise ValueError("weight should be positive")
+        self._joint_weights = {key: float(weight)
+                               for key, weight in value.iteritems()}
 
     @property
     def angular_weight(self):
@@ -942,7 +962,9 @@ class JointGroup(robot.Item):
             request.deviation_for_bound_sampling = _PLANNING_GOAL_DEVIATION
             request.probability_goal_generate = _PLANNING_GOAL_GENERATION
             request.weighted_joints = ['_linear_base', '_rotational_base']
+            request.weighted_joints.extend(self._joint_weights.keys())
             request.weight = [self._linear_weight, self._angular_weight]
+            request.weight.extend(self._joint_weights.values())
             return request
 
     def _constrain_trajectories(self, joint_trajectory, base_trajectory):

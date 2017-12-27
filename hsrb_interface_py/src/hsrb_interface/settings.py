@@ -74,7 +74,17 @@ _HSRB_SETTINGS = """
             "looking_hand_constraint": {
                 "plugin_name": "hsrb_planner_plugins/LookHand",
                 "use_joints": ["head_pan_joint", "head_tilt_joint"]
-            }
+            },
+            "motion_planning_joints": [
+                "wrist_flex_joint",
+                "wrist_roll_joint",
+                "arm_roll_joint",
+                "arm_flex_joint",
+                "arm_lift_joint",
+                "hand_motor_joint",
+                "head_pan_joint",
+                "head_tilt_joint"
+            ]
         }
     },
     "end_effector": {
