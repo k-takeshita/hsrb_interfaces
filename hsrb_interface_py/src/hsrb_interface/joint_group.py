@@ -203,8 +203,9 @@ class JointGroup(robot.Item):
         self._end_effector_frames = self._setting['end_effector_frames']
         self._end_effector_frame = self._end_effector_frames[0]
         self._passive_joints = self._setting['passive_joints']
-        self._robot_urdf = robot_model.RobotModel.from_parameter_server()
-        description = rospy.get_param('robot_description')
+        self._robot_urdf = robot_model.RobotModel.from_parameter_server(
+            key='/robot_description')
+        description = rospy.get_param('/robot_description')
         self._kinematics_interface = KinematicsInterface(description)
 
         self._collision_world = None
