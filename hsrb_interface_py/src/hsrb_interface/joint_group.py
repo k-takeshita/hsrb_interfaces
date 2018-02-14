@@ -180,16 +180,20 @@ class JointGroup(robot.Item):
         """See class docstring."""
         super(JointGroup, self).__init__()
         self._setting = settings.get_entry('joint_group', name)
+        self._position_control_clients = []
         arm_config = self._setting['arm_controller_prefix']
-        self._arm_client = trajectory.TrajectoryController(arm_config)
+        self._position_control_clients.append(
+            trajectory.TrajectoryController(arm_config))
         head_config = self._setting['head_controller_prefix']
-        self._head_client = trajectory.TrajectoryController(head_config)
+        self._position_control_clients.append(
+            trajectory.TrajectoryController(head_config))
         hand_config = self._setting["hand_controller_prefix"]
-        self._hand_client = trajectory.TrajectoryController(hand_config)
+        self._position_control_clients.append(
+            trajectory.TrajectoryController(hand_config))
         base_config = self._setting["omni_base_controller_prefix"]
         self._base_client = trajectory.TrajectoryController(
-            base_config,
-            "/base_coordinates")
+            base_config, "/base_coordinates")
+        self._position_control_clients.append(self._base_client)
         imp_config = settings.get_entry("trajectory", "impedance_control")
         self._impedance_client = trajectory.ImpedanceController(imp_config)
         joint_state_topic = self._setting["joint_states_topic"]
@@ -420,8 +424,7 @@ class JointGroup(robot.Item):
             msg = "Fail to plan change_joint_state"
             raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
-        constrained_traj = self._constrain_trajectories(res.solution,
-                                                        res.base_solution)
+        constrained_traj = self._constrain_trajectories(res.solution)
         self._execute_trajectory(constrained_traj)
 
     def move_to_joint_positions(self, goals={}, **kwargs):
@@ -968,7 +971,7 @@ class JointGroup(robot.Item):
             request.weight.extend(self._joint_weights.values())
             return request
 
-    def _constrain_trajectories(self, joint_trajectory, base_trajectory):
+    def _constrain_trajectories(self, joint_trajectory, base_trajectory=None):
         """Apply constraints to given trajectories.
 
         Parameters:
@@ -983,18 +986,23 @@ class JointGroup(robot.Item):
             TrajectoryFilterError:
                 Failed to execute trajectory-filtering
         """
-        odom_base_trajectory = trajectory.transform_base_trajectory(
-            base_trajectory, self._tf2_buffer, self._tf_timeout,
-            self._base_client.joint_names)
-        merged_traj = trajectory.merge(joint_trajectory, odom_base_trajectory)
+        if base_trajectory:
+            odom_base_trajectory = trajectory.transform_base_trajectory(
+                base_trajectory, self._tf2_buffer, self._tf_timeout,
+                self._base_client.joint_names)
+            merged_traj = trajectory.merge(joint_trajectory,
+                                           odom_base_trajectory)
+        else:
+            merged_traj = joint_trajectory
 
         filtered_merged_traj = None
         if self._use_base_timeopt:
             start_state = self.joint_state
             # use traj first point for odom
-            start_state.name += self._base_client.joint_names
-            start_state.position += \
-                tuple(odom_base_trajectory.points[0].positions)
+            if base_trajectory:
+                start_state.name += self._base_client.joint_names
+                start_state.position += \
+                    tuple(odom_base_trajectory.points[0].positions)
             filtered_merged_traj = trajectory.hsr_timeopt_filter(
                 merged_traj, start_state)
         if filtered_merged_traj is None:
@@ -1017,16 +1025,11 @@ class JointGroup(robot.Item):
         if self._impedance_client.config is not None:
             clients.append(self._impedance_client)
         else:
-            clients.extend([self._arm_client, self._base_client])
-        for joint in joint_traj.joint_names:
-            if joint in self._head_client.joint_names:
-                clients.append(self._head_client)
-                break
-        for joint in joint_traj.joint_names:
-            if joint in self._hand_client.joint_names:
-                clients.append(self._hand_client)
-                break
-
+            for client in self._position_control_clients:
+                for joint in joint_traj.joint_names:
+                    if joint in client.joint_names:
+                        clients.append(client)
+                        break
         joint_states = self._get_joint_state()
 
         for client in clients:
