@@ -986,7 +986,7 @@ class JointGroup(robot.Item):
             TrajectoryFilterError:
                 Failed to execute trajectory-filtering
         """
-        if base_trajectory is not None:
+        if base_trajectory:
             odom_base_trajectory = trajectory.transform_base_trajectory(
                 base_trajectory, self._tf2_buffer, self._tf_timeout,
                 self._base_client.joint_names)
@@ -999,7 +999,7 @@ class JointGroup(robot.Item):
         if self._use_base_timeopt:
             start_state = self.joint_state
             # use traj first point for odom
-            if base_trajectory is not None:
+            if base_trajectory:
                 start_state.name += self._base_client.joint_names
                 start_state.position += \
                     tuple(odom_base_trajectory.points[0].positions)
