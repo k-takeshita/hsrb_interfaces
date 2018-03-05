@@ -116,9 +116,12 @@ class _ConnectionManager(object):
     All of ``Resource`` subclass instances are owned by this class and
     synchronize their lifecycle.
 
+    Args:
+        use_tf_client: Use action based query for tf.(bool)
+
     """
 
-    def __init__(self):
+    def __init__(self, use_tf_client=False):
         """See class docstring."""
         try:
             master = rospy.get_master()
@@ -129,9 +132,12 @@ class _ConnectionManager(object):
         if not rospy.core.is_initialized():
             rospy.init_node(b'hsrb_interface_py', anonymous=True,
                             disable_signals=disable_signals)
-        self._tf2_buffer = tf2_ros.Buffer()
-        self._tf2_listener = tf2_ros.TransformListener(
-            self._tf2_buffer, queue_size=1)
+        if use_tf_client:
+            self._tf2_buffer = tf2_ros.BufferClient('/tf2_buffer_server')
+        else:
+            self._tf2_buffer = tf2_ros.Buffer()
+            self._tf2_listener = tf2_ros.TransformListener(
+                self._tf2_buffer, queue_size=1)
         self._registry = {}
 
     def __del__(self):
@@ -208,7 +214,7 @@ class Robot(object):
 
     Args:
         *args: Reserved for future use.
-        **kwargs: Reserved for future use.
+        **kwargs: use_tf_client[bool] Use action based query for tf.
 
     This class allow multiple instances. In that case, the connection is closed
     if all instances are destroyed or invoke :py:meth:`.close()` method.
@@ -264,8 +270,9 @@ class Robot(object):
 
     def __init__(self, *args, **kwargs):
         """See class docstring."""
+        use_tf_client = kwargs.get('use_tf_client', False)
         if Robot._connection is None or Robot._connection() is None:
-            self._conn = _ConnectionManager()
+            self._conn = _ConnectionManager(use_tf_client=use_tf_client)
             Robot._connection = weakref.ref(self._conn)
         else:
             self._conn = Robot._connection()
