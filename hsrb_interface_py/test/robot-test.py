@@ -51,3 +51,21 @@ def test_robot_with_statement(init_mock, shutdown_mock, mock_get_master,
         init_mock.assert_called_with('hsrb_interface_py',
                                      disable_signals=False, anonymous=True)
     shutdown_mock.assert_called_with('shutdown')
+
+
+@patch('tf2_ros.TransformListener')
+@patch('tf2_ros.Buffer')
+@patch('tf2_ros.BufferClient')
+@patch('rospy.get_master')
+@patch('rospy.signal_shutdown')
+@patch('rospy.init_node')
+def test_robot_with_tf_client(init_mock, shutdown_mock, mock_get_master,
+                              mock_buffer_client, mock_buffer, mock_listener):
+    """Test use in tf client"""
+    with hsrb_interface.Robot(use_tf_client=True) as robot:
+        eq_(robot.ok(), True)
+        mock_buffer_client.assert_called_with('/tf2_buffer_server')
+        mock_buffer.assert_not_called()
+        mock_listener.assert_not_called()
+
+    shutdown_mock.assert_called_with('shutdown')
