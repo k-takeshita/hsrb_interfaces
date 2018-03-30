@@ -69,7 +69,7 @@ def vector3(x=0.0, y=0.0, z=0.0):
     return Vector3(x, y, z)
 
 
-def quaterion(x=0.0, y=0.0, z=0.0, w=1.0):
+def quaternion(x=0.0, y=0.0, z=0.0, w=1.0):
     """Construct a Quaternion instance.
 
     Returns:

@@ -908,7 +908,7 @@ class JointGroup(robot.Item):
         origin_to_base = geometry.pose_to_tuples(origin_to_base_ros_pose)
         base_to_origin = _invert_pose(origin_to_base)
 
-        ref_to_point = geometry.Pose(point, geometry.quaterion())
+        ref_to_point = geometry.Pose(point, geometry.quaternion())
 
         base_to_ref = geometry.multiply_tuples(base_to_origin, origin_to_ref)
         base_to_point = geometry.multiply_tuples(base_to_ref, ref_to_point)
