@@ -947,7 +947,7 @@ class JointGroup(robot.Item):
             request.environment_before_planning = snapshot
 
         if request_type is PlanWithJointGoalsRequest:
-            request.base_movement_type.val = BaseMovementType.ROTATION_Z
+            request.base_movement_type.val = BaseMovementType.NONE
             return request
         else:
             use_joints = set([b'wrist_flex_joint',
