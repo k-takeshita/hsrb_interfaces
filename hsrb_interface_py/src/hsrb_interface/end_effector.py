@@ -23,6 +23,7 @@ from . import utils
 
 _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT = 20.0
 _GRIPPER_GRASP_TIMEOUT = 20.0
+_GRIPPER_APPLY_FORCE_TIMEOUT = 10.0
 
 
 class Gripper(robot.Item):
@@ -48,6 +49,10 @@ class Gripper(robot.Item):
         )
         self._grasp_client = actionlib.SimpleActionClient(
             prefix + "/grasp",
+            GripperApplyEffortAction
+        )
+        self._apply_force_client = actionlib.SimpleActionClient(
+            prefix + "/apply_force",
             GripperApplyEffortAction
         )
 
@@ -116,6 +121,30 @@ class Gripper(robot.Item):
                 raise exceptions.GripperError("Timed out")
         except KeyboardInterrupt:
             self._grasp_client.cancel_goal()
+
+    def force(self, effort):
+        """Command a gripper to execute apply force.
+
+        Args:
+            effort (float): Force applied to grasping [N]
+
+        Returns:
+            None
+        """
+        goal = GripperApplyEffortGoal()
+        goal.effort = effort
+        self._apply_force_client.send_goal(goal)
+        try:
+            timeout = rospy.Duration(_GRIPPER_APPLY_FORCE_TIMEOUT)
+            if self._apply_force_client.wait_for_result(timeout):
+                state = self._apply_force_client.get_state()
+                if state != actionlib.GoalStatus.SUCCEEDED:
+                    raise exceptions.GripperError("Failed to apply force")
+            else:
+                self._apply_force_client.cancel_goal()
+                raise exceptions.GripperError("Timed out")
+        except KeyboardInterrupt:
+            self._apply_force_client.cancel_goal()
 
 
 class Suction(object):
