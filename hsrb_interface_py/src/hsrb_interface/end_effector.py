@@ -122,7 +122,7 @@ class Gripper(robot.Item):
         except KeyboardInterrupt:
             self._grasp_client.cancel_goal()
 
-    def force(self, effort):
+    def apply_force(self, effort):
         """Command a gripper to execute apply force.
 
         Args:

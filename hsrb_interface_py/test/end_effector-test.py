@@ -11,6 +11,7 @@ from nose.tools import assert_raises
 from nose.tools import ok_
 from std_msgs.msg import Bool
 from tmc_control_msgs.msg import GripperApplyEffortAction
+from tmc_control_msgs.msg import GripperApplyEffortGoal
 
 
 class EndEffectorTest(testing.RosMockTestCase):
@@ -34,15 +35,31 @@ class EndEffectorTest(testing.RosMockTestCase):
         gripper = hsrb_interface.end_effector.Gripper('foo')
         ok_(gripper)
 
-    def test_gripper_force(self):
-        """Test Gripper force action client"""
+    def test_gripper_apply_force(self):
+        """Test Gripper apply force action client"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
         hsrb_interface.end_effector.Gripper('foo')
         self.action_client_mock.assert_called_with(
             "/hsrb/gripper_controller/apply_force",
             GripperApplyEffortAction)
 
-    def test_gripper_force_fail(self):
+    def test_gripper_apply_force_succeeded(self):
+        """Test Gripper apply force sycceeded"""
+        self.get_entry_mock.side_effect = [self.gripper_setting]
+        action_client_mock = self.action_client_mock.return_value
+        action_client_mock.wait_for_result_mock.return_value = True
+        action_client_mock.get_state.return_value = \
+            actionlib.GoalStatus.SUCCEEDED
+        gripper = hsrb_interface.end_effector.Gripper('foo')
+        try:
+            gripper.apply_force(1.0)
+        except Exception:
+            self.fail()
+        expected_gaol = GripperApplyEffortGoal()
+        expected_gaol.effort = 1.0
+        action_client_mock.send_goal.assert_called_with(expected_gaol)
+
+    def test_gripper_apply_force_fail(self):
         """Test Gripper force(failed to apply force)"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
         action_client_mock = self.action_client_mock.return_value
@@ -51,16 +68,16 @@ class EndEffectorTest(testing.RosMockTestCase):
             actionlib.GoalStatus.PREEMPTED
         gripper = hsrb_interface.end_effector.Gripper('foo')
         assert_raises(hsrb_interface.exceptions.GripperError,
-                      gripper.force, -1.0)
+                      gripper.apply_force, -1.0)
 
-    def test_gripper_force_time_out(self):
+    def test_gripper_apply_force_time_out(self):
         """Test Gripper force(timed out)"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
         action_client_mock = self.action_client_mock.return_value
         action_client_mock.wait_for_result.return_value = False
         gripper = hsrb_interface.end_effector.Gripper('foo')
         assert_raises(hsrb_interface.exceptions.GripperError,
-                      gripper.force, 1.0)
+                      gripper.apply_force, 1.0)
 
     def test_suction(self):
         """Test Suction class"""
