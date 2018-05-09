@@ -15,6 +15,7 @@ from std_msgs.msg import Bool
 from tmc_control_msgs.msg import GripperApplyEffortAction
 from tmc_control_msgs.msg import GripperApplyEffortGoal
 from trajectory_msgs.msg import JointTrajectoryPoint
+import warnings
 
 from . import exceptions
 from . import robot
@@ -24,6 +25,8 @@ from . import utils
 _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT = 20.0
 _GRIPPER_GRASP_TIMEOUT = 20.0
 _GRIPPER_APPLY_FORCE_TIMEOUT = 10.0
+_GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD = 0.8
+_HAND_MOMENT_ARM_LENGTH = 0.07
 
 
 class Gripper(robot.Item):
@@ -105,46 +108,51 @@ class Gripper(robot.Item):
 
         Returns:
             None
-        """
-        goal = GripperApplyEffortGoal()
-        goal.effort = effort
-        self._grasp_client.send_goal(goal)
-        try:
-            timeout = rospy.Duration(_GRIPPER_GRASP_TIMEOUT)
-            if self._grasp_client.wait_for_result(timeout):
-                self._grasp_client.get_result()
-                state = self._grasp_client.get_state()
-                if state != actionlib.GoalStatus.SUCCEEDED:
-                    raise exceptions.GripperError("Failed to grasp")
-            else:
-                self._grasp_client.cancel_goal()
-                raise exceptions.GripperError("Timed out")
-        except KeyboardInterrupt:
-            self._grasp_client.cancel_goal()
 
-    def apply_force(self, effort):
-        """Command a gripper to execute apply force.
+        Warning:
+            This function is deprecated. Use :py:func:`apply_force()` instead.
+        """
+        msg = ' '.join(["gripper.grasp() is depreacated."
+                        "Use gripper.apply_force() instead."])
+        warnings.warn(msg, exceptions.DeprecationWarning)
+        self.apply_force(-effort / _HAND_MOMENT_ARM_LENGTH)
+
+    def apply_force(self, effort, delicate=False):
+        """Command a gripper to execute applying force.
 
         Args:
             effort (float): Force applied to grasping [N]
+                            'effort' should be positive number
+            delicate (bool): Force control is on when delicate is ``True``
+                              The range force control work well is 0.2 [N] < effort < 0.6 [N]
 
         Returns:
             None
         """
+        if effort < 0.0:
+            msg = "negative effort is set"
+            raise exceptions.GripperError(msg)
+            return
         goal = GripperApplyEffortGoal()
-        goal.effort = effort
-        self._apply_force_client.send_goal(goal)
+        goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
+        client = self._grasp_client
+        if delicate:
+            if effort < _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD:
+                goal.effort = effort
+                client = self._apply_force_client
+        client.send_goal(goal)
         try:
-            timeout = rospy.Duration(_GRIPPER_APPLY_FORCE_TIMEOUT)
-            if self._apply_force_client.wait_for_result(timeout):
-                state = self._apply_force_client.get_state()
+            timeout = rospy.Duration(_GRIPPER_GRASP_TIMEOUT)
+            if client.wait_for_result(timeout):
+                client.get_result()
+                state = client.get_state()
                 if state != actionlib.GoalStatus.SUCCEEDED:
                     raise exceptions.GripperError("Failed to apply force")
             else:
-                self._apply_force_client.cancel_goal()
+                client.cancel_goal()
                 raise exceptions.GripperError("Timed out")
         except KeyboardInterrupt:
-            self._apply_force_client.cancel_goal()
+            client.cancel_goal()
 
 
 class Suction(object):
