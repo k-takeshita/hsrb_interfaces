@@ -7,6 +7,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import warnings
+
 import actionlib
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
@@ -15,7 +17,7 @@ from std_msgs.msg import Bool
 from tmc_control_msgs.msg import GripperApplyEffortAction
 from tmc_control_msgs.msg import GripperApplyEffortGoal
 from trajectory_msgs.msg import JointTrajectoryPoint
-import warnings
+
 
 from . import exceptions
 from . import robot
@@ -115,7 +117,8 @@ class Gripper(robot.Item):
         msg = ' '.join(["gripper.grasp() is depreacated."
                         "Use gripper.apply_force() instead."])
         warnings.warn(msg, exceptions.DeprecationWarning)
-        self.apply_force(-effort / _HAND_MOMENT_ARM_LENGTH)
+        if effort < 0.0:
+            self.apply_force(-effort / _HAND_MOMENT_ARM_LENGTH)
 
     def apply_force(self, effort, delicate=False):
         """Command a gripper to execute applying force.
@@ -124,7 +127,8 @@ class Gripper(robot.Item):
             effort (float): Force applied to grasping [N]
                             'effort' should be positive number
             delicate (bool): Force control is on when delicate is ``True``
-                              The range force control work well is 0.2 [N] < effort < 0.6 [N]
+                             The range force control works well
+                             is 0.2 [N] < effort < 0.6 [N]
 
         Returns:
             None
@@ -132,7 +136,6 @@ class Gripper(robot.Item):
         if effort < 0.0:
             msg = "negative effort is set"
             raise exceptions.GripperError(msg)
-            return
         goal = GripperApplyEffortGoal()
         goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
         client = self._grasp_client
@@ -140,6 +143,10 @@ class Gripper(robot.Item):
             if effort < _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD:
                 goal.effort = effort
                 client = self._apply_force_client
+            else:
+                rospy.logwarn(
+                    "Since effort is high, force control become invalid.")
+
         client.send_goal(goal)
         try:
             timeout = rospy.Duration(_GRIPPER_GRASP_TIMEOUT)
