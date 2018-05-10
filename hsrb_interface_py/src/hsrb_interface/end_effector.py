@@ -117,7 +117,9 @@ class Gripper(robot.Item):
         msg = ' '.join(["gripper.grasp() is depreacated."
                         "Use gripper.apply_force() instead."])
         warnings.warn(msg, exceptions.DeprecationWarning)
-        if effort < 0.0:
+        if effort > 0.0:
+            raise exceptions.GripperError("effort shold be negative.")
+        else:
             self.apply_force(-effort / _HAND_MOMENT_ARM_LENGTH)
 
     def apply_force(self, effort, delicate=False):
