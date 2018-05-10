@@ -7,6 +7,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import math
 import warnings
 
 import actionlib
@@ -29,6 +30,31 @@ _GRIPPER_GRASP_TIMEOUT = 20.0
 _GRIPPER_APPLY_FORCE_TIMEOUT = 10.0
 _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD = 0.8
 _HAND_MOMENT_ARM_LENGTH = 0.07
+_HAND_MOTOR_JOINT_MAX = 1.2
+_HAND_MOTOR_JOINT_MIN = -0.5
+
+# TODO(OTA): 以下パラメータをurdfから取ってくる
+_PALM_TO_PROXIMAL_Y = 0.0245
+_PROXIMAL_TO_DISTAL_Z = 0.07
+_DISTAL_JOINT_ANGLE_OFFSET = 0.087
+# TODO(OTA): tip_linkがモデルから浮いているので修正する
+_DISTAL_TO_TIP_Y = 0.0163
+_DISTAL_TO_TIP_Z = 0.0379
+
+_DISTANCE_MAX = (_PALM_TO_PROXIMAL_Y -
+                 (_DISTAL_TO_TIP_Y *
+                  math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
+                  _DISTAL_TO_TIP_Z *
+                  math.sin(_DISTAL_JOINT_ANGLE_OFFSET)) +
+                 _PROXIMAL_TO_DISTAL_Z *
+                 math.sin(_HAND_MOTOR_JOINT_MAX)) * 2
+_DISTANCE_MIN = (_PALM_TO_PROXIMAL_Y -
+                 (_DISTAL_TO_TIP_Y *
+                  math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
+                  _DISTAL_TO_TIP_Z *
+                  math.sin(_DISTAL_JOINT_ANGLE_OFFSET)) +
+                 _PROXIMAL_TO_DISTAL_Z *
+                 math.sin(_HAND_MOTOR_JOINT_MIN)) * 2
 
 
 class Gripper(robot.Item):
@@ -100,6 +126,28 @@ class Gripper(robot.Item):
                 raise exceptions.GripperError("Timed out")
         except KeyboardInterrupt:
             self._follow_joint_trajectory_client.cancel_goal()
+
+    def set_distance(self, distance):
+        """Command set gripper finger tip distance.
+
+        Args:
+            distance (float): Distance between gripper finger tips [m]
+
+        """
+        if distance > _DISTANCE_MAX:
+            open_angle = _HAND_MOTOR_JOINT_MAX
+        elif distance < _DISTANCE_MIN:
+            open_angle = _HAND_MOTOR_JOINT_MIN
+        else:
+            theta = ((distance / 2 -
+                      (_PALM_TO_PROXIMAL_Y -
+                       (_DISTAL_TO_TIP_Y *
+                        math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
+                        _DISTAL_TO_TIP_Z *
+                        math.sin(_DISTAL_JOINT_ANGLE_OFFSET)))) /
+                     _PROXIMAL_TO_DISTAL_Z)
+            open_angle = math.asin(theta)
+        self.command(open_angle)
 
     def grasp(self, effort):
         """Command a gripper to execute grasping move.
