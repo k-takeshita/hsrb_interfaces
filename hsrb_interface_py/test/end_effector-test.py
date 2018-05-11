@@ -52,15 +52,12 @@ class EndEffectorTest(testing.RosMockTestCase):
         """Test apply force when delicate is false"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
         action_client_mock = self.action_client_mock.return_value
-        action_client_mock.wait_for_result_mock.return_value = True
+        action_client_mock.wait_for_result.return_value = True
         action_client_mock.get_state.return_value = \
             actionlib.GoalStatus.SUCCEEDED
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = 1.0
-        try:
-            gripper.apply_force(effort)
-        except Exception:
-            self.fail()
+        gripper.apply_force(effort)
         expected_gaol = GripperApplyEffortGoal()
         expected_gaol.effort = - effort * _HAND_MOMENT_ARM_LENGTH
         action_client_mock.send_goal.assert_called_with(expected_gaol)
@@ -69,15 +66,12 @@ class EndEffectorTest(testing.RosMockTestCase):
         """Test apply force when delicate is true but equal to threshold"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
         action_client_mock = self.action_client_mock.return_value
-        action_client_mock.wait_for_result_mock.return_value = True
+        action_client_mock.wait_for_result.return_value = True
         action_client_mock.get_state.return_value = \
             actionlib.GoalStatus.SUCCEEDED
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD
-        try:
-            gripper.apply_force(effort, delicate=True)
-        except Exception:
-            self.fail()
+        gripper.apply_force(effort, delicate=True)
         expected_gaol = GripperApplyEffortGoal()
         expected_gaol.effort = - effort * _HAND_MOMENT_ARM_LENGTH
         action_client_mock.send_goal.assert_called_with(expected_gaol)
@@ -86,15 +80,12 @@ class EndEffectorTest(testing.RosMockTestCase):
         """Test apply force when delicate is true and less than threshold"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
         action_client_mock = self.action_client_mock.return_value
-        action_client_mock.wait_for_result_mock.return_value = True
+        action_client_mock.wait_for_result.return_value = True
         action_client_mock.get_state.return_value = \
             actionlib.GoalStatus.SUCCEEDED
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD - 0.01
-        try:
-            gripper.apply_force(effort, delicate=True)
-        except Exception:
-            self.fail()
+        gripper.apply_force(effort, delicate=True)
         expected_gaol = GripperApplyEffortGoal()
         expected_gaol.effort = effort
         action_client_mock.send_goal.assert_called_with(expected_gaol)
@@ -103,7 +94,7 @@ class EndEffectorTest(testing.RosMockTestCase):
         """Test apply force(negative effort is set)"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
         action_client_mock = self.action_client_mock.return_value
-        action_client_mock.wait_for_result_mock.return_value = True
+        action_client_mock.wait_for_result.return_value = True
         action_client_mock.get_state.return_value = \
             actionlib.GoalStatus.SUCCEEDED
         gripper = hsrb_interface.end_effector.Gripper('foo')
@@ -114,7 +105,7 @@ class EndEffectorTest(testing.RosMockTestCase):
         """Test apply force(failed to apply force)"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
         action_client_mock = self.action_client_mock.return_value
-        action_client_mock.wait_for_result_mock.return_value = True
+        action_client_mock.wait_for_result.return_value = True
         action_client_mock.get_state.return_value = \
             actionlib.GoalStatus.PREEMPTED
         gripper = hsrb_interface.end_effector.Gripper('foo')
