@@ -114,6 +114,6 @@ Related Tutorials
 チュートリアルおよびリファレンスはHSR-Bマニュアルの関連する章をご覧ください。
 
 チュートリアル
-   5.HSRを開発する
+   7.HSRを開発する
 APIリファレンス
-   6.2.Python API
+   8.2.Python API
