@@ -2,6 +2,18 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add gripper.set_distance
+* Integrate grasp and apply_force
+* Add gripper.force command
+* add tf_client interface
+* Use 'if base_trajectory' instead of 'if base_trajectory is not None'
+* Add joint_weights property to JointGroup
+* initilize once
+* Drop first trajectory point in MobileBase.create_follow_trajectory_goal.
+* Contributors: Keisuke Takeshita, Yuta Watanabe, koji_terada, yuga_takai, 太田 雄介, 寺田 耕志, 水野 貴文
+
 0.9.0 (2017-10-27)
 ------------------
 * Reset stamp in omni_base.create_follow_trajectory_goal().
