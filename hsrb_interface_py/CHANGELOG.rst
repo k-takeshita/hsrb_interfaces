@@ -2,8 +2,8 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.10.0 (2018-05-18)
+-------------------
 * Add gripper.set_distance
 * Integrate grasp and apply_force
 * Add gripper.force command
