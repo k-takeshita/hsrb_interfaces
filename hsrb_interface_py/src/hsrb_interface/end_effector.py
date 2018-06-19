@@ -14,6 +14,7 @@ import actionlib
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
 import rospy
+from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool
 from tmc_control_msgs.msg import GripperApplyEffortAction
 from tmc_control_msgs.msg import GripperApplyEffortGoal
@@ -32,6 +33,10 @@ _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD = 0.8
 _HAND_MOMENT_ARM_LENGTH = 0.07
 _HAND_MOTOR_JOINT_MAX = 1.2
 _HAND_MOTOR_JOINT_MIN = -0.5
+
+_DISTANCE_CONTROL_PGAIN = 0.5
+_DISTANCE_CONTROL_IGAIN = 1
+_DISTANCE_CONTROL_COMMAND_MOTION_TIME = 0.25
 
 # TODO(OTA): 以下パラメータをurdfから取ってくる
 _PALM_TO_PROXIMAL_Y = 0.0245
@@ -86,6 +91,15 @@ class Gripper(robot.Item):
             prefix + "/apply_force",
             GripperApplyEffortAction
         )
+        self._joint_state_sub = rospy.Subscriber(
+            "/hsrb/joint_states",
+            JointState,
+            callback=self._joint_state_callback,
+            queue_size=1)
+        self._joint_state = JointState()
+
+    def _joint_state_callback(self, msg):
+        self._joint_state = msg
 
     def command(self, open_angle, motion_time=1.0):
         """Command open a gripper
@@ -127,7 +141,21 @@ class Gripper(robot.Item):
         except KeyboardInterrupt:
             self._follow_joint_trajectory_client.cancel_goal()
 
-    def set_distance(self, distance):
+    def get_distance(self):
+        """Command get gripper finger tip distance."""
+        hand_motor_pos = self._joint_state.position[7]
+        hand_left_position = self._joint_state.position[6] + hand_motor_pos
+        hand_right_position = self._joint_state.position[8] + hand_motor_pos
+        return ((math.sin(hand_left_position) +
+                 math.sin(hand_right_position)) *
+                _PROXIMAL_TO_DISTAL_Z +
+                2 * (_PALM_TO_PROXIMAL_Y -
+                     (_DISTAL_TO_TIP_Y *
+                      math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
+                      _DISTAL_TO_TIP_Z *
+                      math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
+
+    def set_distance(self, distance, control_time=3.0):
         """Command set gripper finger tip distance.
 
         Args:
@@ -136,18 +164,30 @@ class Gripper(robot.Item):
         """
         if distance > _DISTANCE_MAX:
             open_angle = _HAND_MOTOR_JOINT_MAX
+            self.command(open_angle)
         elif distance < _DISTANCE_MIN:
             open_angle = _HAND_MOTOR_JOINT_MIN
+            self.command(open_angle)
         else:
-            theta = ((distance / 2 -
-                      (_PALM_TO_PROXIMAL_Y -
-                       (_DISTAL_TO_TIP_Y *
-                        math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                        _DISTAL_TO_TIP_Z *
-                        math.sin(_DISTAL_JOINT_ANGLE_OFFSET)))) /
-                     _PROXIMAL_TO_DISTAL_Z)
-            open_angle = math.asin(theta)
-        self.command(open_angle)
+            start_time = rospy.Time().now()
+            elapsed_time = rospy.Duration(0.0)
+            ierror = 0.0
+            theta_ref = math.asin(((distance / 2 -
+                                    (_PALM_TO_PROXIMAL_Y -
+                                     (_DISTAL_TO_TIP_Y *
+                                      math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
+                                      _DISTAL_TO_TIP_Z *
+                                      math.sin(_DISTAL_JOINT_ANGLE_OFFSET)))) /
+                                   _PROXIMAL_TO_DISTAL_Z))
+            while elapsed_time.to_sec() < control_time:
+                error = distance - self.get_distance()
+                ierror += error
+                open_angle = (theta_ref +
+                              _DISTANCE_CONTROL_PGAIN * error +
+                              _DISTANCE_CONTROL_IGAIN * ierror)
+                elapsed_time = rospy.Time().now() - start_time
+                self.command(open_angle,
+                             motion_time=_DISTANCE_CONTROL_COMMAND_MOTION_TIME)
 
     def grasp(self, effort):
         """Command a gripper to execute grasping move.
