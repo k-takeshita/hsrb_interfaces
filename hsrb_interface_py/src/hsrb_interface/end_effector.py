@@ -13,6 +13,7 @@ import warnings
 import actionlib
 from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryGoal
+from hsrb_interface.utils import CachingSubscriber
 import rospy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool
@@ -33,10 +34,11 @@ _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD = 0.8
 _HAND_MOMENT_ARM_LENGTH = 0.07
 _HAND_MOTOR_JOINT_MAX = 1.2
 _HAND_MOTOR_JOINT_MIN = -0.5
+_JOINT_STATE_SUB_TIMEOUT = 10
 
 _DISTANCE_CONTROL_PGAIN = 0.5
 _DISTANCE_CONTROL_IGAIN = 1
-_DISTANCE_CONTROL_COMMAND_MOTION_TIME = 0.25
+_DISTANCE_CONTROL_RATE = 10
 
 # TODO(OTA): 以下パラメータをurdfから取ってくる
 _PALM_TO_PROXIMAL_Y = 0.0245
@@ -79,6 +81,10 @@ class Gripper(robot.Item):
         self._name = name
         self._joint_names = self._setting['joint_names']
         prefix = self._setting['prefix']
+        self._left_finger_joint_name = self._setting[
+            'left_finger_joint_name']
+        self._right_finger_joint_name = self._setting[
+            'right_finger_joint_name']
         self._follow_joint_trajectory_client = actionlib.SimpleActionClient(
             prefix + "/follow_joint_trajectory",
             FollowJointTrajectoryAction
@@ -91,15 +97,12 @@ class Gripper(robot.Item):
             prefix + "/apply_force",
             GripperApplyEffortAction
         )
-        self._joint_state_sub = rospy.Subscriber(
+        self._joint_state_sub = CachingSubscriber(
             "/hsrb/joint_states",
-            JointState,
-            callback=self._joint_state_callback,
-            queue_size=1)
-        self._joint_state = JointState()
-
-    def _joint_state_callback(self, msg):
-        self._joint_state = msg
+            JointState
+        )
+        self._joint_state_sub.wait_for_message(
+            timeout=_JOINT_STATE_SUB_TIMEOUT)
 
     def command(self, open_angle, motion_time=1.0):
         """Command open a gripper
@@ -118,7 +121,6 @@ class Gripper(robot.Item):
                robot = hsrb_interface.Robot()
                gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
                gripper.command(1.2, 2.0)
-
         """
         goal = FollowJointTrajectoryGoal()
         goal.trajectory.joint_names = self._joint_names
@@ -142,10 +144,20 @@ class Gripper(robot.Item):
             self._follow_joint_trajectory_client.cancel_goal()
 
     def get_distance(self):
-        """Command get gripper finger tip distance."""
-        hand_motor_pos = self._joint_state.position[7]
-        hand_left_position = self._joint_state.position[6] + hand_motor_pos
-        hand_right_position = self._joint_state.position[8] + hand_motor_pos
+        """Command get gripper finger tip distance.
+
+        Returns:
+            double: Distance between gripper finger tips [m]
+        """
+        joint_state = self._joint_state_sub.data
+        hand_motor_pos = joint_state.position[
+            joint_state.name.index(self._joint_names[0])]
+        hand_left_position = joint_state.position[
+            joint_state.name.index(
+                self._left_finger_joint_name)] + hand_motor_pos
+        hand_right_position = joint_state.position[
+            joint_state.name.index(
+                self._right_finger_joint_name)] + hand_motor_pos
         return ((math.sin(hand_left_position) +
                  math.sin(hand_right_position)) *
                 _PROXIMAL_TO_DISTAL_Z +
@@ -160,7 +172,6 @@ class Gripper(robot.Item):
 
         Args:
             distance (float): Distance between gripper finger tips [m]
-
         """
         if distance > _DISTANCE_MAX:
             open_angle = _HAND_MOTOR_JOINT_MAX
@@ -169,6 +180,13 @@ class Gripper(robot.Item):
             open_angle = _HAND_MOTOR_JOINT_MIN
             self.command(open_angle)
         else:
+            goal = FollowJointTrajectoryGoal()
+            goal.trajectory.joint_names = self._joint_names
+            goal.trajectory.points = [
+                JointTrajectoryPoint(
+                    time_from_start=rospy.Duration(1 / _DISTANCE_CONTROL_RATE))
+            ]
+
             start_time = rospy.Time().now()
             elapsed_time = rospy.Duration(0.0)
             ierror = 0.0
@@ -179,15 +197,21 @@ class Gripper(robot.Item):
                                       _DISTAL_TO_TIP_Z *
                                       math.sin(_DISTAL_JOINT_ANGLE_OFFSET)))) /
                                    _PROXIMAL_TO_DISTAL_Z))
+            rate = rospy.Rate(_DISTANCE_CONTROL_RATE)
             while elapsed_time.to_sec() < control_time:
-                error = distance - self.get_distance()
-                ierror += error
-                open_angle = (theta_ref +
-                              _DISTANCE_CONTROL_PGAIN * error +
-                              _DISTANCE_CONTROL_IGAIN * ierror)
-                elapsed_time = rospy.Time().now() - start_time
-                self.command(open_angle,
-                             motion_time=_DISTANCE_CONTROL_COMMAND_MOTION_TIME)
+                try:
+                    error = distance - self.get_distance()
+                    ierror += error
+                    open_angle = (theta_ref +
+                                  _DISTANCE_CONTROL_PGAIN * error +
+                                  _DISTANCE_CONTROL_IGAIN * ierror)
+                    goal.trajectory.points = [
+                        JointTrajectoryPoint(positions=[open_angle])]
+                    self._follow_joint_trajectory_client.send_goal(goal)
+                    elapsed_time = rospy.Time().now() - start_time
+                except KeyboardInterrupt:
+                    self._follow_joint_trajectory_client.cancel_goal()
+                rate.sleep()
 
     def grasp(self, effort):
         """Command a gripper to execute grasping move.

@@ -8,7 +8,6 @@ from hsrb_interface import _testing as testing
 import hsrb_interface.end_effector
 import hsrb_interface.exceptions
 
-from mock import ANY
 from nose.tools import assert_raises
 from nose.tools import ok_
 from sensor_msgs.msg import JointState
@@ -27,7 +26,9 @@ class EndEffectorTest(testing.RosMockTestCase):
         self.gripper_setting = {
             'topic': 'hoge',
             "joint_names": ["hand_motor_joint"],
-            "prefix": "/hsrb/gripper_controller"
+            "prefix": "/hsrb/gripper_controller",
+            "left_finger_joint_name": "hand_l_spring_proximal_joint",
+            "right_finger_joint_name": "hand_r_spring_proximal_joint"
         }
         self.suction_setting = {
             "action": "/suction_control",
@@ -49,11 +50,9 @@ class EndEffectorTest(testing.RosMockTestCase):
         self.action_client_mock.assert_any_call(
             "/hsrb/gripper_controller/apply_force",
             GripperApplyEffortAction)
-        self.subscriber_mock.assert_called_with(
+        self.caching_sub_mock.assert_called_with(
             "/hsrb/joint_states",
-            JointState,
-            callback=ANY,
-            queue_size=1)
+            JointState)
 
     def test_gripper_apply_force_delicate_false(self):
         """Test apply force when delicate is false"""
