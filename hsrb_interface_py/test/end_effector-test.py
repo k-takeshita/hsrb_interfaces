@@ -8,6 +8,7 @@ from hsrb_interface import _testing as testing
 import hsrb_interface.end_effector
 import hsrb_interface.exceptions
 
+from mock import ANY
 from nose.tools import assert_raises
 from nose.tools import ok_
 from sensor_msgs.msg import JointState
@@ -50,9 +51,10 @@ class EndEffectorTest(testing.RosMockTestCase):
         self.action_client_mock.assert_any_call(
             "/hsrb/gripper_controller/apply_force",
             GripperApplyEffortAction)
-        self.caching_sub_mock.assert_called_with(
+        self.subscriber_mock.assert_called_with(
             "/hsrb/joint_states",
-            JointState)
+            JointState,
+            callback=ANY)
 
     def test_gripper_apply_force_delicate_false(self):
         """Test apply force when delicate is false"""

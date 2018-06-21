@@ -50,10 +50,6 @@ class RosMockTestCase(unittest.TestCase):
         self.get_frame_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("hsrb_interface.utils.CachingSubscriber")
-        self.caching_sub_mock = patcher.start()
-        self.addCleanup(patcher.stop)
-
         patcher = patch("rospy.Time")
         self.time_mock = patcher.start()
         self.addCleanup(patcher.stop)

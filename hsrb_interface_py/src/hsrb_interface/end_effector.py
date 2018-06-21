@@ -34,11 +34,11 @@ _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD = 0.8
 _HAND_MOMENT_ARM_LENGTH = 0.07
 _HAND_MOTOR_JOINT_MAX = 1.2
 _HAND_MOTOR_JOINT_MIN = -0.5
-_JOINT_STATE_SUB_TIMEOUT = 10
+_JOINT_STATE_SUB_TIMEOUT = 10.0
 
 _DISTANCE_CONTROL_PGAIN = 0.5
-_DISTANCE_CONTROL_IGAIN = 1
-_DISTANCE_CONTROL_RATE = 10
+_DISTANCE_CONTROL_IGAIN = 1.0
+_DISTANCE_CONTROL_RATE = 10.0
 
 # TODO(OTA): 以下パラメータをurdfから取ってくる
 _PALM_TO_PROXIMAL_Y = 0.0245
@@ -180,6 +180,7 @@ class Gripper(robot.Item):
             open_angle = _HAND_MOTOR_JOINT_MIN
             self.command(open_angle)
         else:
+            # TODO(OTA): actionではなくtopicを投げる
             goal = FollowJointTrajectoryGoal()
             goal.trajectory.joint_names = self._joint_names
             goal.trajectory.points = [
@@ -211,6 +212,7 @@ class Gripper(robot.Item):
                     elapsed_time = rospy.Time().now() - start_time
                 except KeyboardInterrupt:
                     self._follow_joint_trajectory_client.cancel_goal()
+                    return
                 rate.sleep()
 
     def grasp(self, effort):
