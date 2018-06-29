@@ -91,7 +91,9 @@ _HSRB_SETTINGS = """
         "gripper": {
             "class":        ["end_effector", "Gripper"],
             "joint_names":  ["hand_motor_joint"],
-            "prefix":       "/hsrb/gripper_controller"
+            "prefix":       "/hsrb/gripper_controller",
+            "left_finger_joint_name":  "hand_l_spring_proximal_joint",
+            "right_finger_joint_name": "hand_r_spring_proximal_joint"
         },
         "suction": {
             "class": ["end_effector", "Suction"],
