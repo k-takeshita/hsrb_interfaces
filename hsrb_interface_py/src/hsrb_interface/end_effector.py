@@ -39,14 +39,16 @@ _JOINT_STATE_SUB_TIMEOUT = 10.0
 _DISTANCE_CONTROL_PGAIN = 0.5
 _DISTANCE_CONTROL_IGAIN = 1.0
 _DISTANCE_CONTROL_RATE = 10.0
+_DISTANCE_CONTROL_STALL_THRESHOLD = 0.003
+_DISTANCE_CONTROL_STALL_TIMEOUT = 1.0
 
 # TODO(OTA): 以下パラメータをurdfから取ってくる
 _PALM_TO_PROXIMAL_Y = 0.0245
 _PROXIMAL_TO_DISTAL_Z = 0.07
 _DISTAL_JOINT_ANGLE_OFFSET = 0.087
 # TODO(OTA): tip_linkがモデルから浮いているので修正する
-_DISTAL_TO_TIP_Y = 0.0163
-_DISTAL_TO_TIP_Z = 0.0379
+_DISTAL_TO_TIP_Y = 0.01865
+_DISTAL_TO_TIP_Z = 0.04289
 
 _DISTANCE_MAX = (_PALM_TO_PROXIMAL_Y -
                  (_DISTAL_TO_TIP_Y *
@@ -180,7 +182,7 @@ class Gripper(robot.Item):
             open_angle = _HAND_MOTOR_JOINT_MIN
             self.command(open_angle)
         else:
-            # TODO(OTA): actionではなくtopicを投げる
+            # TODO(OTA): hsrb_controller内で実装する
             goal = FollowJointTrajectoryGoal()
             goal.trajectory.joint_names = self._joint_names
             goal.trajectory.points = [
@@ -199,9 +201,15 @@ class Gripper(robot.Item):
                                       math.sin(_DISTAL_JOINT_ANGLE_OFFSET)))) /
                                    _PROXIMAL_TO_DISTAL_Z))
             rate = rospy.Rate(_DISTANCE_CONTROL_RATE)
+            last_movement_time = rospy.Time.now()
             while elapsed_time.to_sec() < control_time:
                 try:
                     error = distance - self.get_distance()
+                    if abs(error) > _DISTANCE_CONTROL_STALL_THRESHOLD:
+                        last_movement_time = rospy.Time.now()
+                    if((rospy.Time.now() - last_movement_time).to_sec() >
+                       _DISTANCE_CONTROL_STALL_TIMEOUT):
+                        break
                     ierror += error
                     open_angle = (theta_ref +
                                   _DISTANCE_CONTROL_PGAIN * error +
