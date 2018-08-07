@@ -170,7 +170,7 @@ def adjust_time(trajectory1, trajectory2):
     # trajectory1
     for (point1, point2) in zip(trajectory1.points, trajectory2.points):
         point2.time_from_start = point1.time_from_start
-    # Re-compute velocities in trajecotry2 from difference of positions
+    # Re-compute velocities in trajectory2 from difference of positions
     for index in range(num_points - 1):
         t_to = trajectory2.points[index + 1].time_from_start.to_sec()
         t_from = trajectory2.points[index].time_from_start.to_sec()
@@ -181,7 +181,7 @@ def adjust_time(trajectory1, trajectory2):
         trajectory2.points[index].velocities = new_vels
     zero_vector2 = [0] * len(trajectory2.joint_names)
     trajectory2.points[-1].velocities = zero_vector2
-    # Re-compute accelerations in trajecotry2 from difference of velocties
+    # Re-compute accelerations in trajectory2 from difference of velocties
     trajectory2.points[0].accelerations = zero_vector2
     for index in range(1, num_points - 1):
         t_to = trajectory2.points[index + 1].time_from_start.to_sec()
@@ -498,7 +498,7 @@ def wait_controllers(controllers):
                                                  c.get_state()))
                     c.cancel()
                 reason = ', '.join(log)
-                text = "Playing trajecotry failed: {0}".format(reason)
+                text = "Playing trajectory failed: {0}".format(reason)
                 raise exceptions.FollowTrajectoryError(text)
             if all([s == actionlib.GoalStatus.SUCCEEDED for s in states]):
                 break
