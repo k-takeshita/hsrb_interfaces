@@ -39,6 +39,7 @@ _JOINT_STATE_SUB_TIMEOUT = 10.0
 _DISTANCE_CONTROL_PGAIN = 0.5
 _DISTANCE_CONTROL_IGAIN = 1.0
 _DISTANCE_CONTROL_RATE = 10.0
+_DISTANCE_CONTROL_TIME_FROM_START = 0.2
 _DISTANCE_CONTROL_STALL_THRESHOLD = 0.003
 _DISTANCE_CONTROL_STALL_TIMEOUT = 1.0
 
@@ -215,7 +216,11 @@ class Gripper(robot.Item):
                                   _DISTANCE_CONTROL_PGAIN * error +
                                   _DISTANCE_CONTROL_IGAIN * ierror)
                     goal.trajectory.points = [
-                        JointTrajectoryPoint(positions=[open_angle])]
+                        JointTrajectoryPoint(
+                            positions=[open_angle],
+                            time_from_start=rospy.Duration(
+                                _DISTANCE_CONTROL_TIME_FROM_START))
+                    ]
                     self._follow_joint_trajectory_client.send_goal(goal)
                     elapsed_time = rospy.Time().now() - start_time
                 except KeyboardInterrupt:
