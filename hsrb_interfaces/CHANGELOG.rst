@@ -2,8 +2,8 @@
 Changelog for package hsrb_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.11.0 (2018-11-28)
+-------------------
 *  fix PKGDOC
 * Contributors: 池田 拓也
 
