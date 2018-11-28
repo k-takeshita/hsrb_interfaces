@@ -2,6 +2,15 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add gripper.get_distance
+* Add stall check
+* Add return
+* Use CachingSubscriber
+* Add gripper.get_distance
+* Contributors: 太田 雄介, 寺田 耕志, 木村 哲也, 水野 貴文, 池田 拓也
+
 0.10.0 (2018-05-18)
 -------------------
 * Add gripper.set_distance
