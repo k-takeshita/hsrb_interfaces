@@ -37,6 +37,7 @@
   <run_depend>tmc_manipulation_msgs</run_depend>
   <run_depend>tmc_control_msgs</run_depend>
   <run_depend>python-enum34</run_depend>
+  <run_depend>python-lxml</run_depend>
   <run_depend>ipython</run_depend>
   <run_depend>urdfdom_py</run_depend>
 

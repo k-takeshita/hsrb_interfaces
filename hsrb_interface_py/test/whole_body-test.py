@@ -297,21 +297,38 @@ class WholeBodyTest(testing.RosMockTestCase):
             self.trajectory_setting,
         ]
         whole_body = JointGroup('whole_body')
-        expected = {
-            'arm_flex_joint': (-2.62, 0.0),
-            'arm_lift_joint': (0.0, 0.69),
-            'arm_roll_joint': (-2.09, 3.84),
-            'base_l_drive_wheel_joint': (None, None),
-            'base_r_drive_wheel_joint': (None, None),
-            'base_roll_joint': (None, None),
-            'hand_l_spring_proximal_joint': (0.0, 0.698),
-            'hand_motor_joint': (-0.798, 1.24),
-            'hand_r_spring_proximal_joint': (0.0, 0.698),
-            'head_pan_joint': (-3.84, 1.75),
-            'head_tilt_joint': (-1.57, 0.52),
-            'wrist_flex_joint': (-1.92, 1.22),
-            'wrist_roll_joint': (-1.92, 3.67),
-        }
+        if os.environ['ROS_DISTRO'] == 'kinetic':
+            expected = {
+                'arm_flex_joint': (-2.62, 0.0),
+                'arm_lift_joint': (0.0, 0.69),
+                'arm_roll_joint': (-2.09, 3.84),
+                'base_l_drive_wheel_joint': (None, None),
+                'base_r_drive_wheel_joint': (None, None),
+                'base_roll_joint': (None, None),
+                'hand_l_spring_proximal_joint': (0.0, 0.698),
+                'hand_motor_joint': (-0.798, 1.24),
+                'hand_r_spring_proximal_joint': (0.0, 0.698),
+                'head_pan_joint': (-3.84, 1.75),
+                'head_tilt_joint': (-1.57, 0.52),
+                'wrist_flex_joint': (-1.92, 1.22),
+                'wrist_roll_joint': (-1.92, 3.67),
+            }
+        else:
+            expected = {
+                'arm_flex_joint': (-2.62, 0.0),
+                'arm_lift_joint': (0.0, 0.69),
+                'arm_roll_joint': (-2.09, 3.84),
+                'base_l_drive_wheel_joint': (0, 0),
+                'base_r_drive_wheel_joint': (0, 0),
+                'base_roll_joint': (0, 0),
+                'hand_l_spring_proximal_joint': (0.0, 0.698),
+                'hand_motor_joint': (-0.798, 1.24),
+                'hand_r_spring_proximal_joint': (0.0, 0.698),
+                'head_pan_joint': (-3.84, 1.75),
+                'head_tilt_joint': (-1.57, 0.52),
+                'wrist_flex_joint': (-1.92, 1.22),
+                'wrist_roll_joint': (-1.92, 3.67),
+            }
         eq_(whole_body.joint_limits, expected)
 
     @raises(ValueError)
