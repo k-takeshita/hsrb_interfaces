@@ -2,6 +2,13 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add lxml dependency
+* fix lint
+* fix kinetic support
+* Contributors: Hiromichi Nakashima
+
 0.11.0 (2018-11-28)
 -------------------
 * Add gripper.get_distance
