@@ -28,8 +28,12 @@ set_target_properties(
     PREFIX ""
 )
 
-install(PROGRAMS scripts/hsrb_operator.py DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
-install(PROGRAMS scripts/ihsrb DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
+catkin_install_python(PROGRAMS
+  scripts/ihsrb
+  scripts/hsrb_operator.py
+  DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+)
+
 install(TARGETS ${PROJECT_NAME}_extension LIBRARY DESTINATION ${CATKIN_GLOBAL_PYTHON_DESTINATION}/${_package_namespace})
 
 if(CATKIN_ENABLE_TESTING)

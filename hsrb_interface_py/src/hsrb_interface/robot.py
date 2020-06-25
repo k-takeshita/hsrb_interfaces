@@ -130,8 +130,12 @@ class _ConnectionManager(object):
             raise exceptions.RobotConnectionError(e)
         disable_signals = _is_interactive()
         if not rospy.core.is_initialized():
-            rospy.init_node(b'hsrb_interface_py', anonymous=True,
-                            disable_signals=disable_signals)
+            if sys.version_info.major == 3:
+                rospy.init_node('hsrb_interface_py', anonymous=True,
+                                disable_signals=disable_signals)
+            else:
+                rospy.init_node(b'hsrb_interface_py', anonymous=True,
+                                disable_signals=disable_signals)
         if use_tf_client:
             self._tf2_buffer = tf2_ros.BufferClient('/tf2_buffer_server')
         else:
@@ -184,7 +188,10 @@ class _ConnectionManager(object):
         """
         if typ is None:
             section, config = settings.get_entry_by_name(name)
-            types = filter(lambda e: e.value == section, ItemTypes)
+            if sys.version_info.major == 3:
+                types = list(filter(lambda e: e.value == section, ItemTypes))
+            else:
+                types = filter(lambda e: e.value == section, ItemTypes)
             if types:
                 typ = types[0]
             else:
