@@ -288,7 +288,7 @@ def transform_base_trajectory(base_traj, tf2_buffer, tf_timeout, joint_names):
     """Transform a base trajectory to an ``odom`` frame based trajectory.
 
     Args:
-        base_traj (tmc_manipulation_msgs.msg.MultiDOFJointTrajectory):
+        base_traj (trajectory_msgs.msg.MultiDOFJointTrajectory):
             A base trajectory
         tf2_buffer (tf2_ros.Buffer): Tf2 buffer
         tf_timeout (float): Timeout to get transform [sec]
