@@ -16,9 +16,9 @@ from move_base_msgs.msg import MoveBaseAction
 from move_base_msgs.msg import MoveBaseGoal
 import rospy
 import tf
+from trajectory_msgs.msg import JointTrajectory
 from trajectory_msgs.msg import MultiDOFJointTrajectory
 from trajectory_msgs.msg import MultiDOFJointTrajectoryPoint
-from trajectory_msgs.msg import JointTrajectory
 
 from . import exceptions
 from . import geometry
