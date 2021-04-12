@@ -2,6 +2,13 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.11.2 (2021-04-12)
+-------------------
+* Update maintainer
+* replace tmc_manipulation_msgs to trajectory_msgs
+* Update import package from IPython to traitlets
+* Contributors: Takafumi Mizuno, satoru_onoda
+
 0.11.1 (2020-05-11)
 -------------------
 * add lxml dependency
