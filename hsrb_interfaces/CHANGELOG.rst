@@ -2,8 +2,8 @@
 Changelog for package hsrb_interfaces
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.11.2 (2021-04-12)
+-------------------
 * Update maintainer
 * Contributors: Takafumi Mizuno
 
