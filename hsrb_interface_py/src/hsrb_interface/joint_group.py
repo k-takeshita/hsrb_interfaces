@@ -292,13 +292,13 @@ class JointGroup(robot.Item):
     def joint_weights(self, value):
         if not isinstance(value, dict):
             raise ValueError("value should be dictionary")
-        for key, weight in value.iteritems():
+        for key, weight in value.items():
             if key not in self._setting['motion_planning_joints']:
                 raise ValueError(key + " is not in motion planning joints")
             if float(weight) <= 0.0:
                 raise ValueError("weight should be positive")
         self._joint_weights = {key: float(weight)
-                               for key, weight in value.iteritems()}
+                               for key, weight in value.items()}
 
     @property
     def angular_weight(self):
@@ -655,7 +655,7 @@ class JointGroup(robot.Item):
         center_to_hand = geometry.multiply_tuples(center_to_odom, odom_to_hand)
 
         rotation_tsr = TaskSpaceRegion()
-        rotation_tsr.end_frame_id = bytes(self.end_effector_frame)
+        rotation_tsr.end_frame_id = self.end_effector_frame
         rotation_tsr.origin_to_tsr = geometry.tuples_to_pose(odom_to_center)
         rotation_tsr.tsr_to_end = geometry.tuples_to_pose(center_to_hand)
         if angle < 0:
@@ -666,7 +666,7 @@ class JointGroup(robot.Item):
             rotation_tsr.max_bounds = [0, 0, 0, 0, 0, angle]
 
         goal_tsr = TaskSpaceRegion()
-        goal_tsr.end_frame_id = bytes(self.end_effector_frame)
+        goal_tsr.end_frame_id = self.end_effector_frame
         goal_tsr.origin_to_tsr = geometry.tuples_to_pose(odom_to_center)
         goal_tsr.tsr_to_end = geometry.tuples_to_pose(center_to_hand)
         goal_tsr.min_bounds = [0, 0, 0, 0, 0, angle]
@@ -950,11 +950,11 @@ class JointGroup(robot.Item):
             request.base_movement_type.val = BaseMovementType.NONE
             return request
         else:
-            use_joints = set([b'wrist_flex_joint',
-                              b'wrist_roll_joint',
-                              b'arm_roll_joint',
-                              b'arm_flex_joint',
-                              b'arm_lift_joint'])
+            use_joints = set(['wrist_flex_joint',
+                              'wrist_roll_joint',
+                              'arm_roll_joint',
+                              'arm_flex_joint',
+                              'arm_lift_joint'])
             if self._looking_hand_constraint:
                 use_joints.update(
                     self._setting['looking_hand_constraint']['use_joints'])
