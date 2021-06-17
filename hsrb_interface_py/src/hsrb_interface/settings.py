@@ -131,7 +131,7 @@ _HSRB_SETTINGS = """
         },
         "head_rgbd_sensor_depth": {
             "class": ["sensors", "Camera"],
-            "prefix": "hsrb/head_rgbd_sensor/depth",
+            "prefix": "/hsrb/head_rgbd_sensor/depth_registered",
             "timeout": 3.0
         }
     },
