@@ -107,7 +107,11 @@ class Gripper(robot.Item):
         self._joint_state_sub.wait_for_message(
             timeout=_JOINT_STATE_SUB_TIMEOUT)
 
-    def command(self, open_angle, motion_time=1.0):
+        # 直前の非同期の動作を覚えておくための変数.初期値はNone
+        self._current_client = None
+
+
+    def command(self, open_angle, motion_time=1.0, sync=True):
         """Command open a gripper
 
         Args:
@@ -132,7 +136,13 @@ class Gripper(robot.Item):
                                  time_from_start=rospy.Duration(motion_time))
         ]
 
+        self.cancel_goal()
         self._follow_joint_trajectory_client.send_goal(goal)
+
+        if not sync:
+            self._current_client = self._follow_joint_trajectory_client
+            return
+
         timeout = rospy.Duration(_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT)
         try:
             if self._follow_joint_trajectory_client.wait_for_result(timeout):
@@ -249,7 +259,7 @@ class Gripper(robot.Item):
         else:
             self.apply_force(-effort / _HAND_MOMENT_ARM_LENGTH)
 
-    def apply_force(self, effort, delicate=False):
+    def apply_force(self, effort, delicate=False, sync=True):
         """Command a gripper to execute applying force.
 
         Args:
@@ -276,7 +286,13 @@ class Gripper(robot.Item):
                 rospy.logwarn(
                     "Since effort is high, force control become invalid.")
 
+        self.cancel_goal()
         client.send_goal(goal)
+
+        if not sync:
+            self._current_client = client
+            return
+
         try:
             timeout = rospy.Duration(_GRIPPER_GRASP_TIMEOUT)
             if client.wait_for_result(timeout):
@@ -289,6 +305,37 @@ class Gripper(robot.Item):
                 raise exceptions.GripperError("Timed out")
         except KeyboardInterrupt:
             client.cancel_goal()
+
+    def is_moving(self):
+        """Get the state as if the robot is moving.
+
+        Returns:
+            bool: True if the robot is moving
+        """
+        if self._current_client is None:
+            return False
+        else:
+            state = self._current_client.get_state()
+            return state == actionlib.GoalStatus.ACTIVE
+
+    def is_succeeded(self):
+        """Get the state as if the robot moving was succeeded.
+
+        Returns:
+            bool: True if success
+        """
+        if self._current_client is None:
+            return False
+        else:
+            state = self._current_client.get_state()
+            return state == actionlib.GoalStatus.SUCCEEDED
+
+    def cancel_goal(self):
+        """Cancel moving."""
+        if not self.is_moving():
+            return
+
+        self._current_client.cancel_goal()
 
 
 class Suction(object):

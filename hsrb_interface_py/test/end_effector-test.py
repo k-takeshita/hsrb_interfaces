@@ -66,9 +66,23 @@ class EndEffectorTest(testing.RosMockTestCase):
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = 1.0
         gripper.apply_force(effort)
-        expected_gaol = GripperApplyEffortGoal()
-        expected_gaol.effort = - effort * _HAND_MOMENT_ARM_LENGTH
-        action_client_mock.send_goal.assert_called_with(expected_gaol)
+        expected_goal = GripperApplyEffortGoal()
+        expected_goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
+        action_client_mock.send_goal.assert_called_with(expected_goal)
+
+    def test_gripper_apply_force_delicate_false_sync_False(self):
+        """Test apply force when delicate and sync are false"""
+        self.get_entry_mock.side_effect = [self.gripper_setting]
+        action_client_mock = self.action_client_mock.return_value
+        action_client_mock.get_state.return_value = \
+            actionlib.GoalStatus.SUCCEEDED
+        gripper = hsrb_interface.end_effector.Gripper('foo')
+        effort = 1.0
+        gripper.apply_force(effort, sync=False)
+        ok_(action_client_mock.wait_for_result.called is False)
+        expected_goal = GripperApplyEffortGoal()
+        expected_goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
+        action_client_mock.send_goal.assert_called_with(expected_goal)
 
     def test_gripper_apply_force_delicate_true_but_equal_to_threshold(self):
         """Test apply force when delicate is true but equal to threshold"""
@@ -80,9 +94,9 @@ class EndEffectorTest(testing.RosMockTestCase):
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD
         gripper.apply_force(effort, delicate=True)
-        expected_gaol = GripperApplyEffortGoal()
-        expected_gaol.effort = - effort * _HAND_MOMENT_ARM_LENGTH
-        action_client_mock.send_goal.assert_called_with(expected_gaol)
+        expected_goal = GripperApplyEffortGoal()
+        expected_goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
+        action_client_mock.send_goal.assert_called_with(expected_goal)
 
     def test_gripper_apply_force_delicate_true_and_less_than_threshold(self):
         """Test apply force when delicate is true and less than threshold"""
@@ -94,9 +108,9 @@ class EndEffectorTest(testing.RosMockTestCase):
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD - 0.01
         gripper.apply_force(effort, delicate=True)
-        expected_gaol = GripperApplyEffortGoal()
-        expected_gaol.effort = effort
-        action_client_mock.send_goal.assert_called_with(expected_gaol)
+        expected_goal = GripperApplyEffortGoal()
+        expected_goal.effort = effort
+        action_client_mock.send_goal.assert_called_with(expected_goal)
 
     def test_gripper_apply_force_effort_negative_value(self):
         """Test apply force(negative effort is set)"""
