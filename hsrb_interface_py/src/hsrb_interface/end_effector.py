@@ -117,6 +117,7 @@ class Gripper(robot.Item):
         Args:
             open_angle (float): How much angle to open[rad]
             motion_time (float): Time to execute command[s]
+            sync (bool): Not wait the result when this arg is ``False``
 
         Returns:
             None
@@ -136,11 +137,9 @@ class Gripper(robot.Item):
                                  time_from_start=rospy.Duration(motion_time))
         ]
 
-        self.cancel_goal()
-        self._follow_joint_trajectory_client.send_goal(goal)
+        self._send_goal(self._follow_joint_trajectory_client, goal)
 
         if not sync:
-            self._current_client = self._follow_joint_trajectory_client
             return
 
         timeout = rospy.Duration(_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT)
@@ -268,6 +267,7 @@ class Gripper(robot.Item):
             delicate (bool): Force control is on when delicate is ``True``
                              The range force control works well
                              is 0.2 [N] < effort < 0.6 [N]
+            sync (bool): Not wait the result when this arg is ``False``
 
         Returns:
             None
@@ -286,11 +286,9 @@ class Gripper(robot.Item):
                 rospy.logwarn(
                     "Since effort is high, force control become invalid.")
 
-        self.cancel_goal()
-        client.send_goal(goal)
+        self._send_goal(client, goal)
 
         if not sync:
-            self._current_client = client
             return
 
         try:
@@ -306,17 +304,25 @@ class Gripper(robot.Item):
         except KeyboardInterrupt:
             client.cancel_goal()
 
+    def _send_goal(self, client, goal):
+        self.cancel_goal()
+        client.send_goal(goal)
+        self._current_client = client
+
+    def _check_state(self, goal_status):
+        if self._current_client is None:
+            return False
+        else:
+            state = self._current_client.get_state()
+            return state == goal_status
+
     def is_moving(self):
         """Get the state as if the robot is moving.
 
         Returns:
             bool: True if the robot is moving
         """
-        if self._current_client is None:
-            return False
-        else:
-            state = self._current_client.get_state()
-            return state == actionlib.GoalStatus.ACTIVE
+        return self._check_state(actionlib.GoalStatus.ACTIVE)
 
     def is_succeeded(self):
         """Get the state as if the robot moving was succeeded.
@@ -324,11 +330,7 @@ class Gripper(robot.Item):
         Returns:
             bool: True if success
         """
-        if self._current_client is None:
-            return False
-        else:
-            state = self._current_client.get_state()
-            return state == actionlib.GoalStatus.SUCCEEDED
+        return self._check_state(actionlib.GoalStatus.SUCCEEDED)
 
     def cancel_goal(self):
         """Cancel moving."""
