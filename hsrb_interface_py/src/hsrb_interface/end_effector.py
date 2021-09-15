@@ -110,7 +110,6 @@ class Gripper(robot.Item):
         # 直前の非同期の動作を覚えておくための変数.初期値はNone
         self._current_client = None
 
-
     def command(self, open_angle, motion_time=1.0, sync=True):
         """Command open a gripper
 
