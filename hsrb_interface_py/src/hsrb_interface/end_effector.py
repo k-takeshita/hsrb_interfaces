@@ -107,12 +107,16 @@ class Gripper(robot.Item):
         self._joint_state_sub.wait_for_message(
             timeout=_JOINT_STATE_SUB_TIMEOUT)
 
-    def command(self, open_angle, motion_time=1.0):
+        # 直前の非同期の動作を覚えておくための変数.初期値はNone
+        self._current_client = None
+
+    def command(self, open_angle, motion_time=1.0, sync=True):
         """Command open a gripper
 
         Args:
             open_angle (float): How much angle to open[rad]
             motion_time (float): Time to execute command[s]
+            sync (bool): Not wait the result when this arg is ``False``
 
         Returns:
             None
@@ -132,7 +136,11 @@ class Gripper(robot.Item):
                                  time_from_start=rospy.Duration(motion_time))
         ]
 
-        self._follow_joint_trajectory_client.send_goal(goal)
+        self._send_goal(self._follow_joint_trajectory_client, goal)
+
+        if not sync:
+            return
+
         timeout = rospy.Duration(_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT)
         try:
             if self._follow_joint_trajectory_client.wait_for_result(timeout):
@@ -249,7 +257,7 @@ class Gripper(robot.Item):
         else:
             self.apply_force(-effort / _HAND_MOMENT_ARM_LENGTH)
 
-    def apply_force(self, effort, delicate=False):
+    def apply_force(self, effort, delicate=False, sync=True):
         """Command a gripper to execute applying force.
 
         Args:
@@ -258,6 +266,7 @@ class Gripper(robot.Item):
             delicate (bool): Force control is on when delicate is ``True``
                              The range force control works well
                              is 0.2 [N] < effort < 0.6 [N]
+            sync (bool): Not wait the result when this arg is ``False``
 
         Returns:
             None
@@ -276,7 +285,11 @@ class Gripper(robot.Item):
                 rospy.logwarn(
                     "Since effort is high, force control become invalid.")
 
-        client.send_goal(goal)
+        self._send_goal(client, goal)
+
+        if not sync:
+            return
+
         try:
             timeout = rospy.Duration(_GRIPPER_GRASP_TIMEOUT)
             if client.wait_for_result(timeout):
@@ -289,6 +302,41 @@ class Gripper(robot.Item):
                 raise exceptions.GripperError("Timed out")
         except KeyboardInterrupt:
             client.cancel_goal()
+
+    def _send_goal(self, client, goal):
+        self.cancel_goal()
+        client.send_goal(goal)
+        self._current_client = client
+
+    def _check_state(self, goal_status):
+        if self._current_client is None:
+            return False
+        else:
+            state = self._current_client.get_state()
+            return state == goal_status
+
+    def is_moving(self):
+        """Get the state as if the robot is moving.
+
+        Returns:
+            bool: True if the robot is moving
+        """
+        return self._check_state(actionlib.GoalStatus.ACTIVE)
+
+    def is_succeeded(self):
+        """Get the state as if the robot moving was succeeded.
+
+        Returns:
+            bool: True if success
+        """
+        return self._check_state(actionlib.GoalStatus.SUCCEEDED)
+
+    def cancel_goal(self):
+        """Cancel moving."""
+        if not self.is_moving():
+            return
+
+        self._current_client.cancel_goal()
 
 
 class Suction(object):

@@ -46,6 +46,7 @@
   <test_depend condition="$ROS_PYTHON_VERSION == 3">python3-mock</test_depend>
   <test_depend>hsrb_gazebo_launch</test_depend>
   <test_depend>rostest</test_depend>
+  <test_depend>rospy</test_depend>
 
   <export></export>
 </package>

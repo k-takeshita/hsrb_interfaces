@@ -3,6 +3,7 @@
 import actionlib
 
 from control_msgs.msg import FollowJointTrajectoryAction
+from control_msgs.msg import FollowJointTrajectoryGoal
 import hsrb_interface
 from hsrb_interface import _testing as testing
 import hsrb_interface.end_effector
@@ -11,10 +12,12 @@ import hsrb_interface.exceptions
 from mock import ANY
 from nose.tools import assert_raises
 from nose.tools import ok_
+import rospy
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool
 from tmc_control_msgs.msg import GripperApplyEffortAction
 from tmc_control_msgs.msg import GripperApplyEffortGoal
+from trajectory_msgs.msg import JointTrajectoryPoint
 
 _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD = 0.8
 _HAND_MOMENT_ARM_LENGTH = 0.07
@@ -56,6 +59,61 @@ class EndEffectorTest(testing.RosMockTestCase):
             JointState,
             callback=ANY)
 
+    def test_gripper_command(self):
+        """Test command"""
+        self.get_entry_mock.side_effect = [self.gripper_setting]
+        action_client_mock = self.action_client_mock.return_value
+        action_client_mock.wait_for_result.return_value = True
+        action_client_mock.get_state.return_value = \
+            actionlib.GoalStatus.SUCCEEDED
+        gripper = hsrb_interface.end_effector.Gripper('foo')
+        open_angle = 1.2
+        gripper.command(open_angle)
+        expected_goal = FollowJointTrajectoryGoal()
+        expected_goal.trajectory.joint_names = ["hand_motor_joint"]
+        expected_goal.trajectory.points = [
+            JointTrajectoryPoint(positions=[open_angle],
+                                 time_from_start=rospy.Duration(1.0))
+        ]
+        action_client_mock.send_goal.assert_called_with(expected_goal)
+
+    def test_gripper_command_set_motion_time(self):
+        """Test command when set motion_time"""
+        self.get_entry_mock.side_effect = [self.gripper_setting]
+        action_client_mock = self.action_client_mock.return_value
+        action_client_mock.wait_for_result.return_value = True
+        action_client_mock.get_state.return_value = \
+            actionlib.GoalStatus.SUCCEEDED
+        gripper = hsrb_interface.end_effector.Gripper('foo')
+        open_angle = 1.2
+        motion_time = 2.0
+        gripper.command(open_angle, motion_time=motion_time)
+        expected_goal = FollowJointTrajectoryGoal()
+        expected_goal.trajectory.joint_names = ["hand_motor_joint"]
+        expected_goal.trajectory.points = [
+            JointTrajectoryPoint(
+                positions=[open_angle],
+                time_from_start=rospy.Duration(motion_time)
+            )
+        ]
+        action_client_mock.send_goal.assert_called_with(expected_goal)
+
+    def test_gripper_command_sync_false(self):
+        """Test command when sync are false"""
+        self.get_entry_mock.side_effect = [self.gripper_setting]
+        action_client_mock = self.action_client_mock.return_value
+        gripper = hsrb_interface.end_effector.Gripper('foo')
+        open_angle = 1.2
+        gripper.command(open_angle, sync=False)
+        self.assertFalse(action_client_mock.wait_for_result.called)
+        expected_goal = FollowJointTrajectoryGoal()
+        expected_goal.trajectory.joint_names = ["hand_motor_joint"]
+        expected_goal.trajectory.points = [
+            JointTrajectoryPoint(positions=[open_angle],
+                                 time_from_start=rospy.Duration(1.0))
+        ]
+        action_client_mock.send_goal.assert_called_with(expected_goal)
+
     def test_gripper_apply_force_delicate_false(self):
         """Test apply force when delicate is false"""
         self.get_entry_mock.side_effect = [self.gripper_setting]
@@ -66,9 +124,21 @@ class EndEffectorTest(testing.RosMockTestCase):
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = 1.0
         gripper.apply_force(effort)
-        expected_gaol = GripperApplyEffortGoal()
-        expected_gaol.effort = - effort * _HAND_MOMENT_ARM_LENGTH
-        action_client_mock.send_goal.assert_called_with(expected_gaol)
+        expected_goal = GripperApplyEffortGoal()
+        expected_goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
+        action_client_mock.send_goal.assert_called_with(expected_goal)
+
+    def test_gripper_apply_force_delicate_false_sync_false(self):
+        """Test apply force when delicate and sync are false"""
+        self.get_entry_mock.side_effect = [self.gripper_setting]
+        action_client_mock = self.action_client_mock.return_value
+        gripper = hsrb_interface.end_effector.Gripper('foo')
+        effort = 1.0
+        gripper.apply_force(effort, sync=False)
+        self.assertFalse(action_client_mock.wait_for_result.called)
+        expected_goal = GripperApplyEffortGoal()
+        expected_goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
+        action_client_mock.send_goal.assert_called_with(expected_goal)
 
     def test_gripper_apply_force_delicate_true_but_equal_to_threshold(self):
         """Test apply force when delicate is true but equal to threshold"""
@@ -80,9 +150,9 @@ class EndEffectorTest(testing.RosMockTestCase):
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD
         gripper.apply_force(effort, delicate=True)
-        expected_gaol = GripperApplyEffortGoal()
-        expected_gaol.effort = - effort * _HAND_MOMENT_ARM_LENGTH
-        action_client_mock.send_goal.assert_called_with(expected_gaol)
+        expected_goal = GripperApplyEffortGoal()
+        expected_goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
+        action_client_mock.send_goal.assert_called_with(expected_goal)
 
     def test_gripper_apply_force_delicate_true_and_less_than_threshold(self):
         """Test apply force when delicate is true and less than threshold"""
@@ -94,9 +164,9 @@ class EndEffectorTest(testing.RosMockTestCase):
         gripper = hsrb_interface.end_effector.Gripper('foo')
         effort = _GRIPPER_APPLY_FORCE_DELICATE_THRESHOLD - 0.01
         gripper.apply_force(effort, delicate=True)
-        expected_gaol = GripperApplyEffortGoal()
-        expected_gaol.effort = effort
-        action_client_mock.send_goal.assert_called_with(expected_gaol)
+        expected_goal = GripperApplyEffortGoal()
+        expected_goal.effort = effort
+        action_client_mock.send_goal.assert_called_with(expected_goal)
 
     def test_gripper_apply_force_effort_negative_value(self):
         """Test apply force(negative effort is set)"""
