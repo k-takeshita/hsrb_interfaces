@@ -2,6 +2,18 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add testcase when set motion_time
+* add testcase for command method
+* fix lint
+* asynchronize Gripper methods and add testcase
+* fix depth topic prefix
+* Changed to common processing of python3 and python2
+* Update package.xml format3
+* Change the process depending on the python version and use catkin_install_python
+* Contributors: Takafumi Mizuno, Takuma Sugino, yoshimi_iyoda_za
+
 0.11.2 (2021-04-12)
 -------------------
 * Update maintainer
