@@ -2,8 +2,8 @@
 Changelog for package hsrb_interface_py
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.12.0 (2021-11-03)
+-------------------
 * add testcase when set motion_time
 * add testcase for command method
 * fix lint
