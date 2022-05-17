@@ -51,20 +51,20 @@ _DISTAL_JOINT_ANGLE_OFFSET = 0.087
 _DISTAL_TO_TIP_Y = 0.01865
 _DISTAL_TO_TIP_Z = 0.04289
 
-_DISTANCE_MAX = (_PALM_TO_PROXIMAL_Y -
-                 (_DISTAL_TO_TIP_Y *
-                  math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                  _DISTAL_TO_TIP_Z *
-                  math.sin(_DISTAL_JOINT_ANGLE_OFFSET)) +
-                 _PROXIMAL_TO_DISTAL_Z *
-                 math.sin(_HAND_MOTOR_JOINT_MAX)) * 2
-_DISTANCE_MIN = (_PALM_TO_PROXIMAL_Y -
-                 (_DISTAL_TO_TIP_Y *
-                  math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                  _DISTAL_TO_TIP_Z *
-                  math.sin(_DISTAL_JOINT_ANGLE_OFFSET)) +
-                 _PROXIMAL_TO_DISTAL_Z *
-                 math.sin(_HAND_MOTOR_JOINT_MIN)) * 2
+_DISTANCE_MAX = (_PALM_TO_PROXIMAL_Y
+                 - (_DISTAL_TO_TIP_Y
+                    * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                    + _DISTAL_TO_TIP_Z
+                    * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))
+                 + _PROXIMAL_TO_DISTAL_Z
+                 * math.sin(_HAND_MOTOR_JOINT_MAX)) * 2
+_DISTANCE_MIN = (_PALM_TO_PROXIMAL_Y
+                 - (_DISTAL_TO_TIP_Y
+                    * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                    + _DISTAL_TO_TIP_Z
+                    * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))
+                 + _PROXIMAL_TO_DISTAL_Z
+                 * math.sin(_HAND_MOTOR_JOINT_MIN)) * 2
 
 
 class Gripper(robot.Item):
@@ -169,14 +169,14 @@ class Gripper(robot.Item):
         hand_right_position = joint_state.position[
             joint_state.name.index(
                 self._right_finger_joint_name)] + hand_motor_pos
-        return ((math.sin(hand_left_position) +
-                 math.sin(hand_right_position)) *
-                _PROXIMAL_TO_DISTAL_Z +
-                2 * (_PALM_TO_PROXIMAL_Y -
-                     (_DISTAL_TO_TIP_Y *
-                      math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                      _DISTAL_TO_TIP_Z *
-                      math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
+        return ((math.sin(hand_left_position)
+                 + math.sin(hand_right_position))
+                * _PROXIMAL_TO_DISTAL_Z
+                + 2 * (_PALM_TO_PROXIMAL_Y
+                - (_DISTAL_TO_TIP_Y
+                   * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                   + _DISTAL_TO_TIP_Z
+                   * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
 
     def set_distance(self, distance, control_time=3.0):
         """Command set gripper finger tip distance.
@@ -202,13 +202,13 @@ class Gripper(robot.Item):
             start_time = rospy.Time().now()
             elapsed_time = rospy.Duration(0.0)
             ierror = 0.0
-            theta_ref = math.asin(((distance / 2 -
-                                    (_PALM_TO_PROXIMAL_Y -
-                                     (_DISTAL_TO_TIP_Y *
-                                      math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                                      _DISTAL_TO_TIP_Z *
-                                      math.sin(_DISTAL_JOINT_ANGLE_OFFSET)))) /
-                                   _PROXIMAL_TO_DISTAL_Z))
+            theta_ref = math.asin(((distance / 2
+                                    - (_PALM_TO_PROXIMAL_Y
+                                       - (_DISTAL_TO_TIP_Y
+                                          * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                                          + _DISTAL_TO_TIP_Z
+                                          * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
+                                  / _PROXIMAL_TO_DISTAL_Z))
             rate = rospy.Rate(_DISTANCE_CONTROL_RATE)
             last_movement_time = rospy.Time.now()
             while elapsed_time.to_sec() < control_time:
@@ -216,13 +216,13 @@ class Gripper(robot.Item):
                     error = distance - self.get_distance()
                     if abs(error) > _DISTANCE_CONTROL_STALL_THRESHOLD:
                         last_movement_time = rospy.Time.now()
-                    if((rospy.Time.now() - last_movement_time).to_sec() >
-                       _DISTANCE_CONTROL_STALL_TIMEOUT):
+                    if((rospy.Time.now() - last_movement_time).to_sec()
+                            > _DISTANCE_CONTROL_STALL_TIMEOUT):
                         break
                     ierror += error
-                    open_angle = (theta_ref +
-                                  _DISTANCE_CONTROL_PGAIN * error +
-                                  _DISTANCE_CONTROL_IGAIN * ierror)
+                    open_angle = (theta_ref
+                                  + _DISTANCE_CONTROL_PGAIN * error
+                                  + _DISTANCE_CONTROL_IGAIN * ierror)
                     goal.trajectory.points = [
                         JointTrajectoryPoint(
                             positions=[open_angle],

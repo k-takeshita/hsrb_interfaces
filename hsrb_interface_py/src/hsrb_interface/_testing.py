@@ -231,15 +231,15 @@ class HsrbInterfaceTest(unittest.TestCase):
         Args:
             delta (Optional[float]): Error tolerance(0.0 if If None)
         """
-        m = self.whole_body.joint_positions['hand_motor_joint']
-        r = self.whole_body.joint_positions['hand_r_spring_proximal_joint']
-        l = self.whole_body.joint_positions['hand_l_spring_proximal_joint']
+        motor = self.whole_body.joint_positions['hand_motor_joint']
+        right = self.whole_body.joint_positions['hand_r_spring_proximal_joint']
+        left = self.whole_body.joint_positions['hand_l_spring_proximal_joint']
 
         if delta is None:
             delta = 0
 
-        self.assertNotAlmostEqual(m, r, delta=delta)
-        self.assertNotAlmostEqual(m, l, delta=delta)
+        self.assertNotAlmostEqual(motor, right, delta=delta)
+        self.assertNotAlmostEqual(motor, left, delta=delta)
 
     def expect_hand_reach_goal(self, goal, frame='map',
                                pos_delta=None, ori_delta=None,

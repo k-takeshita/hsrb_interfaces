@@ -30,6 +30,7 @@ class GripperTest(testing.HsrbInterfaceTest):
         self.gripper.grasp(-0.01)
         self.expect_joints_reach_goals({'hand_motor_joint': 0.0}, delta=0.01)
 
+
 if __name__ == '__main__':
     import rostest
     rostest.rosrun('hsrb_interface_py', 'simtest_gripper', GripperTest)

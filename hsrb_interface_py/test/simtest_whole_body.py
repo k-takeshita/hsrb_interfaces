@@ -92,6 +92,7 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
             geometry.pose(0.5, 0.5, 0.7, ei=math.pi)]
         self.whole_body.move_cartesian_path(waypoints, ref_frame_id='odom')
 
+
 if __name__ == '__main__':
     import rostest
     rostest.rosrun('hsrb_interface_py', 'simtest_whole_body', WholeBodyTest)

@@ -100,6 +100,7 @@ class OmniBaseTest(testing.HsrbInterfaceTest):
                                     pos_delta=0.05, ori_delta=0.05,
                                     timeout=self.BASE_MOVE_TIME_TOLERANCE)
 
+
 if __name__ == '__main__':
     import rostest
     rostest.rosrun('hsrb_interface_py', 'simtest_omni_base', OmniBaseTest)
