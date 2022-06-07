@@ -24,6 +24,7 @@ class LinemodTest(testing.HsrbInterfaceTest):
                                     pos_delta=0.2, ori_delta=float('inf'),
                                     frame='base_footprint')
 
+
 if __name__ == '__main__':
     import rostest
     rostest.rosrun('hsrb_interface_py', 'simtest_linemod', LinemodTest)
