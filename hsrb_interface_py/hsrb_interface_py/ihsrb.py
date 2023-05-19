@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright (C) 2016 Toyota Motor Corporation
 
 try:
@@ -15,8 +15,13 @@ else:
     nested = 1
 
 
+from hsrb_interface_py import Robot
+from hsrb_interface_py import robot as _robot
 
 from IPython.terminal.embed import InteractiveShellEmbed
+
+import rclpy
+
 shell = InteractiveShellEmbed(config=cfg,
                               banner1="HSR-B Interactive Shell 0.2.0",
                               exit_msg="Leaving HSR-B Interactive Shell")
@@ -29,23 +34,19 @@ LOGO = r"""
     /_/  \____/ /_/\____/ /_/ /_/  |_|  /_/ /_//____/_/ |_|
 """
 
-import math
-from math import radians, degrees
-from hsrb_interface import Robot, ItemTypes
-from hsrb_interface import geometry
 
-from hsrb_interface import robot as _robot
+def main():
+    _robot.enable_interactive()
 
-_robot.enable_interactive()
-
-with Robot() as robot:
-    whole_body = robot.try_get('whole_body')
-    omni_base = robot.try_get('omni_base')
-    collision_world = robot.try_get('global_collision_world')
-    suction = robot.try_get('suction')
-    gripper = robot.try_get('gripper')
-    wrist_wrench = robot.try_get('wrist_wrench')
-    marker = robot.try_get('marker')
-    battery = robot.try_get('battery')
-    tts = robot.try_get('default_tts')
-    shell(LOGO)
+    rclpy.init()
+    with Robot() as robot:
+        whole_body = robot.try_get('whole_body')  # noqa
+        # omni_base = robot.try_get('omni_base')
+        # collision_world = robot.try_get('global_collision_world')
+        # suction = robot.try_get('suction')
+        gripper = robot.try_get('gripper')  # noqa
+        # wrist_wrench = robot.try_get('wrist_wrench')
+        # marker = robot.try_get('marker')
+        # battery = robot.try_get('battery')
+        # tts = robot.try_get('default_tts')
+        shell(LOGO)

@@ -46,22 +46,22 @@ _HSRB_SETTINGS = """
             "whole_timeopt_filter_service": "/filter_hsrb_trajectory",
             "caster_joint": "base_roll_joint",
             "filter_timeout": 30.0,
-            "action_timeout": 30.0,
+            "action_timeout": 10.0,
             "watch_rate": 30.0
     },
     "joint_group": {
         "whole_body": {
             "class":                        ["joint_group", "JointGroup"],
-            "joint_states_topic":           "/hsrb/joint_states",
-            "arm_controller_prefix":        "/hsrb/arm_trajectory_controller",
-            "head_controller_prefix":       "/hsrb/head_trajectory_controller",
-            "hand_controller_prefix":       "/hsrb/gripper_controller",
+            "joint_states_topic":           "/whole_body/joint_states",
+            "arm_controller_prefix":        "/arm_trajectory_controller",
+            "head_controller_prefix":       "/head_trajectory_controller",
+            "hand_controller_prefix":       "/gripper_controller",
             "omni_base_controller_prefix":  "/hsrb/omni_base_controller",
             "plan_with_constraints_service":"/plan_with_constraints",
             "plan_with_hand_goals_service": "/plan_with_hand_goals",
             "plan_with_hand_line_service":  "/plan_with_hand_line",
             "plan_with_joint_goals_service":"/plan_with_joint_goals",
-            "timeout":                       1.0,
+            "timeout":                       10.0,
             "end_effector_frames": [
                 "hand_palm_link",
                 "hand_l_finger_vacuum_frame"
@@ -91,7 +91,7 @@ _HSRB_SETTINGS = """
         "gripper": {
             "class":        ["end_effector", "Gripper"],
             "joint_names":  ["hand_motor_joint"],
-            "prefix":       "/hsrb/gripper_controller",
+            "prefix":       "/gripper_controller",
             "left_finger_joint_name":  "hand_l_spring_proximal_joint",
             "right_finger_joint_name": "hand_r_spring_proximal_joint"
         },
@@ -201,7 +201,7 @@ def get_entry_by_name(name):
 
 
     Raises:
-        hsrb_interface.exceptions.ResourceNotFoundError: No such resource.
+        hsrb_interface_py.exceptions.ResourceNotFoundError: No such resource.
     """
     for section, entries in _SETTINGS.items():
         for key, config in entries.items():
@@ -231,7 +231,7 @@ def get_entry(section, name):
         Dict[str, JSON Data]: A corresponding settings.
 
     Raises:
-        hsrb_interface.exceptions.ResourceNotFoundError:
+        hsrb_interface_py.exceptions.ResourceNotFoundError:
             A resource which has name `name` does not exist.
     """
     if section in _SETTINGS:
