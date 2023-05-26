@@ -10,17 +10,14 @@ from __future__ import unicode_literals
 import math
 import warnings
 
-import actionlib
-from control_msgs.msg import FollowJointTrajectoryAction
-from control_msgs.msg import FollowJointTrajectoryGoal
-from hsrb_interface.utils import CachingSubscriber
-import rospy
+from action_msgs.msg import GoalStatus
+from control_msgs.action import FollowJointTrajectory
+import rclpy
+from rclpy.constants import S_TO_NS
+from rclpy.duration import Duration
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Bool
-from tmc_control_msgs.msg import GripperApplyEffortAction
-from tmc_control_msgs.msg import GripperApplyEffortGoal
+from tmc_control_msgs.action import GripperApplyEffort
 from trajectory_msgs.msg import JointTrajectoryPoint
-
 
 from . import exceptions
 from . import robot
@@ -78,6 +75,9 @@ class Gripper(robot.Item):
         """
         super(Gripper, self).__init__()
         self._setting = settings.get_entry('end_effector', name)
+        self._isdone = False
+        self._state = True
+        self._goal_handle = None
         if self._setting is None:
             msg = '{0}({1}) is not found '.format('end_effector', name)
             raise exceptions.ResourceNotFoundError(msg)
@@ -88,21 +88,22 @@ class Gripper(robot.Item):
             'left_finger_joint_name']
         self._right_finger_joint_name = self._setting[
             'right_finger_joint_name']
-        self._follow_joint_trajectory_client = actionlib.SimpleActionClient(
-            prefix + "/follow_joint_trajectory",
-            FollowJointTrajectoryAction
-        )
-        self._grasp_client = actionlib.SimpleActionClient(
-            prefix + "/grasp",
-            GripperApplyEffortAction
-        )
-        self._apply_force_client = actionlib.SimpleActionClient(
-            prefix + "/apply_force",
-            GripperApplyEffortAction
-        )
-        self._joint_state_sub = CachingSubscriber(
-            "/hsrb/joint_states",
-            JointState
+        self._follow_joint_trajectory_client = rclpy.action.ActionClient(
+            self._node,
+            FollowJointTrajectory,
+            prefix + "/follow_joint_trajectory")
+        self._grasp_client = rclpy.action.ActionClient(
+            self._node,
+            GripperApplyEffort,
+            prefix + "/grasp")
+        self._apply_force_client = rclpy.action.ActionClient(
+            self._node,
+            GripperApplyEffort,
+            prefix + "/apply_force")
+        self._joint_state_sub = utils.CachingSubscriber(
+            "/joint_states",
+            JointState,
+            self._node
         )
         self._joint_state_sub.wait_for_message(
             timeout=_JOINT_STATE_SUB_TIMEOUT)
@@ -125,34 +126,37 @@ class Gripper(robot.Item):
 
             .. sourcecode:: python
 
-               robot = hsrb_interface.Robot()
+               robot = hsrb_interface_py.Robot()
                gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
                gripper.command(1.2, 2.0)
         """
-        goal = FollowJointTrajectoryGoal()
+        goal = FollowJointTrajectory.Goal()
         goal.trajectory.joint_names = self._joint_names
         goal.trajectory.points = [
-            JointTrajectoryPoint(positions=[open_angle],
-                                 time_from_start=rospy.Duration(motion_time))
+            JointTrajectoryPoint(
+                positions=[open_angle],
+                time_from_start=Duration(seconds=motion_time).to_msg())
         ]
 
         self._send_goal(self._follow_joint_trajectory_client, goal)
+        self._isdone = False
 
         if not sync:
             return
 
-        timeout = rospy.Duration(_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT)
+        timeout = _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT * S_TO_NS
+        start = self._node.get_clock().now()
         try:
-            if self._follow_joint_trajectory_client.wait_for_result(timeout):
-                s = self._follow_joint_trajectory_client.get_state()
-                if s != actionlib.GoalStatus.SUCCEEDED:
-                    msg = "Failed to follow commanded trajectory"
-                    raise exceptions.GripperError(msg)
-            else:
-                self._follow_joint_trajectory_client.cancel_goal()
-                raise exceptions.GripperError("Timed out")
+            while not self._isdone:
+                time_diff = self._node.get_clock().now() - start
+                if time_diff.nanoseconds >= timeout:
+                    self.cancel_goal()
+                    raise exceptions.GripperError("Timed out")
+            if not self._check_state(GoalStatus.STATUS_SUCCEEDED):
+                msg = "Failed to follow commanded trajectory"
+                raise exceptions.GripperError(msg)
         except KeyboardInterrupt:
-            self._follow_joint_trajectory_client.cancel_goal()
+            self.cancel_goal()
 
     def get_distance(self):
         """Command get gripper finger tip distance.
@@ -160,6 +164,8 @@ class Gripper(robot.Item):
         Returns:
             double: Distance between gripper finger tips [m]
         """
+        self._joint_state_sub.wait_for_message(
+            timeout=_JOINT_STATE_SUB_TIMEOUT)
         joint_state = self._joint_state_sub.data
         hand_motor_pos = joint_state.position[
             joint_state.name.index(self._joint_names[0])]
@@ -192,15 +198,16 @@ class Gripper(robot.Item):
             self.command(open_angle)
         else:
             # TODO(OTA): hsrb_controller内で実装する
-            goal = FollowJointTrajectoryGoal()
+            goal = FollowJointTrajectory.Goal()
             goal.trajectory.joint_names = self._joint_names
             goal.trajectory.points = [
                 JointTrajectoryPoint(
-                    time_from_start=rospy.Duration(1 / _DISTANCE_CONTROL_RATE))
+                    time_from_start=Duration(
+                        seconds=1 / _DISTANCE_CONTROL_RATE).to_msg())
             ]
 
-            start_time = rospy.Time().now()
-            elapsed_time = rospy.Duration(0.0)
+            start_time = self._node.get_clock().now()
+            elapsed_time = Duration(seconds=0.0)
             ierror = 0.0
             theta_ref = math.asin(((distance / 2
                                     - (_PALM_TO_PROXIMAL_Y
@@ -209,14 +216,14 @@ class Gripper(robot.Item):
                                           + _DISTAL_TO_TIP_Z
                                           * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
                                   / _PROXIMAL_TO_DISTAL_Z))
-            rate = rospy.Rate(_DISTANCE_CONTROL_RATE)
-            last_movement_time = rospy.Time.now()
-            while elapsed_time.to_sec() < control_time:
+            last_movement_time = self._node.get_clock().now()
+            while elapsed_time.nanoseconds / S_TO_NS < control_time:
                 try:
                     error = distance - self.get_distance()
                     if abs(error) > _DISTANCE_CONTROL_STALL_THRESHOLD:
-                        last_movement_time = rospy.Time.now()
-                    if((rospy.Time.now() - last_movement_time).to_sec()
+                        last_movement_time = self._node.get_clock().now()
+                    now = self._node.get_clock().now()
+                    if ((now - last_movement_time).nanoseconds / S_TO_NS
                             > _DISTANCE_CONTROL_STALL_TIMEOUT):
                         break
                     ierror += error
@@ -226,15 +233,21 @@ class Gripper(robot.Item):
                     goal.trajectory.points = [
                         JointTrajectoryPoint(
                             positions=[open_angle],
-                            time_from_start=rospy.Duration(
-                                _DISTANCE_CONTROL_TIME_FROM_START))
+                            time_from_start=Duration(
+                                seconds=_DISTANCE_CONTROL_TIME_FROM_START
+                            ).to_msg())
                     ]
-                    self._follow_joint_trajectory_client.send_goal(goal)
-                    elapsed_time = rospy.Time().now() - start_time
+                    self._send_goal(self._follow_joint_trajectory_client, goal)
+                    self._isdone = False
+                    elapsed_time = self._node.get_clock().now() - start_time
                 except KeyboardInterrupt:
-                    self._follow_joint_trajectory_client.cancel_goal()
+                    self.cancel_goal()
                     return
-                rate.sleep()
+                while not self._isdone:
+                    elapsed_time = self._node.get_clock().now() - start_time
+                    if elapsed_time.nanoseconds / S_TO_NS > control_time:
+                        break
+            self.cancel_goal()
 
     def grasp(self, effort):
         """Command a gripper to execute grasping move.
@@ -274,7 +287,7 @@ class Gripper(robot.Item):
         if effort < 0.0:
             msg = "negative effort is set"
             raise exceptions.GripperError(msg)
-        goal = GripperApplyEffortGoal()
+        goal = GripperApplyEffort.Goal()
         goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
         client = self._grasp_client
         if delicate:
@@ -282,38 +295,58 @@ class Gripper(robot.Item):
                 goal.effort = effort
                 client = self._apply_force_client
             else:
-                rospy.logwarn(
+                self._node.get_logger().warn(
                     "Since effort is high, force control become invalid.")
 
         self._send_goal(client, goal)
+        self._isdone = False
 
         if not sync:
             return
 
         try:
-            timeout = rospy.Duration(_GRIPPER_GRASP_TIMEOUT)
-            if client.wait_for_result(timeout):
-                client.get_result()
-                state = client.get_state()
-                if state != actionlib.GoalStatus.SUCCEEDED:
-                    raise exceptions.GripperError("Failed to apply force")
-            else:
-                client.cancel_goal()
-                raise exceptions.GripperError("Timed out")
+            timeout = _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT * S_TO_NS
+            start = self._node.get_clock().now()
+            while not self._isdone:
+                time_diff = self._node.get_clock().now() - start
+                if time_diff.nanoseconds >= timeout:
+                    self.cancel_goal()
+                    raise exceptions.GripperError("Timed out")
+            if not self._check_state(GoalStatus.STATUS_SUCCEEDED):
+                raise exceptions.GripperError("Failed to apply force")
         except KeyboardInterrupt:
-            client.cancel_goal()
+            self.cancel_goal()
 
     def _send_goal(self, client, goal):
         self.cancel_goal()
-        client.send_goal(goal)
+        self._send_goal_future = client.send_goal_async(goal)
+        self._send_goal_future.add_done_callback(self._goal_response_callback)
         self._current_client = client
 
     def _check_state(self, goal_status):
         if self._current_client is None:
             return False
         else:
-            state = self._current_client.get_state()
-            return state == goal_status
+            status = GoalStatus.STATUS_UNKNOWN
+            if self._goal_handle is not None:
+                status = self._goal_handle.status
+            return status == goal_status
+
+    def _feedback_callback(self, feedback_msg):
+        self._state = feedback_msg.feedback.stalled
+
+    def _goal_response_callback(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            return
+        self._goal_handle = goal_handle
+        future = goal_handle.get_result_async()
+        future.add_done_callback(self._get_result_callback)
+
+    def _get_result_callback(self, future):
+        goal_handle = future.result()
+        self._goal_handle = goal_handle
+        self._isdone = True
 
     def is_moving(self):
         """Get the state as if the robot is moving.
@@ -321,7 +354,7 @@ class Gripper(robot.Item):
         Returns:
             bool: True if the robot is moving
         """
-        return self._check_state(actionlib.GoalStatus.ACTIVE)
+        return self._check_state(GoalStatus.STATUS_EXECUTING)
 
     def is_succeeded(self):
         """Get the state as if the robot moving was succeeded.
@@ -329,67 +362,10 @@ class Gripper(robot.Item):
         Returns:
             bool: True if success
         """
-        return self._check_state(actionlib.GoalStatus.SUCCEEDED)
+        return self._check_state(GoalStatus.STATUS_SUCCEEDED)
 
     def cancel_goal(self):
         """Cancel moving."""
         if not self.is_moving():
             return
-
-        self._current_client.cancel_goal()
-
-
-class Suction(object):
-    """This class controls a suction nozzle.
-
-    Args:
-        name (str): A name of a suction device file.
-
-    Returns:
-        None
-    """
-
-    def __init__(self, name):
-        """Initialize an instance with given parameters.
-
-        Args:
-            name (str):  A name of this resource
-        """
-        super(Suction, self).__init__()
-        self._setting = settings.get_entry('end_effector', name)
-        if self._setting is None:
-            msg = '{0}({1}) is not found '.format('end_effector', name)
-            raise exceptions.ResourceNotFoundError(msg)
-        self._name = name
-        pub_topic_name = self._setting['suction_topic']
-        self._pub = rospy.Publisher(pub_topic_name, Bool, queue_size=0)
-        sub_topic_name = self._setting['pressure_sensor_topic']
-        self._sub = utils.CachingSubscriber(sub_topic_name, Bool)
-
-        timeout = self._setting.get('timeout', None)
-        self._sub.wait_for_message(timeout)
-
-    def command(self, command):
-        """Command on/off to a suction-nozzle.
-
-        Args:
-            command (bool): On if command is ``True``, Off otherwise
-
-        Returns:
-            None
-        """
-        if command < 0:
-            msg = "'{0}' is not defined.".format(command)
-            raise ValueError(msg)
-        msg = Bool()
-        msg.data = command
-        self._pub.publish(msg)
-
-    @property
-    def pressure_sensor(self):
-        """Get a sensor value (On/Off) of a suction-nozzle sensor.
-
-        Returns:
-            bool: True if ON.
-        """
-        return self._sub.data.data
+        self._isdone = True

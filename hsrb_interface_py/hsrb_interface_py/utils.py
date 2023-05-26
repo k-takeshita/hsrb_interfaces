@@ -9,8 +9,10 @@ from __future__ import unicode_literals
 
 import copy
 import threading
+import time
 
-import rospy
+import rclpy
+from rclpy.duration import Duration
 
 from . import exceptions
 
@@ -18,7 +20,7 @@ from . import exceptions
 class CachingSubscriber(object):
     """Subscribe a topic and keep its latest message for given period."""
 
-    def __init__(self, topic, msg_type, time_to_live=0.0, default=None,
+    def __init__(self, topic, msg_type, node, time_to_live=0.0, default=None,
                  **kwargs):
         """Initialize a instance
 
@@ -30,14 +32,15 @@ class CachingSubscriber(object):
             kwargs (Dict[str, object]): Options passed to rospy.Subscriber
         """
         self._lock = threading.Lock()
-        self._time_to_live = rospy.Duration(time_to_live)
-        self._latest_stamp = rospy.Time.now()
-        kwargs['callback'] = self._callback
+        self._node = node
+        self._time_to_live = Duration(seconds=time_to_live)
+        self._latest_stamp = self._node.get_clock().now()
         self._default = default
         self._msg = default
         self._topic = topic
         self._msg_type = msg_type
-        self._sub = rospy.Subscriber(topic, msg_type, **kwargs)
+        self._sub = self._node.create_subscription(
+            msg_type, topic, self._callback, 1, **kwargs)
 
     def wait_for_message(self, timeout=None):
         """Wait for a new meesage until elapsed time exceeds ``timeout`` [sec].
@@ -47,17 +50,25 @@ class CachingSubscriber(object):
         Returns:
             None
         """
-        try:
-            rospy.client.wait_for_message(self._topic, self._msg_type, timeout)
-        except rospy.ROSException as exc:
-            raise exceptions.RobotConnectionError(exc)
+        self._msg = self._default
+        if timeout is not None:
+            timeout_t = time.time() + timeout
+            while rclpy.ok() and self._msg == self._default:
+                time.sleep(0.01)
+                if time.time() >= timeout_t:
+                    raise exceptions.RobotConnectionError(
+                        "timeout exceeded while waiting for message "
+                        "on topic %s" % self._topic)
+        else:
+            while rclpy.ok() and self._msg == self._default:
+                time.sleep(0.01)
 
     def _callback(self, msg):
         """Subscriber callback"""
         if self._lock.acquire(False):
             try:
                 self._msg = msg
-                self._latest_stamp = rospy.Time.now()
+                self._latest_stamp = self._node.get_clock().now()
             finally:
                 self._lock.release()
 
@@ -65,8 +76,8 @@ class CachingSubscriber(object):
     def data(self):
         """(Message Type): Latest topic value"""
         with self._lock:
-            if not self._time_to_live.is_zero():
-                now = rospy.Time.now()
+            if self._time_to_live.nanoseconds != 0:
+                now = self._node.get_clock().now()
                 if (now - self._latest_stamp) > self._time_to_live:
                     self._msg = self._default
             return copy.deepcopy(self._msg)

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # vim: fileencoding=utf-8
 # Copyright (C) 2016 Toyota Motor Corporation
-"""Unittest for hsrb_interface.geometry module"""
+"""Unittest for hsrb_interface_py.geometry module"""
 
 import math
 
-from hsrb_interface import geometry
+from hsrb_interface_py import geometry
 from nose.tools import eq_
 
 

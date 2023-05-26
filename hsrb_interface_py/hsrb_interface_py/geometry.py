@@ -19,13 +19,63 @@ import warnings
 from geometry_msgs.msg import Pose as RosPose
 from geometry_msgs.msg import Transform as RosTransform
 import numpy as np
-import tf
 
 from . import exceptions
 
 Vector3 = collections.namedtuple('Vector3', 'x y z')
 Quaternion = collections.namedtuple('Quaternion', 'x y z w')
 Pose = collections.namedtuple('Pose', 'pos ori')
+
+
+def _to_mat(t):
+    trans, rot = t
+    x, y, z, w = rot
+    Nq = w * w + x * x + y * y + z * z
+    if Nq < np.finfo(np.float64).eps:
+        return np.array([[1.0, 0.0, 0.0, trans[0]],
+                         [0.0, 1.0, 0.0, trans[1]],
+                         [0.0, 0.0, 1.0, trans[2]],
+                         [0.0, 0.0, 0.0, 1.0]])
+    s = 2.0 / Nq
+    X = x * s
+    Y = y * s
+    Z = z * s
+    return np.array([[1.0 - (y * Y + z * Z), x * Y - w * Z, x * Z + w * Y, trans[0]],
+                     [x * Y + w * Z, 1.0 - (x * X + z * Z), y * Z - w * X, trans[1]],
+                     [x * Z - w * Y, y * Z + w * X, 1.0 - (x * X + y * Y), trans[2]],
+                     [0.0, 0.0, 0.0, 1.0]])
+
+
+def _from_mat(mat):
+    trans3 = (mat[0][3], mat[0][3], mat[0][3])
+
+    tr = mat[0][0] + mat[1][1] + mat[2][2]
+    if tr > 0.0:
+        S = math.sqrt(tr + 1.0) * 2
+        w = 0.25 * S
+        x = (mat[2][1] - mat[1][2]) / S
+        y = (mat[0][2] - mat[2][0]) / S
+        z = (mat[1][0] - mat[0][1]) / S
+    elif (mat[0][0] > mat[1][1]) & (mat[0][0] > mat[2][2]):
+        S = math.sqrt(1.0 + mat[0][0] - mat[1][1] - mat[2][2]) * 2.0
+        w = (mat[2][1] - mat[1][2]) / S
+        x = 0.25 * S
+        y = (mat[0][1] + mat[1][0]) / S
+        z = (mat[0][2] + mat[2][0]) / S
+    elif mat[1][1] > mat[2][2]:
+        S = math.sqrt(1.0 + mat[1][1] - mat[0][0] - mat[2][2]) * 2.0
+        w = (mat[0][2] - mat[2][0]) / S
+        x = (mat[0][1] + mat[1][0]) / S
+        y = 0.25 * S
+        z = (mat[1][2] + mat[2][1]) / S
+    else:
+        S = math.sqrt(1.0 + mat[2][2] - mat[0][0] - mat[1][1]) * 2.0
+        w = (mat[1][0] - mat[0][1]) / S
+        x = (mat[0][2] + mat[2][0]) / S
+        y = (mat[1][2] + mat[2][1]) / S
+        z = 0.25 * S
+
+    return Pose(Vector3(*trans3), Quaternion(x, y, z, w))
 
 
 def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
@@ -39,8 +89,19 @@ def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
     Returns:
         Tuple[Vector3, Quaternion]: A new pose.
     """
+    if axes != 'sxyz':
+        raise RuntimeError('Not implemented unless axes is sxyz')
     vec3 = (x, y, z)
-    quaternion = tf.transformations.quaternion_from_euler(ei, ej, ek, axes)
+    sin_ei_2 = np.sin(ei / 2.0)
+    cos_ei_2 = np.cos(ei / 2.0)
+    sin_ej_2 = np.sin(ej / 2.0)
+    cos_ej_2 = np.cos(ej / 2.0)
+    sin_ek_2 = np.sin(ek / 2.0)
+    cos_ek_2 = np.cos(ek / 2.0)
+    quaternion = (sin_ei_2 * cos_ej_2 * cos_ek_2 - cos_ei_2 * sin_ej_2 * sin_ek_2,
+                  cos_ei_2 * sin_ej_2 * cos_ek_2 + sin_ei_2 * cos_ej_2 * sin_ek_2,
+                  cos_ei_2 * cos_ej_2 * sin_ek_2 - sin_ei_2 * sin_ej_2 * cos_ek_2,
+                  cos_ei_2 * cos_ej_2 * cos_ek_2 + sin_ei_2 * sin_ej_2 * sin_ek_2)
     return Pose(Vector3(*vec3), Quaternion(*quaternion))
 
 
@@ -223,6 +284,11 @@ def transform_to_tuples(transform):
     return Pose(Vector3(x, y, z), Quaternion(qx, qy, qz, qw))
 
 
+def invert_pose(t):
+    mat = _to_mat(t)
+    return _from_mat(np.linalg.inv(mat))
+
+
 def multiply_tuples(t1, t2):
     """Multiply 2 pose-tuple representation.
 
@@ -233,18 +299,7 @@ def multiply_tuples(t1, t2):
     Returns:
         Tuple[Vector3, Quaternion]: A result of multiplication.
     """
-    trans1, rot1 = t1
-    trans1_mat = tf.transformations.translation_matrix(trans1)
-    rot1_mat = tf.transformations.quaternion_matrix(rot1)
-    mat1 = np.dot(trans1_mat, rot1_mat)
-
-    trans2, rot2 = t2
-    trans2_mat = tf.transformations.translation_matrix(trans2)
-    rot2_mat = tf.transformations.quaternion_matrix(rot2)
-    mat2 = np.dot(trans2_mat, rot2_mat)
-
+    mat1 = _to_mat(t1)
+    mat2 = _to_mat(t2)
     mat3 = np.dot(mat1, mat2)
-    trans3 = tf.transformations.translation_from_matrix(mat3)
-    rot3 = tf.transformations.quaternion_from_matrix(mat3)
-
-    return Pose(Vector3(*trans3), Quaternion(*rot3))
+    return _from_mat(mat3)

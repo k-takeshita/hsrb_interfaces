@@ -7,9 +7,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
-from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
-
 
 class HsrbInterfaceError(Exception):
     """Base class for all other exceptions"""
@@ -50,18 +47,6 @@ class TrajectoryFilterError(HsrbInterfaceError):
         super(TrajectoryFilterError, self).__init__(message)
         self._error_code = error_code
 
-    def __str__(self):
-        error_codes = ArmNavigationErrorCodes.__dict__.items()
-        error_names = [k for k, v in error_codes
-                       if v == self._error_code.val and k.isupper()]
-        if len(error_names) != 0:
-            text = error_names[0]
-        else:
-            text = str(self._error_code.val)
-
-        msg = super(TrajectoryFilterError, self).__str__()
-        return "{1} ({0})".format(msg, text)
-
 
 class MotionPlanningError(PlannerError):
     """Translate a motion planning error code to a human readable text.
@@ -74,18 +59,6 @@ class MotionPlanningError(PlannerError):
     def __init__(self, message, error_code):
         super(MotionPlanningError, self).__init__(message)
         self._error_code = error_code
-
-    def __str__(self):
-        error_codes = ArmManipulationErrorCodes.__dict__.items()
-        error_names = [k for k, v in error_codes
-                       if v == self._error_code.val and k.isupper()]
-        if len(error_names) != 0:
-            text = error_names[0]
-        else:
-            text = str(self._error_code.val)
-
-        msg = super(MotionPlanningError, self).__str__()
-        return "{1} ({0})".format(msg, text)
 
 
 class GripperError(HsrbInterfaceError):

@@ -1,14 +1,28 @@
-# Copyright (C) 2016 Toyota Motor Corporation
-"""Setup script"""
+# Copyright (C) 2022 Toyota Motor Corporation
+import os
 
-from distutils.core import setup
+from setuptools import setup
 
-from catkin_pkg.python_setup import generate_distutils_setup
+package_name = 'hsrb_interface_py'
 
-
-d = generate_distutils_setup(
-    packages=['hsrb_interface'],
-    package_dir={'': 'src'}
+setup(
+    name=package_name,
+    version='0.12.0',
+    packages=[package_name],
+    data_files=[
+        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
+        (os.path.join('share', package_name), ['package.xml']),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='Keisuke Takeshita',
+    maintainer_email='keisuke_takeshita@mail.toyota.co.jp',
+    description='Python interfaces scripts',
+    license='TMC',
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+            'ihsrb = hsrb_interface_py.ihsrb:main',
+        ],
+    },
 )
-
-setup(**d)
