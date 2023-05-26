@@ -13,7 +13,6 @@ import sys
 import numpy as np
 from rclpy.duration import Duration
 from sensor_msgs.msg import JointState
-import tf_transformations as T
 
 # from . import collision_world
 from . import exceptions
@@ -58,27 +57,6 @@ def _normalize_np(vec):
         return vec
 
 
-def _pose_from_x_axis(axis):
-    """Compute a transformation that fits X-axis of its frame to given vector.
-
-    Args:
-        axis (geometry.Vector3): A target vector
-
-    Returns:
-        geometry.Pose: The result transformation that stored in Pose type.
-    """
-    axis = np.array(axis, dtype='float64', copy=True)
-    axis = _normalize_np(axis)
-    unit_x = np.array([1, 0, 0])
-    outerp = np.cross(unit_x, axis)
-    theta = math.acos(np.dot(unit_x, axis))
-    if np.linalg.norm(outerp) < sys.float_info.epsilon:
-        outerp = np.array([0, 1, 0])
-    outerp = _normalize_np(outerp)
-    q = T.quaternion_about_axis(theta, outerp)
-    return geometry.Pose(geometry.Vector3(0, 0, 0), geometry.Quaternion(*q))
-
-
 def _movement_axis_and_distance(pose1, pose2):
     """Compute a vector from the origin of pose1 to pose2 and distance.
 
@@ -112,11 +90,7 @@ def _invert_pose(pose):
     Returns:
         geometry.Pose: The result of computation
     """
-    m = T.compose_matrix(translate=pose[0],
-                         angles=T.euler_from_quaternion(pose[1]))
-    (_, _, euler, trans, _) = T.decompose_matrix(T.inverse_matrix(m))
-    q = T.quaternion_from_euler(euler[0], euler[1], euler[2])
-    return geometry.Pose(geometry.Vector3(*trans), geometry.Quaternion(*q))
+    return geometry.invert_pose(pose)
 
 
 class JointGroup(robot.Item):
