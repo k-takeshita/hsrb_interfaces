@@ -52,7 +52,7 @@ _HSRB_SETTINGS = """
     "joint_group": {
         "whole_body": {
             "class":                        ["joint_group", "JointGroup"],
-            "joint_states_topic":           "/whole_body/joint_states",
+            "joint_states_topic":           "/joint_states",
             "arm_controller_prefix":        "/arm_trajectory_controller",
             "head_controller_prefix":       "/head_trajectory_controller",
             "hand_controller_prefix":       "/gripper_controller",
@@ -61,7 +61,7 @@ _HSRB_SETTINGS = """
             "plan_with_hand_goals_service": "/plan_with_hand_goals",
             "plan_with_hand_line_service":  "/plan_with_hand_line",
             "plan_with_joint_goals_service":"/plan_with_joint_goals",
-            "timeout":                       10.0,
+            "timeout":                       1.0,
             "end_effector_frames": [
                 "hand_palm_link",
                 "hand_l_finger_vacuum_frame"

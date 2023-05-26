@@ -101,7 +101,7 @@ class Gripper(robot.Item):
             GripperApplyEffort,
             prefix + "/apply_force")
         self._joint_state_sub = utils.CachingSubscriber(
-            "/whole_body/joint_states",
+            "/joint_states",
             JointState,
             self._node
         )
@@ -347,12 +347,6 @@ class Gripper(robot.Item):
         goal_handle = future.result()
         self._goal_handle = goal_handle
         self._isdone = True
-
-    def get_status(self):
-        status = GoalStatus.STATUS_UNKNOWN
-        if self._goal_handle is not None:
-            status = self._goal_handle.status
-        return status
 
     def is_moving(self):
         """Get the state as if the robot is moving.

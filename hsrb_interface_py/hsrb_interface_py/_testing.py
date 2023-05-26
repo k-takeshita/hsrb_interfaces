@@ -156,9 +156,10 @@ class HsrbInterfaceTest(unittest.TestCase):
 
     def setUp(self):
         # Wait until simluation clock starts
-        now = Clock(clock_type=ClockType.ROS_TIME).now()
-        while now == rclpy.time.Time(clock_type=ClockType.ROS_TIME):
-            now = Clock(clock_type=ClockType.ROS_TIME).now()
+        clock = Clock(clock_type=ClockType.ROS_TIME)
+        now = clock.now()
+        while now == rclpy.time.Time().to_msg():
+            now = clock.now()
         self.robot = hsrb_interface_py.Robot()
         now = self.robot.node.get_clock().now()
         self.whole_body = self.robot.get('whole_body')
@@ -315,7 +316,7 @@ class HsrbInterfaceTest(unittest.TestCase):
         timeout = Duration(seconds=timeout)
         rate = self.robot.node.create_rate(tick)
         goal_pose = PoseStamped()
-        goal_pose.header.stamp = rclpy.time.Time(clock_type=ClockType.ROS_TIME)
+        goal_pose.header.stamp = rclpy.time.Time().to_msg()
         goal_pose.header.frame_id = frame
         goal_pose.pose = geometry.tuples_to_pose(goal)
         map_to_goal_pose = self.tf_buffer.transform(goal_pose, 'map')

@@ -19,7 +19,7 @@ import warnings
 from geometry_msgs.msg import Pose as RosPose
 from geometry_msgs.msg import Transform as RosTransform
 import numpy as np
-import transforms3d
+import tf_transformations
 
 from . import exceptions
 
@@ -45,8 +45,7 @@ def pose(x=0.0, y=0.0, z=0.0, ei=0.0, ej=0.0, ek=0.0, axes='sxyz'):
         Tuple[Vector3, Quaternion]: A new pose.
     """
     vec3 = (x, y, z)
-    w, x, y, z = transforms3d.euler.euler2quat(ei, ej, ek, axes=axes)
-    quaternion = x, y, z, w
+    quaternion = tf_transformations.quaternion_from_euler(ei, ej, ek, axes)
     return Pose(Vector3(*vec3), Quaternion(*quaternion))
 
 
@@ -240,27 +239,17 @@ def multiply_tuples(t1, t2):
         Tuple[Vector3, Quaternion]: A result of multiplication.
     """
     trans1, rot1 = t1
-    trans1_mat = transforms3d.affines.compose(
-        trans1, ROTATION_IDENTITY, ZOOM_IDENTITY)
-    x, y, z, w = rot1
-    rot1_mat3 = transforms3d.quaternions.quat2mat((w, x, y, z))
-    rot1_mat = transforms3d.affines.compose(
-        TRANSLATION_IDENTITY, rot1_mat3, ZOOM_IDENTITY)
+    trans1_mat = tf_transformations.translation_matrix(trans1)
+    rot1_mat = tf_transformations.quaternion_matrix(rot1)
     mat1 = np.dot(trans1_mat, rot1_mat)
 
     trans2, rot2 = t2
-    trans2_mat = transforms3d.affines.compose(
-        trans2, ROTATION_IDENTITY, ZOOM_IDENTITY)
-    x, y, z, w = rot2
-    rot2_mat3 = transforms3d.quaternions.quat2mat((w, x, y, z))
-    rot2_mat = transforms3d.affines.compose(
-        TRANSLATION_IDENTITY, rot2_mat3, ZOOM_IDENTITY)
+    trans2_mat = tf_transformations.translation_matrix(trans2)
+    rot2_mat = tf_transformations.quaternion_matrix(rot2)
     mat2 = np.dot(trans2_mat, rot2_mat)
 
     mat3 = np.dot(mat1, mat2)
-    trans3 = transforms3d.affines.decompose(mat3)[0]
-    rot3_mat = transforms3d.affines.decompose(mat3)[1]
-    w, x, y, z = transforms3d.quaternions.mat2quat(rot3_mat)
-    rot3 = x, y, z, w
+    trans3 = tf_transformations.translation_from_matrix(mat3)
+    rot3 = tf_transformations.quaternion_from_matrix(mat3)
 
     return Pose(Vector3(*trans3), Quaternion(*rot3))

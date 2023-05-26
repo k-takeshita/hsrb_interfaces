@@ -16,12 +16,12 @@ class UtilsTestCase(testing.RosMockTestCase):
     def test_caching_subscriber(self):
         """Test CachingSubscriber class"""
         sub = utils.CachingSubscriber(
-            "/whole_body/joint_states",
+            "/joint_states",
             JointState,
             self.node)
         self.subscriber_mock.assert_called_with(
             JointState,
-            "/whole_body/joint_states",
+            "/joint_states",
             sub._callback,
             1)
 

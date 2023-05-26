@@ -13,7 +13,7 @@ import sys
 import numpy as np
 from rclpy.duration import Duration
 from sensor_msgs.msg import JointState
-import transforms3d
+import tf_transformations as T
 
 # from . import collision_world
 from . import exceptions
@@ -75,8 +75,7 @@ def _pose_from_x_axis(axis):
     if np.linalg.norm(outerp) < sys.float_info.epsilon:
         outerp = np.array([0, 1, 0])
     outerp = _normalize_np(outerp)
-    w, x, y, z = transforms3d.quaternions.axangle2quat(outerp, theta)
-    q = x, y, z, w
+    q = T.quaternion_about_axis(theta, outerp)
     return geometry.Pose(geometry.Vector3(0, 0, 0), geometry.Quaternion(*q))
 
 
@@ -113,13 +112,10 @@ def _invert_pose(pose):
     Returns:
         geometry.Pose: The result of computation
     """
-    x, y, z, w = pose[1]
-    m = transforms3d.affines.compose(
-        pose[0], transforms3d.quaternions.quat2mat((w, x, y, z)),
-        geometry.ZOOM_IDENTITY, geometry.SHEAR_IDENTITY)
-    (trans, matrix, _, _) = transforms3d.affines.decompose(np.linalg.inv(m))
-    w, x, y, z = transforms3d.quaternions.mat2quat(matrix)
-    q = x, y, z, w
+    m = T.compose_matrix(translate=pose[0],
+                         angles=T.euler_from_quaternion(pose[1]))
+    (_, _, euler, trans, _) = T.decompose_matrix(T.inverse_matrix(m))
+    q = T.quaternion_from_euler(euler[0], euler[1], euler[2])
     return geometry.Pose(geometry.Vector3(*trans), geometry.Quaternion(*q))
 
 
