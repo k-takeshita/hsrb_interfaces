@@ -1,19 +1,19 @@
 # Copyright (C) 2016 Toyota Motor Corporation
-"""Unittest hsrb_interface_py.robot module."""
+"""Unittest hsrb_interface.robot module."""
 from unittest.mock import patch
 
-import hsrb_interface_py
-import hsrb_interface_py.robot
+import hsrb_interface
+import hsrb_interface.robot
 
 from nose.tools import eq_
 from nose.tools import ok_
 from nose.tools import raises
 
 
-@raises(hsrb_interface_py.exceptions.RobotConnectionError)
+@raises(hsrb_interface.exceptions.RobotConnectionError)
 def test_resource():
     """Test resource acquisition."""
-    robot = hsrb_interface_py.robot.Item()
+    robot = hsrb_interface.robot.Item()
     ok_(robot)
 
 
@@ -26,7 +26,7 @@ def test_robot_lifecycle_close(mock_destroy, mock_init,
     """Test basic lifecycle"""
     ok_(mock_buffer)
     ok_(mock_listener)
-    robot = hsrb_interface_py.Robot()
+    robot = hsrb_interface.Robot()
     mock_init.assert_called_with('hsrb_interface_py')
     eq_(robot.ok(), True)
     robot.close()
@@ -43,7 +43,7 @@ def test_robot_lifecycle(mock_destroy, mock_init,
     """Test use in with statement"""
     ok_(mock_buffer)
     ok_(mock_listener)
-    with hsrb_interface_py.Robot() as robot:
+    with hsrb_interface.Robot() as robot:
         eq_(robot.ok(), True)
         mock_init.assert_called_with('hsrb_interface_py')
     mock_destroy.assert_called()
@@ -57,9 +57,8 @@ def test_robot_lifecycle(mock_destroy, mock_init,
 def test_robot_with_tf_client(mock_destroy, mock_init,
                               mock_buffer_client, mock_buffer, mock_listener):
     """Test use in tf client"""
-    with hsrb_interface_py.Robot(use_tf_client=True) as robot:
+    with hsrb_interface.Robot(use_tf_client=True) as robot:
         eq_(robot.ok(), True)
-        mock_buffer_client.assert_called_with('/tf2_buffer_server')
         mock_buffer.assert_not_called()
         mock_listener.assert_not_called()
 

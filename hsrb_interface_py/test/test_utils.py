@@ -3,10 +3,12 @@
 # Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for hsrb_interface_py.utils module."""
 
-from hsrb_interface_py import _testing as testing
-from hsrb_interface_py import utils
-
+import _testing as testing
+from hsrb_interface import Robot
+from hsrb_interface import utils
 from nose.tools import eq_
+import rclpy
+
 
 from sensor_msgs.msg import JointState
 
@@ -14,11 +16,12 @@ from sensor_msgs.msg import JointState
 class UtilsTestCase(testing.RosMockTestCase):
 
     def test_caching_subscriber(self):
+        rclpy.init()
+        robot = Robot()
         """Test CachingSubscriber class"""
         sub = utils.CachingSubscriber(
             "/joint_states",
-            JointState,
-            self.node)
+            JointState)
         self.subscriber_mock.assert_called_with(
             JointState,
             "/joint_states",

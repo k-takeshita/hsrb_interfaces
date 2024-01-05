@@ -10,7 +10,6 @@ from __future__ import unicode_literals
 from cv_bridge import CvBridge
 from geometry_msgs.msg import WrenchStamped
 import numpy as np
-import rclpy
 from sensor_msgs.msg import Image as ROSImage
 from sensor_msgs.msg import Imu as ROSImu
 from sensor_msgs.msg import LaserScan as ROSLaserScan
@@ -168,7 +167,7 @@ class Camera(robot.Item):
         image (Image): A latest image data from this camera.
     """
 
-    def __init__(self, name,node):
+    def __init__(self, name):
         """Initialize with a resource which has a given `name`.
 
         Args:
@@ -179,7 +178,7 @@ class Camera(robot.Item):
         self._setting = settings.get_entry('camera', name)
 
         topic = self._setting['prefix'] + '/image_raw'
-        self._sub = utils.CachingSubscriber(node, topic, ROSImage)
+        self._sub = utils.CachingSubscriber(topic, ROSImage)
 
         timeout = self._setting.get('timeout', None)
         self._sub.wait_for_message(timeout)
@@ -209,7 +208,7 @@ class ForceTorque(robot.Item):
                     contains torques around each axes [Nm].
     """
 
-    def __init__(self, name, node):
+    def __init__(self, name):
         """Initialize with a given resource name.
 
         Args:
@@ -218,16 +217,15 @@ class ForceTorque(robot.Item):
         super(ForceTorque, self).__init__()
         self._setting = settings.get_entry('force_torque', name)
         raw_topic = self._setting['raw_topic']
-        self._raw_sub = utils.CachingSubscriber(node, raw_topic, WrenchStamped)
+        self._raw_sub = utils.CachingSubscriber(raw_topic, WrenchStamped)
         compensated_topic = self._setting['compensated_topic']
-        self._compensated_sub = utils.CachingSubscriber(node, compensated_topic,
-                                                        WrenchStamped)
+        self._compensated_sub = utils.CachingSubscriber(
+            compensated_topic, WrenchStamped)
 
         timeout = self._setting.get('timeout', None)
         self._raw_sub.wait_for_message(timeout)
         self._compensated_sub.wait_for_message(timeout)
-        self._node = node._conn
-        
+
     def _get_wrench(self):
         """A getter for :py:attr:`wrench`."""
         wrench = self._compensated_sub.data
@@ -250,7 +248,8 @@ class ForceTorque(robot.Item):
         Returns:
             None
         """
-        reset_service = self._node.create_client(Empty,self._setting['reset_service'])
+        reset_service = self._node.create_client(
+            Empty, self._setting['reset_service'])
         reset_service.call_async(Empty.Request())
 
 
@@ -270,7 +269,7 @@ class IMU(robot.Item):
                 linear acceleration
     """
 
-    def __init__(self, name, node):
+    def __init__(self, name):
         """Initialize with a resource which has a given `name`.
 
         Args:
@@ -280,7 +279,7 @@ class IMU(robot.Item):
         self._setting = settings.get_entry('imu', name)
         topic = self._setting['topic']
         self._name = name
-        self._sub = utils.CachingSubscriber(node, topic, ROSImu)
+        self._sub = utils.CachingSubscriber(topic, ROSImu)
 
         timeout = self._setting.get('timeout', None)
         self._sub.wait_for_message(timeout)
@@ -302,7 +301,7 @@ class Lidar(robot.Item):
         scan (LaserScan): A latest scan data from this LIDAR.
     """
 
-    def __init__(self, name, node):
+    def __init__(self, name):
         """Initialize with a resource which has a given `name`.
 
         Args:
@@ -312,7 +311,7 @@ class Lidar(robot.Item):
         self._setting = settings.get_entry('lidar', name)
         topic = self._setting['topic']
         self._name = name
-        self._sub = utils.CachingSubscriber(node, topic, ROSLaserScan)
+        self._sub = utils.CachingSubscriber(topic, ROSLaserScan)
 
         timeout = self._setting.get('timeout', None)
         self._sub.wait_for_message(timeout)

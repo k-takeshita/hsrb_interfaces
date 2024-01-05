@@ -7,7 +7,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import rclpy
 from tmc_voice_msgs.msg import Voice
 
 from . import exceptions
@@ -40,7 +39,7 @@ class TextToSpeech(robot.Item):
         super(TextToSpeech, self).__init__()
         self._setting = settings.get_entry('text_to_speech', name)
         topic = self._setting['topic']
-        self._pub = self.create_publisher(Voice, topic,0)
+        self._pub = self.create_publisher(Voice, topic, 0)
         self._language = TextToSpeech.JAPANESE
 
     @property

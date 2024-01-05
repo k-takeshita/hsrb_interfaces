@@ -1,5 +1,5 @@
 # Copyright (C) 2016 Toyota Motor Corporation
-"""Unittest for hsrb_interface_py.joint_group module"""
+"""Unittest for hsrb_interface.joint_group module"""
 from __future__ import absolute_import
 
 import math
@@ -10,12 +10,12 @@ from unittest.mock import call, patch, PropertyMock
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import TransformStamped
 
-from hsrb_interface_py import _testing as testing
-from hsrb_interface_py import geometry
-from hsrb_interface_py import joint_group
-from hsrb_interface_py import settings
+import _testing as testing
+from hsrb_interface import geometry
+from hsrb_interface import joint_group
+from hsrb_interface import settings
 
-from hsrb_interface_py.joint_group import JointGroup
+from hsrb_interface.joint_group import JointGroup
 
 from nose.tools import assert_almost_equal
 # from nose.tools import assert_false
@@ -38,31 +38,30 @@ class WholeBodyTest(testing.RosMockTestCase):
     def setUp(self):
         super(WholeBodyTest, self).setUp()
 
-        # patcher = patch("hsrb_interface_py.trajectory.TrajectoryController")
+        # patcher = patch("hsrb_interface.trajectory.TrajectoryController")
         # self.traj_controller_mock = patcher.start()
         # self.addCleanup(patcher.stop)
 
-        # patcher = patch("hsrb_interface_py.trajectory.ImpedanceController")
+        # patcher = patch("hsrb_interface.trajectory.ImpedanceController")
         # self.imp_controller_mock = patcher.start()
         # self.addCleanup(patcher.stop)
 
-        # patcher = patch("hsrb_interface_py.trajectory.wait_controllers")
+        # patcher = patch("hsrb_interface.trajectory.wait_controllers")
         # self.wait_controllers_mock = patcher.start()
         # self.addCleanup(patcher.stop)
 
-        patcher = patch("hsrb_interface_py.robot._get_tf2_buffer")
+        patcher = patch("hsrb_interface.robot._get_tf2_buffer")
         self.get_tf2_buffer_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("hsrb_interface_py.robot._get_tf2_buffer")
+        patcher = patch("hsrb_interface.robot._get_tf2_buffer")
         self.get_tf2_buffer_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
         self.tf2_buffer_mock = self.get_tf2_buffer_mock.return_value
 
         patcher = patch(
-            "hsrb_interface_py.robot_model.RobotModel.from_parameter_server")
-        self.from_parameter_server_mock = patcher.start()
+            "hsrb_interface.robot_model.RobotModel.from_parameter_server")
         self.addCleanup(patcher.stop)
         xacro_file = xacro.process_file(
             os.path.join(
@@ -72,9 +71,7 @@ class WholeBodyTest(testing.RosMockTestCase):
             )
         )
         model = xacro_file.toprettyxml(indent='  ')
-        self.from_parameter_server_mock.return_value = model
-
-        patcher = patch("hsrb_interface_py.utils.CachingSubscriber")
+        patcher = patch("hsrb_interface.utils.CachingSubscriber")
         self.caching_sub_mock = patcher.start()
         self.addCleanup(patcher.stop)
         caching_sub_mock = self.caching_sub_mock.return_value

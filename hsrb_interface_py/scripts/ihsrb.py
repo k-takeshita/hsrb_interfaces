@@ -43,17 +43,9 @@ _robot.enable_interactive()
 def main(args=None):
     rclpy.init(args=args)
     with Robot() as robot:
-        whole_body = robot.try_get('whole_body',robot)
-        omni_base = robot.try_get('omni_base',robot)
-        gripper = robot.try_get('gripper',robot)
-        """
-        collision_world = robot.try_get('global_collision_world',robot)
-        suction = robot.try_get('suction',robot)
-        wrist_wrench = robot.try_get('wrist_wrench',robot)
-        marker = robot.try_get('marker',robot)
-        # battery = robot.try_get('battery',robot)
-        # tts = robot.try_get('default_tts',robot)
-        """
+        whole_body = robot.try_get('whole_body')
+        omni_base = robot.try_get('omni_base')
+        gripper = robot.try_get('gripper')
         shell(LOGO)
     
 if __name__ == '__main__':

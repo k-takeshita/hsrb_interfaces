@@ -7,39 +7,43 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import asyncio
 import math
 import sys
 import warnings
-import urdf_parser_py.urdf as urdf
-import asyncio
- 
-from std_msgs.msg import String
+
 from geometry_msgs.msg import Pose as RosPose
 from geometry_msgs.msg import TransformStamped
 from hsrb_interface_py._extension import KinematicsInterface
+
 import numpy as np
+
 import rclpy
+
 from sensor_msgs.msg import JointState
-import tf_transformations as T
+
 import tf2_ros
+import tf_transformations as T
+
 from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
 from tmc_manipulation_msgs.msg import BaseMovementType
+
 from tmc_planning_msgs.msg import JointPosition
 from tmc_planning_msgs.msg import TaskSpaceRegion
-from tmc_planning_msgs.srv import PlanWithHandGoals
 from tmc_planning_msgs.srv import PlanWithHandGoals
 from tmc_planning_msgs.srv import PlanWithHandLine
 from tmc_planning_msgs.srv import PlanWithJointGoals
 from tmc_planning_msgs.srv import PlanWithTsrConstraints
+
+import urdf_parser_py.urdf as urdf
+
+
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
-from builtin_interfaces.msg import Duration
 
-from . import collision_world
 from . import exceptions
 from . import geometry
 from . import robot
-from . import robot_model
 from . import settings
 from . import trajectory
 from . import utils
@@ -152,9 +156,6 @@ class JointGroup(robot.Item):
             A latest joint states.
         joint_limits (Dict[str, float]):
             Joint limits of a robot.
-        collision_world (hsrb_interface.collsion_world.CollisionWorld):
-            A present collision world to check collision.
-            If None, collision checking is disabled.
         linear_weight (float):
             How much laying weight on linear movement of a mobile base.
             This attirbute affect a output trajectory of motion planning.
@@ -174,50 +175,47 @@ class JointGroup(robot.Item):
             If true, time-optimal filter is applied to a base trajectory.
         looking_hand_constraint (bool):
             If true, the robot hand is in the robot view after the execution
-            of move_end_effector_*.
+            of move_end_effector_*.bot
     """
 
-    def __init__(self, name,robot):
+    def __init__(self, name):
         """See class docstring."""
         super(JointGroup, self).__init__()
         self._setting = settings.get_entry('joint_group', name)
         self._position_control_clients = []
         arm_config = self._setting['arm_controller_prefix']
-        self.node = robot._conn
         self._position_control_clients.append(
-            trajectory.TrajectoryController(arm_config,robot))
+            trajectory.TrajectoryController(arm_config))
         head_config = self._setting['head_controller_prefix']
         self._position_control_clients.append(
-            trajectory.TrajectoryController(head_config,robot))
+            trajectory.TrajectoryController(head_config))
         """
         hand_config = self._setting["hand_controller_prefix"]
         self._position_control_clients.append(
-            trajectory.TrajectoryController(hand_config,robot))
+            trajectory.TrajectoryController(hand_config,self._node ))
         """
         base_config = self._setting["omni_base_controller_prefix"]
         self._base_client = trajectory.TrajectoryController(
-            base_config, robot, "base_coordinates")
+            base_config, "base_coordinates")
         self._position_control_clients.append(self._base_client)
         """
         imp_config = settings.get_entry("trajectory", "impedance_control")
-        self._impedance_client = trajectory.ImpedanceController(imp_config,robot)
+        self._impedance_client = trajectory.ImpedanceController(imp_config,self._node )
         """
         joint_state_topic = self._setting["joint_states_topic"]
         self._joint_state_sub = utils.CachingSubscriber(
-            robot,
             joint_state_topic,
             JointState,
             default=JointState())
-        timeout = self._setting.get('timeout', None)
         self._joint_state_sub.wait_for_message(20.0)
         self._tf2_buffer = robot._get_tf2_buffer()
         self._end_effector_frames = self._setting['end_effector_frames']
         self._end_effector_frame = self._end_effector_frames[0]
         self._passive_joints = self._setting['passive_joints']
-        urdf_string = utils.get_parameters_from_another_node(robot._conn,"/robot_rrt_planner_node/get_parameters",["robot_description"])
+        urdf_string = utils.get_parameters_from_another_node(
+            self._node, "/robot_rrt_planner_node/get_parameters", ["robot_description"])
         self._robot_urdf = urdf.URDF.from_xml_string(urdf_string[0])
         self._kinematics_interface = KinematicsInterface(urdf_string[0])
-        self._collision_world = None
         self._linear_weight = 3.0
         self._angular_weight = 1.0
         self._joint_weights = {}
@@ -227,7 +225,7 @@ class JointGroup(robot.Item):
         self._tf_timeout = _TF_TIMEOUT
 
         if _DEBUG:
-            self._vis_pub = self.create_publisher(MarkerArray, "tsr_marker",1)
+            self._vis_pub = self.create_publisher(MarkerArray, "tsr_marker", 1)
             self._tf2_pub = tf2_ros.TransformBroadcaster()
 
     def _get_joint_state(self):
@@ -262,19 +260,6 @@ class JointGroup(robot.Item):
         return {joint_name: (joint_map[joint_name].limit.lower,
                              joint_map[joint_name].limit.upper)
                 for joint_name in self.joint_names}
-
-    @property
-    def collision_world(self):
-        return self._collision_world
-
-    @collision_world.setter
-    def collision_world(self, value):
-        if value is None:
-            self._collision_world = None
-        elif isinstance(value, collision_world.CollisionWorld):
-            self._collision_world = value
-        else:
-            raise TypeError("value should be CollisionWorld instance")
 
     @property
     def linear_weight(self):
@@ -422,9 +407,10 @@ class JointGroup(robot.Item):
         req.goal_joint_states.append(goal_position)
 
         service_name = self._setting['plan_with_joint_goals_service']
-        plan_service = self.node.create_client(PlanWithJointGoals,service_name)
+        plan_service = self._node.create_client(
+            PlanWithJointGoals, service_name)
         future = plan_service.call_async(req)
-        rclpy.spin_until_future_complete(self.node, future)
+        rclpy.spin_until_future_complete(self._node, future)
         res = future.result()
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             msg = "Fail to plan change_joint_state"
@@ -522,7 +508,8 @@ class JointGroup(robot.Item):
             source_frame=self._end_effector_frame,
             time=rclpy.time.Time()
         )
-        rclpy.spin_until_future_complete(self.node, tf_future,timeout_sec=self._tf_timeout)
+        rclpy.spin_until_future_complete(
+            self._node, tf_future, timeout_sec=self._tf_timeout)
 
         transform = asyncio.run(self._tf2_buffer.lookup_transform_async(
             self._end_effector_frame,
@@ -545,14 +532,16 @@ class JointGroup(robot.Item):
             source_frame=ref_frame_id,
             time=rclpy.time.Time()
         )
-        rclpy.spin_until_future_complete(self.node, tf_future,timeout_sec=self._tf_timeout)
+        rclpy.spin_until_future_complete(
+            self._node, tf_future, timeout_sec=self._tf_timeout)
 
         odom_to_ref_ros = asyncio.run(self._tf2_buffer.lookup_transform_async(
             settings.get_frame('odom'),
             ref_frame_id,
             rclpy.time.Time()
         ))
-        odom_to_ref_tuples = geometry.transform_to_tuples(odom_to_ref_ros.transform)
+        odom_to_ref_tuples = geometry.transform_to_tuples(
+            odom_to_ref_ros.transform)
         return geometry.tuples_to_pose(odom_to_ref_tuples)
 
     def move_end_effector_pose(self, pose, ref_frame_id=None):
@@ -587,12 +576,13 @@ class JointGroup(robot.Item):
         req.ref_frame_id = self._end_effector_frame
 
         service_name = self._setting['plan_with_hand_goals_service']
-        plan_service = self.node.create_client(PlanWithHandGoals,service_name)
+        plan_service = self._node.create_client(
+            PlanWithHandGoals, service_name)
         future = plan_service.call_async(req)
-        res = utils.wait_until_complete(self.node, future)
+        res = utils.wait_until_complete(self._node, future)
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
-             msg = "Fail to plan move_endpoint(" + str(res.error_code.val) + ")"
-             raise exceptions.MotionPlanningError(msg, res.error_code)
+            msg = "Fail to plan move_endpoint(" + str(res.error_code.val) + ")"
+            raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
         constrained_traj = self._constrain_trajectories(res.solution,
                                                         res.base_solution)
@@ -634,9 +624,9 @@ class JointGroup(robot.Item):
         req.goal_value = distance
 
         service_name = self._setting['plan_with_hand_line_service']
-        plan_service = self.node.create_client(PlanWithHandLine,service_name)
+        plan_service = self._node.create_client(PlanWithHandLine, service_name)
         future = plan_service.call_async(req)
-        rclpy.spin_until_future_complete(self.node, future)
+        rclpy.spin_until_future_complete(self._node, future)
         res = future.result()
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             msg = "Fail to plan move_hand_line"
@@ -698,9 +688,10 @@ class JointGroup(robot.Item):
         req.goal_tsrs = [goal_tsr]
 
         service_name = self._setting['plan_with_constraints_service']
-        plan_service = self.node.create_client(PlanWithTsrConstraints,service_name)
+        plan_service = self._node.create_client(
+            PlanWithTsrConstraints, service_name)
         future = plan_service.call_async(req)
-        rclpy.spin_until_future_complete(self.node, future)
+        rclpy.spin_until_future_complete(self._node, future)
         res = future.result()
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             msg = "Fail to plan"
@@ -712,12 +703,10 @@ class JointGroup(robot.Item):
 
     def _plan_cartesian_path(self, origin_to_pose1, origin_to_pose2,
                              odom_to_robot_pose,
-                             initial_joint_state, collision_env):
+                             initial_joint_state):
         req = self._generate_planning_request(PlanWithTsrConstraints.Request)
         req.origin_to_basejoint = odom_to_robot_pose
         req.initial_joint_state = initial_joint_state
-        if collision_env is not None:
-            req.environment_before_planning = collision_env
         req.extra_constraints = []
         req.extra_goal_constraints = []
 
@@ -744,7 +733,7 @@ class JointGroup(robot.Item):
                                                        x=distance / 2.0))
             marker = Marker()
             marker.header.frame_id = 'odom'
-            marker.header.stamp = self.node.get_clock().now().to_msg()
+            marker.header.stamp = self._node.get_clock().now().to_msg()
             marker.ns = 'tsr'
             marker.id = 0
             marker.type = Marker.CUBE
@@ -769,7 +758,7 @@ class JointGroup(robot.Item):
             self._vis_pub.publish(msg)
 
             t = TransformStamped()
-            t.header.stamp = self.node.get_clock().now().to_msg()
+            t.header.stamp = self._node.get_clock().now().to_msg()
             t.header.frame_id = "odom"
             t.child_frame_id = "pose1"
             t.transform.translation.x = origin_to_pose1[0][0]
@@ -782,7 +771,7 @@ class JointGroup(robot.Item):
             self._tf2_pub.sendTransform(t)
 
             t = TransformStamped()
-            t.header.stamp = self.node.get_clock().now().to_msg()
+            t.header.stamp = self._node.get_clock().now().to_msg()
             t.header.frame_id = "pose1"
             t.child_frame_id = "direction"
             t.transform.translation.x = pose1_to_axis[0][0]
@@ -795,7 +784,7 @@ class JointGroup(robot.Item):
             self._tf2_pub.sendTransform(t)
 
             t = TransformStamped()
-            t.header.stamp = self.node.get_clock().now().to_msg()
+            t.header.stamp = self._node.get_clock().now().to_msg()
             t.header.frame_id = "odom"
             t.child_frame_id = "pose2"
             t.transform.translation.x = origin_to_pose2[0][0]
@@ -808,7 +797,7 @@ class JointGroup(robot.Item):
             self._tf2_pub.sendTransform(t)
 
             t = TransformStamped()
-            t.header.stamp = self.node.get_clock().now().to_msg()
+            t.header.stamp = self._node.get_clock().now().to_msg()
             t.header.frame_id = "odom"
             t.child_frame_id = "tsr"
             t.transform.translation.x = origin_to_tsr[0][0]
@@ -841,9 +830,10 @@ class JointGroup(robot.Item):
 
         service_name = self._setting['plan_with_constraints_service']
 
-        plan_service = self.node.create_client(PlanWithTsrConstraints,service_name)
+        plan_service = self._node.create_client(
+            PlanWithTsrConstraints, service_name)
         future = plan_service.call_async(req)
-        rclpy.spin_until_future_complete(self.node, future)
+        rclpy.spin_until_future_complete(self._node, future)
         res = future.result()
         if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
             msg = "Fail to plan"
@@ -866,10 +856,6 @@ class JointGroup(robot.Item):
         origin_to_pose1 = self.get_end_effector_pose('odom')
         odom_to_robot_pose = self._lookup_odom_to_ref(base_frame)
         initial_joint_state = self._get_joint_state()
-        if self._collision_world is not None:
-            collision_env = self._collision_world.snapshot('odom')
-        else:
-            collision_env = None
 
         arm_traj = None
         base_traj = None
@@ -880,8 +866,7 @@ class JointGroup(robot.Item):
             plan = self._plan_cartesian_path(origin_to_pose1,
                                              origin_to_pose2,
                                              odom_to_robot_pose,
-                                             initial_joint_state,
-                                             collision_env)
+                                             initial_joint_state)
             if arm_traj is None:
                 arm_traj = plan.solution
             elif len(plan.solution.points) > 0:
@@ -902,7 +887,6 @@ class JointGroup(robot.Item):
             odom_to_robot_pose.orientation.z = final_transform.rotation.z
             odom_to_robot_pose.orientation.w = final_transform.rotation.w
             initial_joint_state = plan.joint_state_after_planning
-            collision_env = plan.environment_after_planning
 
         base_traj.header.frame_id = settings.get_frame('odom')
         constrained_traj = self._constrain_trajectories(arm_traj, base_traj)
@@ -962,13 +946,10 @@ class JointGroup(robot.Item):
         request = request_type()
         request.origin_to_basejoint = self._lookup_odom_to_ref(
             settings.get_frame('base'))
-        request.initial_joint_state = self._get_joint_state()       
-        request.timeout = rclpy.duration.Duration(seconds=self._planning_timeout).to_msg()
+        request.initial_joint_state = self._get_joint_state()
+        request.timeout = rclpy.duration.Duration(
+            seconds=self._planning_timeout).to_msg()
         request.max_iteration = _PLANNING_MAX_ITERATION
-        if self._collision_world is not None:
-            snapshot = self._collision_world.snapshot(
-                settings.get_frame('odom'))
-            request.environment_before_planning = snapshot
 
         if request_type is PlanWithJointGoals.Request:
             request.base_movement_type.val = BaseMovementType.NONE
@@ -1013,7 +994,7 @@ class JointGroup(robot.Item):
         if base_trajectory:
             odom_base_trajectory = trajectory.transform_base_trajectory(
                 base_trajectory, self._tf2_buffer, self._tf_timeout,
-                self._base_client.joint_names,self.node)
+                self._base_client.joint_names, self._node)
             merged_traj = trajectory.merge(joint_trajectory,
                                            odom_base_trajectory)
         else:
@@ -1028,9 +1009,7 @@ class JointGroup(robot.Item):
                 start_state.position += \
                     odom_base_trajectory.points[0].positions
             filtered_merged_traj = trajectory.hsr_timeopt_filter(
-                merged_traj, start_state,self.node)
-        if filtered_merged_traj is None:
-            filtered_merged_traj = trajectory.constraint_filter(merged_traj,self.node)
+                merged_traj, start_state, self._node)
         return filtered_merged_traj
 
     def _execute_trajectory(self, joint_traj):
@@ -1046,8 +1025,8 @@ class JointGroup(robot.Item):
             None
         """
         clients = []
-        # TODO : impedance_clientをサポートする。
-        if False : #self._impedance_client.config is not None:
+        # TODO() : impedance_clientをサポートする。
+        if False:  # self._impedance_client.config is not None:
             clients.append(self._impedance_client)
         else:
             for client in self._position_control_clients:
@@ -1062,5 +1041,4 @@ class JointGroup(robot.Item):
                                       joint_states)
             client.submit(traj)
 
-        trajectory.wait_controllers(self.node,clients)
-        
+        trajectory.wait_controllers(self._node, clients)

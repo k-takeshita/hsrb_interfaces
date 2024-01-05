@@ -2,7 +2,6 @@
 """Unittest for hsrb_interface._extension.KinematicsInterface module"""
 import os
 import unittest
-import rclpy
 
 from hsrb_interface_py._extension import KinematicsInterface
 from ament_index_python.packages import get_package_share_directory
@@ -16,8 +15,15 @@ import subprocess
 class KinematicsInterfaceTest(unittest.TestCase):
 
     def setUp(self):
-        urdf_xml = os.path.join(get_package_share_directory('hsrb_description'),'robots', 'hsrb4s.urdf.xacro')
-        cp = subprocess.run('xacro ' + urdf_xml + ' gazebo_sim:=True', shell=True,stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+        urdf_xml = os.path.join(get_package_share_directory(
+            'hsrb_description'), 'robots', 'hsrb4s.urdf.xacro')
+        cp = subprocess.run(
+            'xacro ' +
+            urdf_xml +
+            ' gazebo_sim:=True',
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
         self._kinematics = KinematicsInterface(cp.stdout)
 
     def test_normal(self):

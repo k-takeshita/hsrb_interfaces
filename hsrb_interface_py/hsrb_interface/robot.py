@@ -17,8 +17,8 @@ import weakref
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile
 import tf2_ros
-from rclpy.qos import qos_profile_sensor_data, QoSProfile
 
 from . import exceptions
 from . import settings
@@ -33,6 +33,7 @@ class Item(rclpy.node.Node):
     """
 
     def __init__(self):
+        self._node = Robot._connection
         """See class docstring."""
         if not Robot._connecting():
             raise exceptions.RobotConnectionError("No robot connection")
@@ -138,7 +139,6 @@ class _ConnectionManager(Node):
     def __del__(self):
         self._tf2_listener = None
         self._tf2_buffer = None
-        raise SystemExit 
 
     @property
     def tf2_buffer(self):
@@ -164,7 +164,7 @@ class _ConnectionManager(Node):
                 results.append((key, target))
         return results
 
-    def get(self, name, node, typ=None):
+    def get(self, name, typ=None):
         """Get an item if available.
 
         Args:
@@ -194,7 +194,7 @@ class _ConnectionManager(Node):
             module = importlib.import_module(".{0}".format(module_name),
                                              "hsrb_interface")
             cls = getattr(module, class_name)
-            obj = cls(name, node)
+            obj = cls(name)
             self._registry[key] = obj
             return weakref.proxy(obj)
 
@@ -232,8 +232,8 @@ class Robot(object):
 
     @property
     def Items(self):
-        """
-        Repesent types of resource items.
+        """Repesent types of resource items.
+
         Warnings:
             This class is deprecated. It will be removed in future release.
         """
@@ -243,7 +243,7 @@ class Robot(object):
 
     @classmethod
     def _connecting(cls):
-        return cls._connection is not None and cls._connection() is not None
+        return cls._connection is not None
 
     @classmethod
     def connecting(cls):
@@ -255,7 +255,7 @@ class Robot(object):
     @classmethod
     def _get_tf2_buffer(cls):
         if cls._connection is not None:
-            conn = cls._connection()
+            conn = cls._connection
             if conn is not None:
                 return conn.tf2_buffer
             else:
@@ -266,11 +266,11 @@ class Robot(object):
     def __init__(self, *args, **kwargs):
         """See class docstring."""
         use_tf_client = kwargs.get('use_tf_client', False)
-        if Robot._connection is None or Robot._connection() is None:
+        if Robot._connection is None:
             self._conn = _ConnectionManager(use_tf_client=use_tf_client)
-            Robot._connection = weakref.ref(self._conn)
+            Robot._connection = self._conn
         else:
-            self._conn = Robot._connection()
+            self._conn = Robot._connection
 
     def close(self):
         """Shutdown immediately."""
@@ -282,7 +282,9 @@ class Robot(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """A part of ContextManager interface."""
+        self._conn.destroy_node()
         self._conn = None
+        Robot._connection = None
 
     def ok(self):
         """Check whether this handle is valid or not.
@@ -315,7 +317,7 @@ class Robot(object):
             warnings.warn(msg, exceptions.DeprecationWarning)
         return self._conn.list(typ)
 
-    def get(self, name, node, typ=None):
+    def get(self, name, typ=None):
         """Get an item if available.
 
         Args:
@@ -334,9 +336,9 @@ class Robot(object):
             It will be removed in future release.
         """
         name = _type_deprecation_warning(name, typ)
-        return self._conn.get(name, node)
+        return self._conn.get(name)
 
-    def try_get(self, name, node, typ=None, msg="Ignored"):
+    def try_get(self, name, typ=None, msg="Ignored"):
         """Try to get an item if available.
 
         If trial failed, error messsage is printed to ``stderr`` instead of
@@ -360,7 +362,7 @@ class Robot(object):
         """
         name = _type_deprecation_warning(name, typ)
         try:
-            return self.get(name, node, None)
+            return self.get(name, None)
         except (exceptions.ResourceNotFoundError,
                 exceptions.RobotConnectionError):
             if msg is not None:

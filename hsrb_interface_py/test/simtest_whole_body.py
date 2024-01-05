@@ -5,7 +5,7 @@
 
 import math
 
-from hsrb_interface import _testing as testing
+import _testing as testing
 from hsrb_interface import geometry
 
 
@@ -51,15 +51,17 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
                 hand_pose[1])
         self.expect_hand_reach_goal(goal, pos_delta=0.02,
                                     ori_delta=math.radians(2.0))
+
     def test_move_end_effector_by_line(self):
         """The robot should move end-effector by line."""
         self.whole_body.move_to_neutral()
         hand_pose = self.whole_body.get_end_effector_pose('map')
-
         self.whole_body.move_end_effector_by_line((0, 0, 1), 0.1,
                                                   'hand_palm_link')
+        goal = ((hand_pose[0].x + 0.1, hand_pose[0].y, hand_pose[0].z),
+                hand_pose[1])
         self.expect_hand_reach_goal(goal, frame='map', pos_delta=0.02,
-                                     ori_delta=math.radians(2.0))
+                                    ori_delta=math.radians(2.0))
 
     def test_move_hand_pose_with_tf(self):
         """Moving end-effector with a tf frame 'my_frame'."""
@@ -74,8 +76,5 @@ class WholeBodyTest(testing.HsrbInterfaceTest):
         for goal in goals:
             self.whole_body.move_end_effector_pose(goal, 'my_frame')
             self.expect_hand_reach_goal(goal, pos_delta=0.02,
-                                         ori_delta=math.radians(2.0),
-                                         frame='my_frame')
-
-
-
+                                        ori_delta=math.radians(2.0),
+                                        frame='my_frame')

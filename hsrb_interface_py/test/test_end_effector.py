@@ -3,11 +3,11 @@
 """Unittest for end_effector module"""
 from unittest.mock import patch, PropertyMock
 
+import _testing as testing
+
 from control_msgs.action import FollowJointTrajectory
 
 import hsrb_interface_py
-from hsrb_interface_py import _testing as testing
-
 import hsrb_interface_py.end_effector
 import hsrb_interface_py.exceptions
 

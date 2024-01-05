@@ -94,13 +94,6 @@ _HSRB_SETTINGS = """
             "prefix":       "/gripper_controller",
             "left_finger_joint_name":  "hand_l_spring_proximal_joint",
             "right_finger_joint_name": "hand_r_spring_proximal_joint"
-        },
-        "suction": {
-            "class": ["end_effector", "Suction"],
-            "action":                         "/hsrb/suction_control",
-            "suction_topic":                  "/hsrb/command_suction",
-            "pressure_sensor_topic":          "/hsrb/pressure_sensor",
-            "timeout":                        1.0
         }
     },
     "mobile_base": {
@@ -112,78 +105,6 @@ _HSRB_SETTINGS = """
             "pose_topic":                "/global_pose",
             "goal_topic":                "/base_goal",
             "timeout":                   1.0
-        }
-    },
-    "camera": {
-        "head_l_stereo_camera": {
-            "class":   ["sensors", "Camera"],
-            "prefix":  "/hsrb/head_l_stereo_camera",
-            "timeout": 3.0
-        },
-        "head_r_stereo_camera": {
-            "class": ["sensors", "Camera"],
-            "prefix":  "/hsrb/head_l_stereo_camera",
-            "timeout": 3.0
-        },
-        "head_rgbd_sensor_rgb": {
-            "class": ["sensors", "Camera"],
-            "prefix": "/hsrb/head_rgbd_sensor/rgb",
-            "timeout": 3.0
-        },
-        "head_rgbd_sensor_depth": {
-            "class": ["sensors", "Camera"],
-            "prefix": "/hsrb/head_rgbd_sensor/depth_registered",
-            "timeout": 3.0
-        }
-    },
-    "imu": {
-        "base_imu": {
-            "class": ["sensors", "IMU"],
-            "topic": "/hsrb/base_imu/data",
-            "timeout": 1.0
-        }
-    },
-    "force_torque": {
-        "wrist_wrench": {
-            "class": ["sensors", "ForceTorque"],
-            "raw_topic": "/hsrb/wrist_wrench/raw",
-            "compensated_topic": "/hsrb/wrist_wrench/compensated",
-            "reset_service": "/hsrb/wrist_wrench/readjust_offset",
-            "timeout": 1.0
-        }
-    },
-    "lidar": {
-        "base_scan": {
-            "class": ["sensors", "Lidar"],
-            "topic": "/hsrb/base_scan",
-            "timeout": 1.0
-        }
-    },
-    "object_detection": {
-        "marker": {
-            "class": ["object_detection", "ObjectDetector"],
-            "topic": "/recognized_object"
-        }
-    },
-    "power_supply": {
-        "battery": {
-            "class": ["battery", "Battery"],
-            "topic": "/hsrb/battery_state",
-            "timeout": 2.0
-        }
-    },
-    "text_to_speech": {
-        "default_tts": {
-            "class": ["text_to_speech", "TextToSpeech"],
-            "topic": "/talk_request"
-        }
-    },
-    "collision_world": {
-        "global_collision_world": {
-            "class": ["collision_world", "CollisionWorld"],
-            "service": "/get_collision_environment",
-            "control_topic": "/known_object",
-            "listing_topic": "/known_object_ids"
         }
     }
 }

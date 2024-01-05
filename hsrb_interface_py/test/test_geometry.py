@@ -5,7 +5,7 @@
 
 import math
 
-from hsrb_interface_py import geometry
+from hsrb_interface import geometry
 from nose.tools import eq_
 
 

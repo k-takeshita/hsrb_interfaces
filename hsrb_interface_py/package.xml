@@ -14,7 +14,7 @@
   <buildtool_depend>ament_cmake_python</buildtool_depend>
   <buildtool_depend>ament_cmake_nose</buildtool_depend>
 
-  <depend>boost</depend>
+  <exec_depend>boost</exec_depend>
   <depend>hsr_kinematics</depend>
 
   <depend>rclcpp</depend>
@@ -36,16 +36,12 @@
   <depend>tmc_control_msgs</depend>
   <depend>tmc_robot_kinematics_model</depend>
 
-  <!-- <depend>python-enum34</depend> -->
-  <depend condition="$ROS_PYTHON_VERSION == 2">python-lxml</depend>
-  <depend condition="$ROS_PYTHON_VERSION == 3">python3-lxml</depend>
-  <depend condition="$ROS_PYTHON_VERSION == 2">ipython</depend>
-  <depend condition="$ROS_PYTHON_VERSION == 3">ipython3</depend>
+  <depend>python3-lxml</depend>
+  <depend>ipython3</depend>
   <depend>urdfdom_py</depend>
   <build_depend>eigen</build_depend>
 
-  <test_depend condition="$ROS_PYTHON_VERSION == 2">python-mock</test_depend>
-  <test_depend condition="$ROS_PYTHON_VERSION == 3">python3-mock</test_depend>
+  <test_depend>python3-mock</test_depend>
   <test_depend>hsrb_gazebo_launch</test_depend>
 
   <export>

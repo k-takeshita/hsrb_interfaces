@@ -8,13 +8,14 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import math
-import warnings
 import time
+import warnings
+
+import action_msgs.msg as action_msgs
 from control_msgs.action import FollowJointTrajectory
 from hsrb_interface.utils import CachingSubscriber
 import rclpy
 from rclpy.action import ActionClient
-import action_msgs.msg as action_msgs
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool
 from tmc_control_msgs.action import GripperApplyEffort
@@ -50,26 +51,20 @@ _DISTAL_JOINT_ANGLE_OFFSET = 0.087
 _DISTAL_TO_TIP_Y = 0.01865
 _DISTAL_TO_TIP_Z = 0.04289
 
-_DISTANCE_MAX = (_PALM_TO_PROXIMAL_Y -
-                 (_DISTAL_TO_TIP_Y *
-                  math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                  _DISTAL_TO_TIP_Z *
-                  math.sin(_DISTAL_JOINT_ANGLE_OFFSET)) +
-                 _PROXIMAL_TO_DISTAL_Z *
-                 math.sin(_HAND_MOTOR_JOINT_MAX)) * 2
-_DISTANCE_MIN = (_PALM_TO_PROXIMAL_Y -
-                 (_DISTAL_TO_TIP_Y *
-                  math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                  _DISTAL_TO_TIP_Z *
-                  math.sin(_DISTAL_JOINT_ANGLE_OFFSET)) +
-                 _PROXIMAL_TO_DISTAL_Z *
-                 math.sin(_HAND_MOTOR_JOINT_MIN)) * 2
+_DISTANCE_MAX = (_PALM_TO_PROXIMAL_Y
+                 - (_DISTAL_TO_TIP_Y * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                    + _DISTAL_TO_TIP_Z * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))
+                 + _PROXIMAL_TO_DISTAL_Z * math.sin(_HAND_MOTOR_JOINT_MAX)) * 2
+_DISTANCE_MIN = (_PALM_TO_PROXIMAL_Y
+                 - (_DISTAL_TO_TIP_Y * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                    + _DISTAL_TO_TIP_Z * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))
+                 + _PROXIMAL_TO_DISTAL_Z * math.sin(_HAND_MOTOR_JOINT_MIN)) * 2
 
 
 class Gripper(robot.Item):
     """This class controls 2-finger gripper."""
 
-    def __init__(self, name, node):
+    def __init__(self, name):
         """Initialize.
 
         Args:
@@ -88,23 +83,22 @@ class Gripper(robot.Item):
         self._right_finger_joint_name = self._setting[
             'right_finger_joint_name']
         self._follow_joint_trajectory_client = ActionClient(
-            node._conn, 
-            FollowJointTrajectory, 
+            self._node,
+            FollowJointTrajectory,
             prefix + "/follow_joint_trajectory"
         )
         self._grasp_client = ActionClient(
-            node._conn, 
-            GripperApplyEffort, 
+            self._node,
+            GripperApplyEffort,
             prefix + "/grasp"
         )
 
         self._apply_force_client = ActionClient(
-            node._conn,  
+            self._node,
             GripperApplyEffort,
             prefix + "/apply_force"
         )
         self._joint_state_sub = CachingSubscriber(
-            node,
             "/joint_states",
             JointState
         )
@@ -113,7 +107,6 @@ class Gripper(robot.Item):
 
         # 直前の非同期の動作を覚えておくための変数.初期値はNone
         self._current_client = None
-        self._node =  node._conn
 
     def command(self, open_angle, motion_time=1.0, sync=True):
         """Command open a gripper
@@ -137,34 +130,31 @@ class Gripper(robot.Item):
         goal = FollowJointTrajectory.Goal()
         goal.trajectory.joint_names = self._joint_names
         goal.trajectory.points = [
-            JointTrajectoryPoint(positions=[open_angle],
-                                 time_from_start=rclpy.duration.Duration(seconds=motion_time).to_msg())
-        ]
+            JointTrajectoryPoint(
+                positions=[open_angle],
+                time_from_start=rclpy.duration.Duration(
+                    seconds=motion_time).to_msg())]
         self._send_goal(self._follow_joint_trajectory_client, goal)
-
-        '''
         if not sync:
             return
         start_time = self._node.get_clock().now()
         elapsed_time = rclpy.duration.Duration(seconds=0.0)
         while elapsed_time < rclpy.duration.Duration(seconds=motion_time):
             try:
-                result = rclpy.spin_until_future_complete(self._node, self.send_goal_future)
-                if self.send_goal_future.result() is not None:
-                    state = self.send_goal_future.result().status
+                rclpy.spin_until_future_complete(
+                    self._node, self._send_goal_future, timeout_sec=0.1)
+                if self._send_goal_future.result() is not None:
+                    state = self.get_state()
                     if (state == action_msgs.GoalStatus.STATUS_SUCCEEDED):
-                        break
+                        return
                     if (state != action_msgs.GoalStatus.STATUS_EXECUTING):
                         msg = "Failed to follow commanded trajectory"
                         raise exceptions.GripperError(msg)
-                else:
-                    self._follow_joint_trajectory_client.cancel_goal()
-                    raise exceptions.GripperError("Timed out")
                 elapsed_time = self._node.get_clock().now() - start_time
                 time.sleep(0.1)
             except KeyboardInterrupt:
                 self._follow_joint_trajectory_client.cancel_goal()
-        '''
+        self.cancel_goal()
 
     def get_distance(self):
         """Command get gripper finger tip distance.
@@ -181,14 +171,10 @@ class Gripper(robot.Item):
         hand_right_position = joint_state.position[
             joint_state.name.index(
                 self._right_finger_joint_name)] + hand_motor_pos
-        return ((math.sin(hand_left_position) +
-                 math.sin(hand_right_position)) *
-                _PROXIMAL_TO_DISTAL_Z +
-                2 * (_PALM_TO_PROXIMAL_Y -
-                     (_DISTAL_TO_TIP_Y *
-                      math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                      _DISTAL_TO_TIP_Z *
-                      math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
+        return ((math.sin(hand_left_position) + math.sin(hand_right_position)) * _PROXIMAL_TO_DISTAL_Z
+                + 2 * (_PALM_TO_PROXIMAL_Y
+                       - (_DISTAL_TO_TIP_Y * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                          + _DISTAL_TO_TIP_Z * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
 
     def set_distance(self, distance, control_time=3.0):
         """Command set gripper finger tip distance.
@@ -208,44 +194,40 @@ class Gripper(robot.Item):
             goal.trajectory.joint_names = self._joint_names
             goal.trajectory.points = [
                 JointTrajectoryPoint(
-                    time_from_start=rclpy.duration.Duration(seconds=1 / _DISTANCE_CONTROL_RATE).to_msg())
-            ]
+                    time_from_start=rclpy.duration.Duration(
+                        seconds=1 / _DISTANCE_CONTROL_RATE).to_msg())]
 
             start_time = self._node.get_clock().now()
             elapsed_time = rclpy.duration.Duration(seconds=0.0)
             ierror = 0.0
-            theta_ref = math.asin(((distance / 2 -
-                                    (_PALM_TO_PROXIMAL_Y -
-                                     (_DISTAL_TO_TIP_Y *
-                                      math.cos(_DISTAL_JOINT_ANGLE_OFFSET) +
-                                      _DISTAL_TO_TIP_Z *
-                                      math.sin(_DISTAL_JOINT_ANGLE_OFFSET)))) /
-                                   _PROXIMAL_TO_DISTAL_Z))
-            rate = self._node.create_rate(_DISTANCE_CONTROL_RATE)
+            theta_ref = math.asin(
+                ((distance / 2
+                  - (_PALM_TO_PROXIMAL_Y
+                     - (_DISTAL_TO_TIP_Y * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                        + _DISTAL_TO_TIP_Z * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
+                 / _PROXIMAL_TO_DISTAL_Z))
             last_movement_time = self._node.get_clock().now()
             while elapsed_time < rclpy.duration.Duration(seconds=control_time):
                 try:
                     error = distance - self.get_distance()
                     if abs(error) > _DISTANCE_CONTROL_STALL_THRESHOLD:
                         last_movement_time = self._node.get_clock().now()
-                    if ((self._node.get_clock().now() - last_movement_time) > rclpy.duration.Duration(seconds=_DISTANCE_CONTROL_STALL_TIMEOUT)):
+                    if ((self._node.get_clock().now() - last_movement_time)
+                            > rclpy.duration.Duration(seconds=_DISTANCE_CONTROL_STALL_TIMEOUT)):
                         break
                     ierror += error
-                    open_angle = (theta_ref +
-                                  _DISTANCE_CONTROL_PGAIN * error +
-                                  _DISTANCE_CONTROL_IGAIN * ierror)
+                    open_angle = (theta_ref + _DISTANCE_CONTROL_PGAIN * error + _DISTANCE_CONTROL_IGAIN * ierror)
                     goal.trajectory.points = [
                         JointTrajectoryPoint(
                             positions=[open_angle],
-                            time_from_start=rclpy.duration.Duration(seconds=_DISTANCE_CONTROL_TIME_FROM_START).to_msg())
-                    ]
+                            time_from_start=rclpy.duration.Duration(
+                                seconds=_DISTANCE_CONTROL_TIME_FROM_START).to_msg())]
                     self._follow_joint_trajectory_client.send_goal_async(goal)
                     elapsed_time = self._node.get_clock().now() - start_time
-                    print(elapsed_time)
                 except KeyboardInterrupt:
                     self._follow_joint_trajectory_client.cancel_goal_async()
                     return
-                time.sleep(1.0/_DISTANCE_CONTROL_RATE)
+                time.sleep(1.0 / _DISTANCE_CONTROL_RATE)
 
     def grasp(self, effort):
         """Command a gripper to execute grasping move.
@@ -298,35 +280,23 @@ class Gripper(robot.Item):
         self._send_goal(client, goal)
         if not sync:
             return
-        ''' debug-test
-        result = rclpy.spin_until_future_complete(self._node, self.send_goal_future)
-        try:
-            if self.send_goal_future.result() is not None:
-                state = self.send_goal_future.result().status
-                if state != action_msgs.GoalStatus.STATUS_SUCCEEDED:
-                    msg = '"Failed to apply force {0}'.format(state)
-                    raise exceptions.GripperError(msg)
-            else:
+        while True:
+            try:
+                rclpy.spin_until_future_complete(
+                    self._node, self._send_goal_future, timeout_sec=0.1)
+                if self._send_goal_future.result() is not None:
+                    state = self.get_state()
+                    if (state == action_msgs.GoalStatus.STATUS_SUCCEEDED):
+                        break
+                    if (state != action_msgs.GoalStatus.STATUS_EXECUTING):
+                        msg = '"Failed to apply force {0}'.format(state)
+                        raise exceptions.GripperError(msg)
+            except KeyboardInterrupt:
                 client.cancel_goal()
-                raise exceptions.GripperError("Timed out")
-        except KeyboardInterrupt:
-            client.cancel_goal()
-        '''
 
     def _send_goal(self, client, goal):
-        print("_send_goal called")
-        print(client)
-        self.send_goal_future = client.send_goal_async(goal)
-        '''
-        rclpy.spin_until_future_complete(self._node, self.send_goal_future)
-        if self.send_goal_future.result() is not None:
-            goal_handle = self.send_goal_future.result()
-            if goal_handle.accepted:
-                result_future = goal_handle.get_result_async()
-                rclpy.spin_until_future_complete(self._node, result_future)
-                result = result_future.result()
-                self._current_client = client
-        '''
+        self._send_goal_future = client.send_goal_async(goal)
+        self._current_client = client
 
     def _check_state(self, goal_status):
         if self._current_client is None:
@@ -334,6 +304,18 @@ class Gripper(robot.Item):
         else:
             future = self._current_client.get_result()
             return future.result().status == goal_status
+
+    def get_state(self):
+        """Get a status of the action client"""
+        goal_handle = self._send_goal_future.result()
+        get_result_future = goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(
+            self._node, get_result_future, timeout_sec=0.1)
+        res = get_result_future.result()
+        if res is None:
+            return action_msgs.GoalStatus.STATUS_EXECUTING
+        else:
+            return res.status
 
     def is_moving(self):
         """Get the state as if the robot is moving.
@@ -355,7 +337,6 @@ class Gripper(robot.Item):
         """Cancel moving."""
         if not self.is_moving():
             return
-
         self._current_client.cancel_goal()
 
 
@@ -369,7 +350,7 @@ class Suction(object):
         None
     """
 
-    def __init__(self, name, node):
+    def __init__(self, name):
         """Initialize an instance with given parameters.
 
         Args:
@@ -382,9 +363,9 @@ class Suction(object):
             raise exceptions.ResourceNotFoundError(msg)
         self._name = name
         pub_topic_name = self._setting['suction_topic']
-        self._pub = node._conn.create_publisher(Bool, pub_topic_name,0)
+        self._pub = self._node.create_publisher(Bool, pub_topic_name, 0)
         sub_topic_name = self._setting['pressure_sensor_topic']
-        self._sub = utils.CachingSubscriber(node, sub_topic_name, Bool)
+        self._sub = utils.CachingSubscriber(sub_topic_name, Bool)
 
         timeout = self._setting.get('timeout', None)
         self._sub.wait_for_message(timeout)
