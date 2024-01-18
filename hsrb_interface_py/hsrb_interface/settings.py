@@ -40,8 +40,7 @@ _HSRB_SETTINGS = """
     },
     "trajectory": {
             "impedance_control": "/hsrb/impedance_control",
-            "constraint_filter_service":
-                "/trajectory_filter/filter_trajectory_with_constraints",
+            "constraint_filter_service": "/trajectory_filter/filter_trajectory_with_constraints",
             "timeopt_filter_service": "/hsrb/omni_base_timeopt_filter",
             "whole_timeopt_filter_service": "/timeopt_filter_node/filter_trajectory",
             "caster_joint": "base_roll_joint",
@@ -51,17 +50,17 @@ _HSRB_SETTINGS = """
     },
     "joint_group": {
         "whole_body": {
-            "class":                        ["joint_group", "JointGroup"],
-            "joint_states_topic":           "/joint_states",
-            "arm_controller_prefix":        "/arm_trajectory_controller",
-            "head_controller_prefix":       "/head_trajectory_controller",
-            "hand_controller_prefix":       "/gripper_controller",
-            "omni_base_controller_prefix":  "/omni_base_controller",
-            "plan_with_constraints_service":"/plan_with_constraints",
+            "class": ["joint_group", "JointGroup"],
+            "joint_states_topic": "/joint_states",
+            "arm_controller_prefix": "/arm_trajectory_controller",
+            "head_controller_prefix": "/head_trajectory_controller",
+            "hand_controller_prefix": "/gripper_controller",
+            "omni_base_controller_prefix": "/omni_base_controller",
+            "plan_with_constraints_service": "/plan_with_constraints",
             "plan_with_hand_goals_service": "/plan_with_hand_goals",
-            "plan_with_hand_line_service":  "/plan_with_hand_line",
-            "plan_with_joint_goals_service":"/plan_with_joint_goals",
-            "timeout":                       30.0,
+            "plan_with_hand_line_service": "/plan_with_hand_line",
+            "plan_with_joint_goals_service": "/plan_with_joint_goals",
+            "timeout": 30.0,
             "end_effector_frames": [
                 "hand_palm_link",
                 "hand_l_finger_vacuum_frame"
@@ -89,22 +88,21 @@ _HSRB_SETTINGS = """
     },
     "end_effector": {
         "gripper": {
-            "class":        ["end_effector", "Gripper"],
-            "joint_names":  ["hand_motor_joint"],
-            "prefix":       "/gripper_controller",
-            "left_finger_joint_name":  "hand_l_spring_proximal_joint",
+            "class": ["end_effector", "Gripper"],
+            "joint_names": ["hand_motor_joint"],
+            "prefix": "/gripper_controller",
+            "left_finger_joint_name": "hand_l_spring_proximal_joint",
             "right_finger_joint_name": "hand_r_spring_proximal_joint"
         }
     },
     "mobile_base": {
         "omni_base": {
             "class": ["mobile_base", "MobileBase"],
-            "navigation_action":               "/navigate_to_pose",
-            "follow_path_action":               "/follow_path",
-            "follow_trajectory_action":  "/omni_base_controller",
-            "pose_topic":                "/global_pose",
-            "goal_topic":                "/base_goal",
-            "timeout":                   1.0
+            "navigation_action": "/navigate_to_pose",
+            "follow_trajectory_action": "/omni_base_controller",
+            "pose_topic": "/global_pose",
+            "goal_topic": "/base_goal",
+            "timeout": 1.0
         }
     }
 }

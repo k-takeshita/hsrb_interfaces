@@ -1,9 +1,10 @@
 # Copyright (C) 2016 Toyota Motor Corporation
 """Unittest for sensor objects."""
+from unittest.mock import patch
+
 from geometry_msgs.msg import WrenchStamped
 from hsrb_interface import Robot
 import hsrb_interface.sensors
-from mock import patch
 from nose.tools import eq_
 import rclpy
 

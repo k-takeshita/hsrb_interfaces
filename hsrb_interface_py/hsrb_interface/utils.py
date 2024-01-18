@@ -25,8 +25,9 @@ class CachingSubscriber(robot.Item):
 
     def __init__(self, topic, msg_type, time_to_live=0.0, default=None,
                  qos_profile=QoSProfile(
-                     reliability=QoSReliabilityPolicy.SYSTEM_DEFAULT,
-                     history=QoSHistoryPolicy.SYSTEM_DEFAULT)):
+                     reliability=QoSReliabilityPolicy.BEST_EFFORT,
+                     history=QoSHistoryPolicy.KEEP_LAST,
+                     depth=1)):
         """Initialize a instance
 
         Args:
@@ -45,7 +46,7 @@ class CachingSubscriber(robot.Item):
         self._topic = topic
         self._msg_type = msg_type
         self.message_count = 0
-        self._node.create_subscription(msg_type, topic, self._callback, 1)
+        self._node.create_subscription(msg_type, topic, self._callback, qos_profile)
 
     def wait_for_message(self, timeout=None):
         """Wait for a new meesage until elapsed time exceeds ``timeout`` [sec].

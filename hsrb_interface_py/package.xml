@@ -14,35 +14,26 @@
   <buildtool_depend>ament_cmake_python</buildtool_depend>
   <buildtool_depend>ament_cmake_nose</buildtool_depend>
 
-  <exec_depend>boost</exec_depend>
-  <depend>hsr_kinematics</depend>
-
-  <depend>rclcpp</depend>
-  <depend>rclpy</depend>
-  <depend>tf2</depend>
-  <depend>tf2_geometry_msgs</depend>
-  <depend version_gte="0.5.16">tf2_ros</depend>
-  <depend>actionlib</depend>
-  <depend>cv_bridge</depend>
-  <depend>control_msgs</depend>
-  <depend>move_base_msgs</depend>
-  <depend>geometry_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>trajectory_msgs</depend>
-  <depend>tmc_msgs</depend>
-  <depend>tmc_vision_msgs</depend>
-  <depend>tmc_planning_msgs</depend>
-  <depend>tmc_manipulation_msgs</depend>
-  <depend>tmc_control_msgs</depend>
-  <depend>tmc_robot_kinematics_model</depend>
-
-  <depend>python3-lxml</depend>
-  <depend>ipython3</depend>
-  <depend>urdfdom_py</depend>
+  <build_depend>boost</build_depend>
+  <build_depend>hsr_kinematics</build_depend>
   <build_depend>eigen</build_depend>
+  <build_depend>rclcpp</build_depend>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend version_gte="0.5.16">tf2_ros</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>control_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>tmc_msgs</exec_depend>
+  <exec_depend>tmc_planning_msgs</exec_depend>
+  <exec_depend>tmc_manipulation_msgs</exec_depend>
+  <exec_depend>tmc_control_msgs</exec_depend>
+  <exec_depend>ipython3</exec_depend>
+  <exec_depend>urdfdom_py</exec_depend>
 
   <test_depend>python3-mock</test_depend>
-  <test_depend>hsrb_gazebo_launch</test_depend>
 
   <export>
      <build_type>ament_cmake</build_type>

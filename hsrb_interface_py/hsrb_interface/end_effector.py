@@ -139,22 +139,21 @@ class Gripper(robot.Item):
             return
         start_time = self._node.get_clock().now()
         elapsed_time = rclpy.duration.Duration(seconds=0.0)
-        while elapsed_time < rclpy.duration.Duration(seconds=motion_time):
+        while elapsed_time < rclpy.duration.Duration(seconds=_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT):
             try:
                 rclpy.spin_until_future_complete(
                     self._node, self._send_goal_future, timeout_sec=0.1)
                 if self._send_goal_future.result() is not None:
                     state = self.get_state()
-                    if (state == action_msgs.GoalStatus.STATUS_SUCCEEDED):
+                    if state == action_msgs.GoalStatus.STATUS_SUCCEEDED:
                         return
-                    if (state != action_msgs.GoalStatus.STATUS_EXECUTING):
+                    if state != action_msgs.GoalStatus.STATUS_EXECUTING:
                         msg = "Failed to follow commanded trajectory"
                         raise exceptions.GripperError(msg)
                 elapsed_time = self._node.get_clock().now() - start_time
-                time.sleep(0.1)
             except KeyboardInterrupt:
                 self._follow_joint_trajectory_client.cancel_goal()
-        self.cancel_goal()
+        self._follow_joint_trajectory_client.cancel_goal()
 
     def get_distance(self):
         """Command get gripper finger tip distance.
@@ -280,7 +279,9 @@ class Gripper(robot.Item):
         self._send_goal(client, goal)
         if not sync:
             return
-        while True:
+        start_time = self._node.get_clock().now()
+        elapsed_time = rclpy.duration.Duration(seconds=0.0)
+        while elapsed_time < rclpy.duration.Duration(seconds=_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT):
             try:
                 rclpy.spin_until_future_complete(
                     self._node, self._send_goal_future, timeout_sec=0.1)
@@ -291,6 +292,7 @@ class Gripper(robot.Item):
                     if (state != action_msgs.GoalStatus.STATUS_EXECUTING):
                         msg = '"Failed to apply force {0}'.format(state)
                         raise exceptions.GripperError(msg)
+                elapsed_time = self._node.get_clock().now() - start_time
             except KeyboardInterrupt:
                 client.cancel_goal()
 

@@ -126,6 +126,9 @@ class _ConnectionManager(Node):
 
     def __init__(self, use_tf_client=False):
         """See class docstring."""
+        context = rclpy.utilities.get_default_context()
+        if not context.ok():
+            rclpy.init()
         super().__init__('hsrb_interface_py')
         if use_tf_client:
             self._tf2_buffer = tf2_ros.BufferClient('/tf2_buffer_server')

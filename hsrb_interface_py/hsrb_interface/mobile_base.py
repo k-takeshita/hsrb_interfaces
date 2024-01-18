@@ -198,11 +198,11 @@ class MobileBase(robot.Item):
             action_msgs.GoalStatus.STATUS_CANCELED: "STATUS_CANCELED",  # noqa
             action_msgs.GoalStatus.STATUS_ABORTED: "STATUS_ABORTED"  # noqa
         }
-
+        timeout_sec = timeout
         self.execute(goal)
         start_time = self._node.get_clock().now()
         elapsed_time = rclpy.duration.Duration(seconds=0.0)
-        while elapsed_time < rclpy.duration.Duration(seconds=timeout):
+        while elapsed_time <= rclpy.duration.Duration(seconds=timeout_sec):
             try:
                 rclpy.spin_until_future_complete(
                     self._node, self._send_goal_future, timeout_sec=0.1)
@@ -213,7 +213,9 @@ class MobileBase(robot.Item):
                     if (state != action_msgs.GoalStatus.STATUS_EXECUTING):
                         msg = 'Failed to reach goal ({0})'.format(status_strings[state])
                         raise exceptions.MobileBaseError(msg)
-                elapsed_time = self._node.get_clock().now() - start_time
+                # timeoutが0.0の場合は、無限待ちを実施する。(経過時間を上げない。)
+                if timeout_sec != 0.0:
+                    elapsed_time = self._node.get_clock().now() - start_time
             except KeyboardInterrupt:
                 self._action_client.cancel_goal_async()
 

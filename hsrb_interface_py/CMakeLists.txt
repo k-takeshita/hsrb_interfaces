@@ -40,14 +40,12 @@ install(TARGETS ${PROJECT_NAME}_extension
 if(BUILD_TESTING)
   find_package(ament_cmake_pytest REQUIRED)
 
-  ament_add_pytest_test(robot_auto_init_test test/robot_auto_init_test.py)
-  ament_add_pytest_test(robot_duplicate_init test/robot_duplicate_init_test.py)
-  ament_add_pytest_test(sensors_test test/sensors_test.py)
+  ament_add_pytest_test(test_robot_auto_init test/test_robot_auto_init.py)
+  ament_add_pytest_test(test_robot_duplicate_init test/test_robot_duplicate_init.py)
+  ament_add_pytest_test(test_sensors test/test_sensors.py)
   ament_add_pytest_test(test_geometry test/test_geometry.py)
-  ament_add_pytest_test(robot_test test/robot_test.py)
   ament_add_pytest_test(test_robot test/test_robot.py)
-  ament_add_pytest_test(text_to_speech_test test/text_to_speech_test.py)
-  ament_add_pytest_test(utils_test test/utils_test.py)
+  ament_add_pytest_test(test_text_to_speech test/test_text_to_speech.py)
   ament_add_pytest_test(test_utils test/test_utils.py)
   
 endif()

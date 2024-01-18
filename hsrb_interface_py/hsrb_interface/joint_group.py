@@ -15,6 +15,7 @@ import warnings
 from geometry_msgs.msg import Pose as RosPose
 from geometry_msgs.msg import TransformStamped
 from hsrb_interface_py._extension import KinematicsInterface
+from moveit_msgs.msg import MoveItErrorCodes
 
 import numpy as np
 
@@ -25,7 +26,6 @@ from sensor_msgs.msg import JointState
 import tf2_ros
 import tf_transformations as T
 
-from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
 from tmc_manipulation_msgs.msg import BaseMovementType
 
 from tmc_planning_msgs.msg import JointPosition
@@ -412,7 +412,7 @@ class JointGroup(robot.Item):
         future = plan_service.call_async(req)
         rclpy.spin_until_future_complete(self._node, future)
         res = future.result()
-        if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
+        if res.error_code.val != MoveItErrorCodes.SUCCESS:
             msg = "Fail to plan change_joint_state"
             raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
@@ -517,8 +517,7 @@ class JointGroup(robot.Item):
             rclpy.time.Time()
         ))
 
-        result = geometry.transform_to_tuples(transform.transform)
-        return result
+        return geometry.transform_to_tuples(transform.transform)
 
     def _lookup_odom_to_ref(self, ref_frame_id):
         """Resolve current reference frame transformation from ``odom``.
@@ -580,7 +579,7 @@ class JointGroup(robot.Item):
             PlanWithHandGoals, service_name)
         future = plan_service.call_async(req)
         res = utils.wait_until_complete(self._node, future)
-        if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
+        if res.error_code.val != MoveItErrorCodes.SUCCESS:
             msg = "Fail to plan move_endpoint(" + str(res.error_code.val) + ")"
             raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
@@ -628,7 +627,7 @@ class JointGroup(robot.Item):
         future = plan_service.call_async(req)
         rclpy.spin_until_future_complete(self._node, future)
         res = future.result()
-        if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
+        if res.error_code.val != MoveItErrorCodes.SUCCESS:
             msg = "Fail to plan move_hand_line"
             raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
@@ -693,7 +692,7 @@ class JointGroup(robot.Item):
         future = plan_service.call_async(req)
         rclpy.spin_until_future_complete(self._node, future)
         res = future.result()
-        if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
+        if res.error_code.val != MoveItErrorCodes.SUCCESS:
             msg = "Fail to plan"
             raise exceptions.MotionPlanningError(msg, res.error_code)
         res.base_solution.header.frame_id = settings.get_frame('odom')
@@ -835,7 +834,7 @@ class JointGroup(robot.Item):
         future = plan_service.call_async(req)
         rclpy.spin_until_future_complete(self._node, future)
         res = future.result()
-        if res.error_code.val != ArmManipulationErrorCodes.SUCCESS:
+        if res.error_code.val != MoveItErrorCodes.SUCCESS:
             msg = "Fail to plan"
             raise exceptions.MotionPlanningError(msg, res.error_code)
         return res

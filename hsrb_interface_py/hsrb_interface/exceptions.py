@@ -7,8 +7,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from tmc_manipulation_msgs.msg import ArmManipulationErrorCodes
-from tmc_manipulation_msgs.msg import ArmNavigationErrorCodes
+from moveit_msgs.msg import MoveItErrorCodes
 
 
 class HsrbInterfaceError(Exception):
@@ -43,7 +42,7 @@ class TrajectoryFilterError(HsrbInterfaceError):
 
     Args:
         message (str): Error message
-        error_code (ArmManipulationErrorCodes): An error code
+        error_code (MoveItErrorCodes): An error code
     """
 
     def __init__(self, message, error_code):
@@ -51,7 +50,7 @@ class TrajectoryFilterError(HsrbInterfaceError):
         self._error_code = error_code
 
     def __str__(self):
-        error_codes = ArmNavigationErrorCodes.__dict__.items()
+        error_codes = MoveItErrorCodes.__dict__.items()
         error_names = [k for k, v in error_codes
                        if v == self._error_code.val and k.isupper()]
         if len(error_names) != 0:
@@ -68,7 +67,7 @@ class MotionPlanningError(PlannerError):
 
     Args:
         message (str): Error message
-        error_code (ArmManipulationErrorCodes): An error code
+        error_code (MoveItErrorCodes): An error code
     """
 
     def __init__(self, message, error_code):
@@ -76,7 +75,7 @@ class MotionPlanningError(PlannerError):
         self._error_code = error_code
 
     def __str__(self):
-        error_codes = ArmManipulationErrorCodes.__dict__.items()
+        error_codes = MoveItErrorCodes.__dict__.items()
         error_names = [k for k, v in error_codes
                        if v == self._error_code.val and k.isupper()]
         if len(error_names) != 0:

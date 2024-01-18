@@ -8,7 +8,7 @@ from hsrb_interface import Robot
 from hsrb_interface import utils
 from nose.tools import eq_
 import rclpy
-
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
 
 from sensor_msgs.msg import JointState
 
@@ -18,6 +18,10 @@ class UtilsTestCase(testing.RosMockTestCase):
     def test_caching_subscriber(self):
         rclpy.init()
         robot = Robot()
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1)
         """Test CachingSubscriber class"""
         sub = utils.CachingSubscriber(
             "/joint_states",
@@ -26,7 +30,7 @@ class UtilsTestCase(testing.RosMockTestCase):
             JointState,
             "/joint_states",
             sub._callback,
-            1)
+            qos_profile)
 
 
 def test_iterate():

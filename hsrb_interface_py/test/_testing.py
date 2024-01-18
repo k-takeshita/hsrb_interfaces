@@ -1,16 +1,16 @@
 # Copyright (C) 2016 Toyota Motor Corporation
 """Testing Utilities"""
-
 import math
 import time
 import unittest
+
+from unittest.mock import patch
 
 from geometry_msgs.msg import PoseStamped
 import hsrb_interface
 from hsrb_interface import geometry
 import hsrb_interface.robot
 import hsrb_interface.utils
-from mock import patch
 import rclpy
 import tf2_ros
 
