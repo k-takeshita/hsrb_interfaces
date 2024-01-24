@@ -17,7 +17,7 @@ class UtilsTestCase(testing.RosMockTestCase):
 
     def test_caching_subscriber(self):
         rclpy.init()
-        robot = Robot()
+        robot = Robot()  # noqa: F841
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,

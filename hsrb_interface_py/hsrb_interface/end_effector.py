@@ -152,8 +152,8 @@ class Gripper(robot.Item):
                         raise exceptions.GripperError(msg)
                 elapsed_time = self._node.get_clock().now() - start_time
             except KeyboardInterrupt:
-                self._follow_joint_trajectory_client.cancel_goal()
-        self._follow_joint_trajectory_client.cancel_goal()
+                self.cancel_goal()
+        self.cancel_goal()
 
     def get_distance(self):
         """Command get gripper finger tip distance.
@@ -211,8 +211,8 @@ class Gripper(robot.Item):
                     error = distance - self.get_distance()
                     if abs(error) > _DISTANCE_CONTROL_STALL_THRESHOLD:
                         last_movement_time = self._node.get_clock().now()
-                    if ((self._node.get_clock().now() - last_movement_time)
-                            > rclpy.duration.Duration(seconds=_DISTANCE_CONTROL_STALL_TIMEOUT)):
+                    if (self._node.get_clock().now() - last_movement_time) \
+                            > rclpy.duration.Duration(seconds=_DISTANCE_CONTROL_STALL_TIMEOUT):
                         break
                     ierror += error
                     open_angle = (theta_ref + _DISTANCE_CONTROL_PGAIN * error + _DISTANCE_CONTROL_IGAIN * ierror)
@@ -221,10 +221,11 @@ class Gripper(robot.Item):
                             positions=[open_angle],
                             time_from_start=rclpy.duration.Duration(
                                 seconds=_DISTANCE_CONTROL_TIME_FROM_START).to_msg())]
-                    self._follow_joint_trajectory_client.send_goal_async(goal)
+                    send_goal_future = self._follow_joint_trajectory_client.send_goal_async(goal)
                     elapsed_time = self._node.get_clock().now() - start_time
                 except KeyboardInterrupt:
-                    self._follow_joint_trajectory_client.cancel_goal_async()
+                    if send_goal_future is not None:
+                        send_goal_future.cancel()
                     return
                 time.sleep(1.0 / _DISTANCE_CONTROL_RATE)
 
@@ -287,37 +288,30 @@ class Gripper(robot.Item):
                     self._node, self._send_goal_future, timeout_sec=0.1)
                 if self._send_goal_future.result() is not None:
                     state = self.get_state()
-                    if (state == action_msgs.GoalStatus.STATUS_SUCCEEDED):
+                    if state == action_msgs.GoalStatus.STATUS_SUCCEEDED:
                         break
-                    if (state != action_msgs.GoalStatus.STATUS_EXECUTING):
+                    if state != action_msgs.GoalStatus.STATUS_EXECUTING:
                         msg = '"Failed to apply force {0}'.format(state)
                         raise exceptions.GripperError(msg)
                 elapsed_time = self._node.get_clock().now() - start_time
             except KeyboardInterrupt:
-                client.cancel_goal()
+                self.cancel_goal()
+        self.cancel_goal()
 
     def _send_goal(self, client, goal):
         self._send_goal_future = client.send_goal_async(goal)
         self._current_client = client
 
     def _check_state(self, goal_status):
-        if self._current_client is None:
+        if self._send_goal_future is None:
             return False
         else:
-            future = self._current_client.get_result()
-            return future.result().status == goal_status
+            return self._send_goal_future.result().status == goal_status
 
     def get_state(self):
         """Get a status of the action client"""
-        goal_handle = self._send_goal_future.result()
-        get_result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(
-            self._node, get_result_future, timeout_sec=0.1)
-        res = get_result_future.result()
-        if res is None:
-            return action_msgs.GoalStatus.STATUS_EXECUTING
-        else:
-            return res.status
+        rclpy.spin_once(self._node, timeout_sec=0.1)
+        return self._send_goal_future.result().status
 
     def is_moving(self):
         """Get the state as if the robot is moving.
@@ -339,7 +333,7 @@ class Gripper(robot.Item):
         """Cancel moving."""
         if not self.is_moving():
             return
-        self._current_client.cancel_goal()
+        self._send_goal_future.result().cancel_goal_async()
 
 
 class Suction(object):

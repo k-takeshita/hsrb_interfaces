@@ -18,7 +18,7 @@ from sensor_msgs.msg import LaserScan
 @patch('hsrb_interface.settings.get_entry')
 def test_camera(mock_get_entry, mock_connecting, mock_sub_class):
     rclpy.init()
-    robot = Robot()
+    robot = Robot()  # noqa: F841
 
     """Test Camera class"""
     mock_connecting.return_value = True
@@ -55,7 +55,7 @@ def test_camera(mock_get_entry, mock_connecting, mock_sub_class):
 @patch('hsrb_interface.settings.get_entry')
 def test_force_torque(mock_get_entry, mock_connecting,
                       mock_sub_class):
-    robot = Robot()
+    robot = Robot()  # noqa: F841
     """Test ForceTorque class"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
@@ -94,7 +94,7 @@ def test_force_torque(mock_get_entry, mock_connecting,
 @patch('hsrb_interface.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_imu(mock_get_entry, mock_connecting, mock_sub_class):
-    robot = Robot()
+    robot = Robot()  # noqa: F841
 
     """Test Imu class"""
     mock_connecting.return_value = True
@@ -133,7 +133,7 @@ def test_imu(mock_get_entry, mock_connecting, mock_sub_class):
 @patch('hsrb_interface.robot.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 def test_lidar(mock_get_entry, mock_connecting, mock_sub_class):
-    robot = Robot()
+    robot = Robot()  # noqa: F841
     """Test Lidar class"""
     mock_connecting.return_value = True
     mock_get_entry.return_value = {
