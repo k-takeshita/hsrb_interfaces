@@ -211,8 +211,8 @@ class Gripper(robot.Item):
                     error = distance - self.get_distance()
                     if abs(error) > _DISTANCE_CONTROL_STALL_THRESHOLD:
                         last_movement_time = self._node.get_clock().now()
-                    if (self._node.get_clock().now() - last_movement_time) \
-                            > rclpy.duration.Duration(seconds=_DISTANCE_CONTROL_STALL_TIMEOUT):
+                    if ((self._node.get_clock().now() - last_movement_time)
+                            > rclpy.duration.Duration(seconds=_DISTANCE_CONTROL_STALL_TIMEOUT)):
                         break
                     ierror += error
                     open_angle = (theta_ref + _DISTANCE_CONTROL_PGAIN * error + _DISTANCE_CONTROL_IGAIN * ierror)
