@@ -12,29 +12,29 @@ from __future__ import unicode_literals
 import enum
 import importlib
 import sys
-import threading
 import warnings
 import weakref
 
 import rclpy
 from rclpy.node import Node
+from rclpy.qos import QoSProfile
 import tf2_ros
 
 from . import exceptions
 from . import settings
 
 
-class Item(object):
+class Item(rclpy.node.Node):
     """A base class to be under resource management.
 
     Raises:
-        hsrb_interface_py.exceptions.RobotConnectionError:
+        hsrb_interface.exceptions.RobotConnectionError:
             Not connected to a robot.
     """
 
     def __init__(self):
-        """See class docstring."""
         self._node = Robot._connection
+        """See class docstring."""
         if not Robot._connecting():
             raise exceptions.RobotConnectionError("No robot connection")
 
@@ -126,22 +126,22 @@ class _ConnectionManager(Node):
 
     def __init__(self, use_tf_client=False):
         """See class docstring."""
+        context = rclpy.utilities.get_default_context()
+        if not context.ok():
+            rclpy.init()
         super().__init__('hsrb_interface_py')
         if use_tf_client:
             self._tf2_buffer = tf2_ros.BufferClient('/tf2_buffer_server')
         else:
+            qos_profile = QoSProfile(depth=1)
             self._tf2_buffer = tf2_ros.Buffer()
             self._tf2_listener = tf2_ros.TransformListener(
-                self._tf2_buffer, self)
+                self._tf2_buffer, self, qos=qos_profile)
         self._registry = {}
-        self._stop_flag = True
-        self._thread = threading.Thread(target=self._spin_loop, daemon=True)
-        self._thread.start()
 
     def __del__(self):
         self._tf2_listener = None
         self._tf2_buffer = None
-        self._thread.join()
 
     @property
     def tf2_buffer(self):
@@ -178,7 +178,7 @@ class _ConnectionManager(Node):
             Item: An instance with a specified name
 
         Raises:
-            hsrb_interface_py.exceptions.ResourceNotFoundError
+            hsrb_interface.exceptions.ResourceNotFoundError
         """
         if typ is None:
             section, config = settings.get_entry_by_name(name)
@@ -195,15 +195,11 @@ class _ConnectionManager(Node):
             config = settings.get_entry(typ.value, name)
             module_name, class_name = config["class"]
             module = importlib.import_module(".{0}".format(module_name),
-                                             "hsrb_interface_py")
+                                             "hsrb_interface")
             cls = getattr(module, class_name)
             obj = cls(name)
             self._registry[key] = obj
             return weakref.proxy(obj)
-
-    def _spin_loop(self):
-        while True:
-            rclpy.spin_once(self)
 
 
 def _get_tf2_buffer():
@@ -229,7 +225,7 @@ class Robot(object):
     Example:
         .. sourcecode:: python
 
-           from hsrb_interface_py import Robot, ItemTypes
+           from hsrb_interface import Robot, ItemTypes
                 with Robot() as robot:
                     print(robot.list())
                     whole_body = robot.get("whole_body")
@@ -279,10 +275,6 @@ class Robot(object):
         else:
             self._conn = Robot._connection
 
-    @property
-    def node(self):
-        return Robot._connection
-
     def close(self):
         """Shutdown immediately."""
         self.__exit__(None, None, None)
@@ -293,9 +285,9 @@ class Robot(object):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         """A part of ContextManager interface."""
-        self.node.destroy_node()
-        Robot._connection = None
+        self._conn.destroy_node()
         self._conn = None
+        Robot._connection = None
 
     def ok(self):
         """Check whether this handle is valid or not.
@@ -339,7 +331,7 @@ class Robot(object):
             Item: An instance with a specified name.
 
         Raises:
-            hsrb_interface_py.exceptions.ResourceNotFoundError:
+            hsrb_interface.exceptions.ResourceNotFoundError:
                 A resource that named as `name` is not found.
 
         Warnings:
@@ -364,7 +356,7 @@ class Robot(object):
             Item: An instance with a specified name.
 
         Raises:
-            hsrb_interface_py.exceptions.ResourceNotFoundError:
+            hsrb_interface.exceptions.ResourceNotFoundError:
                 A resource that named as `name` is not found.
 
         Warnings:

@@ -7,6 +7,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from moveit_msgs.msg import MoveItErrorCodes
+
 
 class HsrbInterfaceError(Exception):
     """Base class for all other exceptions"""
@@ -40,12 +42,24 @@ class TrajectoryFilterError(HsrbInterfaceError):
 
     Args:
         message (str): Error message
-        error_code (ArmManipulationErrorCodes): An error code
+        error_code (MoveItErrorCodes): An error code
     """
 
     def __init__(self, message, error_code):
         super(TrajectoryFilterError, self).__init__(message)
         self._error_code = error_code
+
+    def __str__(self):
+        error_codes = MoveItErrorCodes.__dict__.items()
+        error_names = [k for k, v in error_codes
+                       if v == self._error_code.val and k.isupper()]
+        if len(error_names) != 0:
+            text = error_names[0]
+        else:
+            text = str(self._error_code.val)
+
+        msg = super(TrajectoryFilterError, self).__str__()
+        return "{1} ({0})".format(msg, text)
 
 
 class MotionPlanningError(PlannerError):
@@ -53,12 +67,24 @@ class MotionPlanningError(PlannerError):
 
     Args:
         message (str): Error message
-        error_code (ArmManipulationErrorCodes): An error code
+        error_code (MoveItErrorCodes): An error code
     """
 
     def __init__(self, message, error_code):
         super(MotionPlanningError, self).__init__(message)
         self._error_code = error_code
+
+    def __str__(self):
+        error_codes = MoveItErrorCodes.__dict__.items()
+        error_names = [k for k, v in error_codes
+                       if v == self._error_code.val and k.isupper()]
+        if len(error_names) != 0:
+            text = error_names[0]
+        else:
+            text = str(self._error_code.val)
+
+        msg = super(MotionPlanningError, self).__str__()
+        return "{1} ({0})".format(msg, text)
 
 
 class GripperError(HsrbInterfaceError):

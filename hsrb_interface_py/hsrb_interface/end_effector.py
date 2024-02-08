@@ -8,16 +8,19 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import math
+import time
 import warnings
 
-from action_msgs.msg import GoalStatus
+import action_msgs.msg as action_msgs
 from control_msgs.action import FollowJointTrajectory
+from hsrb_interface.utils import CachingSubscriber
 import rclpy
-from rclpy.constants import S_TO_NS
-from rclpy.duration import Duration
+from rclpy.action import ActionClient
 from sensor_msgs.msg import JointState
+from std_msgs.msg import Bool
 from tmc_control_msgs.action import GripperApplyEffort
 from trajectory_msgs.msg import JointTrajectoryPoint
+
 
 from . import exceptions
 from . import robot
@@ -49,19 +52,13 @@ _DISTAL_TO_TIP_Y = 0.01865
 _DISTAL_TO_TIP_Z = 0.04289
 
 _DISTANCE_MAX = (_PALM_TO_PROXIMAL_Y
-                 - (_DISTAL_TO_TIP_Y
-                    * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
-                    + _DISTAL_TO_TIP_Z
-                    * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))
-                 + _PROXIMAL_TO_DISTAL_Z
-                 * math.sin(_HAND_MOTOR_JOINT_MAX)) * 2
+                 - (_DISTAL_TO_TIP_Y * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                    + _DISTAL_TO_TIP_Z * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))
+                 + _PROXIMAL_TO_DISTAL_Z * math.sin(_HAND_MOTOR_JOINT_MAX)) * 2
 _DISTANCE_MIN = (_PALM_TO_PROXIMAL_Y
-                 - (_DISTAL_TO_TIP_Y
-                    * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
-                    + _DISTAL_TO_TIP_Z
-                    * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))
-                 + _PROXIMAL_TO_DISTAL_Z
-                 * math.sin(_HAND_MOTOR_JOINT_MIN)) * 2
+                 - (_DISTAL_TO_TIP_Y * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                    + _DISTAL_TO_TIP_Z * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))
+                 + _PROXIMAL_TO_DISTAL_Z * math.sin(_HAND_MOTOR_JOINT_MIN)) * 2
 
 
 class Gripper(robot.Item):
@@ -75,9 +72,6 @@ class Gripper(robot.Item):
         """
         super(Gripper, self).__init__()
         self._setting = settings.get_entry('end_effector', name)
-        self._isdone = False
-        self._state = True
-        self._goal_handle = None
         if self._setting is None:
             msg = '{0}({1}) is not found '.format('end_effector', name)
             raise exceptions.ResourceNotFoundError(msg)
@@ -88,22 +82,25 @@ class Gripper(robot.Item):
             'left_finger_joint_name']
         self._right_finger_joint_name = self._setting[
             'right_finger_joint_name']
-        self._follow_joint_trajectory_client = rclpy.action.ActionClient(
+        self._follow_joint_trajectory_client = ActionClient(
             self._node,
             FollowJointTrajectory,
-            prefix + "/follow_joint_trajectory")
-        self._grasp_client = rclpy.action.ActionClient(
+            prefix + "/follow_joint_trajectory"
+        )
+        self._grasp_client = ActionClient(
             self._node,
             GripperApplyEffort,
-            prefix + "/grasp")
-        self._apply_force_client = rclpy.action.ActionClient(
+            prefix + "/grasp"
+        )
+
+        self._apply_force_client = ActionClient(
             self._node,
             GripperApplyEffort,
-            prefix + "/apply_force")
-        self._joint_state_sub = utils.CachingSubscriber(
+            prefix + "/apply_force"
+        )
+        self._joint_state_sub = CachingSubscriber(
             "/joint_states",
-            JointState,
-            self._node
+            JointState
         )
         self._joint_state_sub.wait_for_message(
             timeout=_JOINT_STATE_SUB_TIMEOUT)
@@ -126,7 +123,7 @@ class Gripper(robot.Item):
 
             .. sourcecode:: python
 
-               robot = hsrb_interface_py.Robot()
+               robot = hsrb_interface.Robot()
                gripper = robot.get('gripper', robot.Items.END_EFFECTOR)
                gripper.command(1.2, 2.0)
         """
@@ -135,28 +132,28 @@ class Gripper(robot.Item):
         goal.trajectory.points = [
             JointTrajectoryPoint(
                 positions=[open_angle],
-                time_from_start=Duration(seconds=motion_time).to_msg())
-        ]
-
+                time_from_start=rclpy.duration.Duration(
+                    seconds=motion_time).to_msg())]
         self._send_goal(self._follow_joint_trajectory_client, goal)
-        self._isdone = False
-
         if not sync:
             return
-
-        timeout = _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT * S_TO_NS
-        start = self._node.get_clock().now()
-        try:
-            while not self._isdone:
-                time_diff = self._node.get_clock().now() - start
-                if time_diff.nanoseconds >= timeout:
-                    self.cancel_goal()
-                    raise exceptions.GripperError("Timed out")
-            if not self._check_state(GoalStatus.STATUS_SUCCEEDED):
-                msg = "Failed to follow commanded trajectory"
-                raise exceptions.GripperError(msg)
-        except KeyboardInterrupt:
-            self.cancel_goal()
+        start_time = self._node.get_clock().now()
+        elapsed_time = rclpy.duration.Duration(seconds=0.0)
+        while elapsed_time < rclpy.duration.Duration(seconds=_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT):
+            try:
+                rclpy.spin_until_future_complete(
+                    self._node, self._send_goal_future, timeout_sec=0.1)
+                if self._send_goal_future.result() is not None:
+                    state = self.get_state()
+                    if state == action_msgs.GoalStatus.STATUS_SUCCEEDED:
+                        return
+                    if state != action_msgs.GoalStatus.STATUS_EXECUTING:
+                        msg = "Failed to follow commanded trajectory"
+                        raise exceptions.GripperError(msg)
+                elapsed_time = self._node.get_clock().now() - start_time
+            except KeyboardInterrupt:
+                self.cancel_goal()
+        self.cancel_goal()
 
     def get_distance(self):
         """Command get gripper finger tip distance.
@@ -164,8 +161,6 @@ class Gripper(robot.Item):
         Returns:
             double: Distance between gripper finger tips [m]
         """
-        self._joint_state_sub.wait_for_message(
-            timeout=_JOINT_STATE_SUB_TIMEOUT)
         joint_state = self._joint_state_sub.data
         hand_motor_pos = joint_state.position[
             joint_state.name.index(self._joint_names[0])]
@@ -175,14 +170,10 @@ class Gripper(robot.Item):
         hand_right_position = joint_state.position[
             joint_state.name.index(
                 self._right_finger_joint_name)] + hand_motor_pos
-        return ((math.sin(hand_left_position)
-                 + math.sin(hand_right_position))
-                * _PROXIMAL_TO_DISTAL_Z
+        return ((math.sin(hand_left_position) + math.sin(hand_right_position)) * _PROXIMAL_TO_DISTAL_Z
                 + 2 * (_PALM_TO_PROXIMAL_Y
-                - (_DISTAL_TO_TIP_Y
-                   * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
-                   + _DISTAL_TO_TIP_Z
-                   * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
+                       - (_DISTAL_TO_TIP_Y * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                          + _DISTAL_TO_TIP_Z * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
 
     def set_distance(self, distance, control_time=3.0):
         """Command set gripper finger tip distance.
@@ -202,52 +193,41 @@ class Gripper(robot.Item):
             goal.trajectory.joint_names = self._joint_names
             goal.trajectory.points = [
                 JointTrajectoryPoint(
-                    time_from_start=Duration(
-                        seconds=1 / _DISTANCE_CONTROL_RATE).to_msg())
-            ]
+                    time_from_start=rclpy.duration.Duration(
+                        seconds=1 / _DISTANCE_CONTROL_RATE).to_msg())]
 
             start_time = self._node.get_clock().now()
-            elapsed_time = Duration(seconds=0.0)
+            elapsed_time = rclpy.duration.Duration(seconds=0.0)
             ierror = 0.0
-            theta_ref = math.asin(((distance / 2
-                                    - (_PALM_TO_PROXIMAL_Y
-                                       - (_DISTAL_TO_TIP_Y
-                                          * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
-                                          + _DISTAL_TO_TIP_Z
-                                          * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
-                                  / _PROXIMAL_TO_DISTAL_Z))
+            theta_ref = math.asin(
+                ((distance / 2
+                  - (_PALM_TO_PROXIMAL_Y
+                     - (_DISTAL_TO_TIP_Y * math.cos(_DISTAL_JOINT_ANGLE_OFFSET)
+                        + _DISTAL_TO_TIP_Z * math.sin(_DISTAL_JOINT_ANGLE_OFFSET))))
+                 / _PROXIMAL_TO_DISTAL_Z))
             last_movement_time = self._node.get_clock().now()
-            while elapsed_time.nanoseconds / S_TO_NS < control_time:
+            while elapsed_time < rclpy.duration.Duration(seconds=control_time):
                 try:
                     error = distance - self.get_distance()
                     if abs(error) > _DISTANCE_CONTROL_STALL_THRESHOLD:
                         last_movement_time = self._node.get_clock().now()
-                    now = self._node.get_clock().now()
-                    if ((now - last_movement_time).nanoseconds / S_TO_NS
-                            > _DISTANCE_CONTROL_STALL_TIMEOUT):
+                    if ((self._node.get_clock().now() - last_movement_time)
+                            > rclpy.duration.Duration(seconds=_DISTANCE_CONTROL_STALL_TIMEOUT)):
                         break
                     ierror += error
-                    open_angle = (theta_ref
-                                  + _DISTANCE_CONTROL_PGAIN * error
-                                  + _DISTANCE_CONTROL_IGAIN * ierror)
+                    open_angle = (theta_ref + _DISTANCE_CONTROL_PGAIN * error + _DISTANCE_CONTROL_IGAIN * ierror)
                     goal.trajectory.points = [
                         JointTrajectoryPoint(
                             positions=[open_angle],
-                            time_from_start=Duration(
-                                seconds=_DISTANCE_CONTROL_TIME_FROM_START
-                            ).to_msg())
-                    ]
-                    self._send_goal(self._follow_joint_trajectory_client, goal)
-                    self._isdone = False
+                            time_from_start=rclpy.duration.Duration(
+                                seconds=_DISTANCE_CONTROL_TIME_FROM_START).to_msg())]
+                    send_goal_future = self._follow_joint_trajectory_client.send_goal_async(goal)
                     elapsed_time = self._node.get_clock().now() - start_time
                 except KeyboardInterrupt:
-                    self.cancel_goal()
+                    if send_goal_future is not None:
+                        send_goal_future.cancel()
                     return
-                while not self._isdone:
-                    elapsed_time = self._node.get_clock().now() - start_time
-                    if elapsed_time.nanoseconds / S_TO_NS > control_time:
-                        break
-            self.cancel_goal()
+                time.sleep(1.0 / _DISTANCE_CONTROL_RATE)
 
     def grasp(self, effort):
         """Command a gripper to execute grasping move.
@@ -295,58 +275,43 @@ class Gripper(robot.Item):
                 goal.effort = effort
                 client = self._apply_force_client
             else:
-                self._node.get_logger().warn(
-                    "Since effort is high, force control become invalid.")
+                self._node.get_logger().warn("Since effort is high, force control become invalid.")
 
         self._send_goal(client, goal)
-        self._isdone = False
-
         if not sync:
             return
-
-        try:
-            timeout = _GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT * S_TO_NS
-            start = self._node.get_clock().now()
-            while not self._isdone:
-                time_diff = self._node.get_clock().now() - start
-                if time_diff.nanoseconds >= timeout:
-                    self.cancel_goal()
-                    raise exceptions.GripperError("Timed out")
-            if not self._check_state(GoalStatus.STATUS_SUCCEEDED):
-                raise exceptions.GripperError("Failed to apply force")
-        except KeyboardInterrupt:
-            self.cancel_goal()
+        start_time = self._node.get_clock().now()
+        elapsed_time = rclpy.duration.Duration(seconds=0.0)
+        while elapsed_time < rclpy.duration.Duration(seconds=_GRIPPER_FOLLOW_TRAJECTORY_TIMEOUT):
+            try:
+                rclpy.spin_until_future_complete(
+                    self._node, self._send_goal_future, timeout_sec=0.1)
+                if self._send_goal_future.result() is not None:
+                    state = self.get_state()
+                    if state == action_msgs.GoalStatus.STATUS_SUCCEEDED:
+                        break
+                    if state != action_msgs.GoalStatus.STATUS_EXECUTING:
+                        msg = '"Failed to apply force {0}'.format(state)
+                        raise exceptions.GripperError(msg)
+                elapsed_time = self._node.get_clock().now() - start_time
+            except KeyboardInterrupt:
+                self.cancel_goal()
+        self.cancel_goal()
 
     def _send_goal(self, client, goal):
-        self.cancel_goal()
         self._send_goal_future = client.send_goal_async(goal)
-        self._send_goal_future.add_done_callback(self._goal_response_callback)
         self._current_client = client
 
     def _check_state(self, goal_status):
-        if self._current_client is None:
+        if self._send_goal_future is None:
             return False
         else:
-            status = GoalStatus.STATUS_UNKNOWN
-            if self._goal_handle is not None:
-                status = self._goal_handle.status
-            return status == goal_status
+            return self._send_goal_future.result().status == goal_status
 
-    def _feedback_callback(self, feedback_msg):
-        self._state = feedback_msg.feedback.stalled
-
-    def _goal_response_callback(self, future):
-        goal_handle = future.result()
-        if not goal_handle.accepted:
-            return
-        self._goal_handle = goal_handle
-        future = goal_handle.get_result_async()
-        future.add_done_callback(self._get_result_callback)
-
-    def _get_result_callback(self, future):
-        goal_handle = future.result()
-        self._goal_handle = goal_handle
-        self._isdone = True
+    def get_state(self):
+        """Get a status of the action client"""
+        rclpy.spin_once(self._node, timeout_sec=0.1)
+        return self._send_goal_future.result().status
 
     def is_moving(self):
         """Get the state as if the robot is moving.
@@ -354,7 +319,7 @@ class Gripper(robot.Item):
         Returns:
             bool: True if the robot is moving
         """
-        return self._check_state(GoalStatus.STATUS_EXECUTING)
+        return self._check_state(action_msgs.GoalStatus.STATUS_EXECUTING)
 
     def is_succeeded(self):
         """Get the state as if the robot moving was succeeded.
@@ -362,10 +327,66 @@ class Gripper(robot.Item):
         Returns:
             bool: True if success
         """
-        return self._check_state(GoalStatus.STATUS_SUCCEEDED)
+        return self._check_state(action_msgs.GoalStatus.STATUS_SUCCEEDED)
 
     def cancel_goal(self):
         """Cancel moving."""
         if not self.is_moving():
             return
-        self._isdone = True
+        self._send_goal_future.result().cancel_goal_async()
+
+
+class Suction(object):
+    """This class controls a suction nozzle.
+
+    Args:
+        name (str): A name of a suction device file.
+
+    Returns:
+        None
+    """
+
+    def __init__(self, name):
+        """Initialize an instance with given parameters.
+
+        Args:
+            name (str):  A name of this resource
+        """
+        super(Suction, self).__init__()
+        self._setting = settings.get_entry('end_effector', name)
+        if self._setting is None:
+            msg = '{0}({1}) is not found '.format('end_effector', name)
+            raise exceptions.ResourceNotFoundError(msg)
+        self._name = name
+        pub_topic_name = self._setting['suction_topic']
+        self._pub = self._node.create_publisher(Bool, pub_topic_name, 0)
+        sub_topic_name = self._setting['pressure_sensor_topic']
+        self._sub = utils.CachingSubscriber(sub_topic_name, Bool)
+
+        timeout = self._setting.get('timeout', None)
+        self._sub.wait_for_message(timeout)
+
+    def command(self, command):
+        """Command on/off to a suction-nozzle.
+
+        Args:
+            command (bool): On if command is ``True``, Off otherwise
+
+        Returns:
+            None
+        """
+        if command < 0:
+            msg = "'{0}' is not defined.".format(command)
+            raise ValueError(msg)
+        msg = Bool()
+        msg.data = command
+        self._pub.publish(msg)
+
+    @property
+    def pressure_sensor(self):
+        """Get a sensor value (On/Off) of a suction-nozzle sensor.
+
+        Returns:
+            bool: True if ON.
+        """
+        return self._sub.data.data

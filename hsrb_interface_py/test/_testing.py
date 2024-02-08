@@ -1,20 +1,17 @@
 # Copyright (C) 2016 Toyota Motor Corporation
 """Testing Utilities"""
-
 import math
+import time
 import unittest
+
 from unittest.mock import patch
 
 from geometry_msgs.msg import PoseStamped
-import hsrb_interface_py
-from hsrb_interface_py import geometry
-
-import hsrb_interface_py.robot
-
+import hsrb_interface
+from hsrb_interface import geometry
+import hsrb_interface.robot
+import hsrb_interface.utils
 import rclpy
-from rclpy.clock import Clock
-from rclpy.clock import ClockType
-from rclpy.duration import Duration
 import tf2_ros
 
 
@@ -40,66 +37,49 @@ def quaternion_distance(q1, q2):
 
 class RosMockTestCase(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        """Initialize class variables"""
-        rclpy.init()
-
-    @classmethod
-    def tearDownClass(cls):
-        """Disconnect from a robot."""
-        rclpy.shutdown()
-
     def setUp(self):
-        self.node = rclpy.create_node("hsrb_interface_test")
-        patcher = patch("hsrb_interface_py.Robot._connection")
-        self.connection_mock = patcher.start()
-        self.addCleanup(patcher.stop)
-        self.connection_mock.return_value = self.node
-
-        patcher = patch("hsrb_interface_py.Robot._connecting")
+        patcher = patch("hsrb_interface.Robot._connecting")
         self.robot_connecting_mock = patcher.start()
         self.addCleanup(patcher.stop)
         self.robot_connecting_mock = True
 
-        patcher = patch("hsrb_interface_py.settings.get_entry")
+        patcher = patch("hsrb_interface.settings.get_entry")
         self.get_entry_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("hsrb_interface_py.settings.get_frame")
+        patcher = patch("hsrb_interface.settings.get_frame")
         self.get_frame_mock = patcher.start()
         self.addCleanup(patcher.stop)
-
-        patcher = patch("rclpy.node.Node.get_clock")
-        self.time_mock = patcher.start()
-        self.addCleanup(patcher.stop)
-
-        # patcher = patch("self.node.create_publisher")
-        # self.publisher_mock = patcher.start()
-        # self.addCleanup(patcher.stop)
-
-        patcher = patch("rclpy.node.Node.create_subscription")
-        self.subscriber_mock = patcher.start()
-        self.addCleanup(patcher.stop)
-
-        # patcher = patch("rospy.ServiceProxy")
-        # self.service_proxy_mock = patcher.start()
-        # self.addCleanup(patcher.stop)
-
-        # patcher = patch("self.node.create_client")
-        # self.client_mock = patcher.start()
-        # self.addCleanup(patcher.stop)
-
-        # patcher = patch("self.node.get_parameter")
-        # self.get_param_mock = patcher.start()
-        # self.addCleanup(patcher.stop)
 
         patcher = patch("rclpy.action.ActionClient")
         self.action_client_mock = patcher.start()
         self.addCleanup(patcher.stop)
 
-    def tearDown(self):
-        self.node.destroy_node()
+        patcher = patch("rclpy.node.Node.create_subscription")
+        self.subscriber_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch(
+            "control_msgs.action._follow_joint_trajectory.FollowJointTrajectory_GetResult_Response")
+        self.action_result_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch.object(rclpy.action, "ActionClient")
+        self.action_client_mock_obj = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("rclpy.node.Node.create_client")
+        self.service_client_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("hsrb_interface.Robot")
+        self.robot_mock = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch(
+            "hsrb_interface.utils.get_parameters_from_another_node")
+        self.get_param_mock = patcher.start()
+        self.addCleanup(patcher.stop)
 
 
 class HsrbInterfaceTest(unittest.TestCase):
@@ -149,29 +129,38 @@ class HsrbInterfaceTest(unittest.TestCase):
         """Initialize class variables"""
         rclpy.init()
 
-    @classmethod
-    def tearDownClass(cls):
-        """Disconnect from a robot."""
-        rclpy.shutdown()
+    def wait_for_message(self, node, subscription):
+        while rclpy.ok():
+            rclpy.spin_once(node)  # メッセージを受信するまでノードをスピン
+            if subscription.get_subscription_count() > 0:
+                return
+
+    def map_message_callback(self, msg):
+        return
 
     def setUp(self):
+        """Initialize class variables"""
+        self.robot = hsrb_interface.Robot()
         # Wait until simluation clock starts
-        clock = Clock(clock_type=ClockType.ROS_TIME)
-        now = clock.now()
-        while now == rclpy.time.Time().to_msg():
-            now = clock.now()
-        self.robot = hsrb_interface_py.Robot()
-        now = self.robot.node.get_clock().now()
-        self.whole_body = self.robot.get('whole_body')
-        # self.omni_base = self.robot.get('omni_base')
-        self.gripper = self.robot.get('gripper')
-        # self.collision_world = self.robot.get('global_collision_world')
-        # self.marker = self.robot.get('marker')
-        self.tf_buffer = tf2_ros.Buffer()
+        now = rclpy.clock.Clock().now()
+        while now == rclpy.time.Time():
+            now = rclpy.clock.Clock().now()
+            time.sleep(1)
+        # Wait until navigation nodes start
+        self.whole_body = self.robot.get('whole_body', self.robot)
+        self.omni_base = self.robot.get('omni_base', self.robot)
+        self.gripper = self.robot.get('gripper', self.robot)
+        self.collision_world = self.robot.get(
+            'global_collision_world', self.robot)
+        self.marker = self.robot.get('marker', self.robot)
+        self.tf_buffer = tf2_ros.Buffer(
+            cache_time=rclpy.duration.Duration(
+                seconds=10), node=self.robot._conn)
         self.tf_listner = tf2_ros.TransformListener(
-            self.tf_buffer, self.robot.node)
+            self.tf_buffer, self.robot._conn)
 
     def tearDown(self):
+        """Disconnect from a robot."""
         self.robot.close()
 
     def expect_pose_equal(self, pose1, pose2, delta=None):
@@ -208,7 +197,7 @@ class HsrbInterfaceTest(unittest.TestCase):
                 self.assertAlmostEqual(a[key], b[key], delta=delta)
 
     def expect_joints_reach_goals(self, expected, delta=None,
-                                  timeout=30.0, tick=0.5):
+                                  timeout=5.0, tick=0.5):
         """Success if all `expected` joints reach their goals within `timeout`.
 
         Args:
@@ -217,9 +206,8 @@ class HsrbInterfaceTest(unittest.TestCase):
             timeout (float): Timeout duration in seconds.
             tick (float): Sleep duration between each check.
         """
-        start = self.robot.node.get_clock().now()
-        timeout = Duration(seconds=timeout)
-        rate = self.robot.node.create_rate(tick)
+        start = rclpy.clock.Clock().now()
+        timeout = rclpy.duration.Duration(seconds=timeout)
         if delta is None:
             delta = 0
         while True:
@@ -228,7 +216,7 @@ class HsrbInterfaceTest(unittest.TestCase):
                 position = self.whole_body.joint_positions[joint]
                 if abs(position - goal) <= delta:
                     num_reached += 1
-            now = self.robot.node.get_clock().now()
+            now = rclpy.clock.Clock().now()
             if (now - start) > timeout:
                 diffs = []
                 positions = self.whole_body.joint_positions
@@ -240,7 +228,7 @@ class HsrbInterfaceTest(unittest.TestCase):
             if num_reached == len(expected):
                 break
             else:
-                rate.sleep()
+                time.sleep(tick)
 
     def expect_gripper_to_grasp(self, delta=None):
         """Check a robot suceeded to grasp within `timeout`.
@@ -248,15 +236,15 @@ class HsrbInterfaceTest(unittest.TestCase):
         Args:
             delta (Optional[float]): Error tolerance(0.0 if If None)
         """
-        motor = self.whole_body.joint_positions['hand_motor_joint']
-        right = self.whole_body.joint_positions['hand_r_spring_proximal_joint']
-        left = self.whole_body.joint_positions['hand_l_spring_proximal_joint']
+        m = self.whole_body.joint_positions['hand_motor_joint']
+        r = self.whole_body.joint_positions['hand_r_spring_proximal_joint']
+        i = self.whole_body.joint_positions['hand_l_spring_proximal_joint']
 
         if delta is None:
             delta = 0
 
-        self.assertNotAlmostEqual(motor, right, delta=delta)
-        self.assertNotAlmostEqual(motor, left, delta=delta)
+        self.assertNotAlmostEqual(m, r, delta=delta)
+        self.assertNotAlmostEqual(m, i, delta=delta)
 
     def expect_hand_reach_goal(self, goal, frame='map',
                                pos_delta=None, ori_delta=None,
@@ -272,9 +260,8 @@ class HsrbInterfaceTest(unittest.TestCase):
             timeout (float): Timeout in seconds
             tick (float): Sleep time between goal check in seconds
         """
-        start = self.robot.node.get_clock().now()
-        timeout = Duration(seconds=timeout)
-        rate = self.robot.node.create_rate(tick)
+        start = rclpy.clock.Clock().now()
+        timeout = rclpy.duration.Duration(timeout)
         pos_delta = 0.0 if pos_delta is None else pos_delta
         ori_delta = 0.0 if ori_delta is None else ori_delta
         while True:
@@ -285,8 +272,8 @@ class HsrbInterfaceTest(unittest.TestCase):
             if pos_error < pos_delta and ori_error < ori_delta:
                 break
             else:
-                rate.sleep()
-            now = self.robot.node.get_clock().now()
+                time.sleep(tick)
+            now = rclpy.clock.Clock().now()
             if (now - start) > timeout:
                 msg = '\n'.join([
                     'Timed out:',
@@ -312,11 +299,10 @@ class HsrbInterfaceTest(unittest.TestCase):
             timeout (float): Timeout in seconds
             tick (float): Sleep time between goal check in seconds
         """
-        start = self.robot.node.get_clock().now()
-        timeout = Duration(seconds=timeout)
-        rate = self.robot.node.create_rate(tick)
+        start = rclpy.clock.Clock().now()
+        timeout = rclpy.duration.Duration(timeout)
         goal_pose = PoseStamped()
-        goal_pose.header.stamp = rclpy.time.Time().to_msg()
+        goal_pose.header.stamp = rclpy.time.Time()
         goal_pose.header.frame_id = frame
         goal_pose.pose = geometry.tuples_to_pose(goal)
         map_to_goal_pose = self.tf_buffer.transform(goal_pose, 'map')
@@ -333,8 +319,8 @@ class HsrbInterfaceTest(unittest.TestCase):
             if pos_error < pos_delta and ori_error < ori_delta:
                 break
             else:
-                rate.sleep()
-            now = self.robot.node.get_clock().now()
+                time.sleep(tick)
+            now = rclpy.clock.Clock().now()
             if (now - start) > timeout:
                 msg = '\n'.join([
                     'Timed out:',
@@ -361,14 +347,13 @@ class HsrbInterfaceTest(unittest.TestCase):
             timeout (float): Timeout in seconds
             tick (float): Sleep time between goal check in seconds
         """
-        start = self.robot.node.get_clock().now()
-        timeout = Duration(seconds=timeout)
-        rate = self.robot.node.create_rate(tick)
+        start = rclpy.clock.Clock().now()
+        timeout = rclpy.duration.Duration(timeout)
 
         pos_delta = 0.0 if pos_delta is None else pos_delta
         ori_delta = 0.0 if ori_delta is None else ori_delta
         while True:
-            now = self.robot.node.get_clock().now()
+            now = rclpy.clock.Clock().now()
             obj = self.marker.get_object_by_id(object_id)
             if obj is not None:
                 pose = obj.get_pose(frame)
@@ -389,4 +374,4 @@ class HsrbInterfaceTest(unittest.TestCase):
                 buf.append('\tframe     = {0}'.format(frame))
                 msg = '\n'.join(buf)
                 self.fail(msg)
-            rate.sleep()
+            time.sleep(tick)

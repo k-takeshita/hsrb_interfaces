@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 # Copyright (C) 2016 Toyota Motor Corporation
 
+from hsrb_interface import Robot
+from hsrb_interface import robot as _robot
+from IPython.terminal.embed import InteractiveShellEmbed
+
+import rclpy
+
 try:
     from traitlets.config.loader import Config
 except ImportError:
@@ -15,13 +21,6 @@ else:
     nested = 1
 
 
-from hsrb_interface_py import Robot
-from hsrb_interface_py import robot as _robot
-
-from IPython.terminal.embed import InteractiveShellEmbed
-
-import rclpy
-
 shell = InteractiveShellEmbed(config=cfg,
                               banner1="HSR-B Interactive Shell 0.2.0",
                               exit_msg="Leaving HSR-B Interactive Shell")
@@ -35,18 +34,19 @@ LOGO = r"""
 """
 
 
-def main():
-    _robot.enable_interactive()
+_robot.enable_interactive()
 
-    rclpy.init()
+# メイン
+
+
+def main(args=None):
+    rclpy.init(args=args)
     with Robot() as robot:
-        whole_body = robot.try_get('whole_body')  # noqa
-        # omni_base = robot.try_get('omni_base')
-        # collision_world = robot.try_get('global_collision_world')
-        # suction = robot.try_get('suction')
-        gripper = robot.try_get('gripper')  # noqa
-        # wrist_wrench = robot.try_get('wrist_wrench')
-        # marker = robot.try_get('marker')
-        # battery = robot.try_get('battery')
-        # tts = robot.try_get('default_tts')
+        whole_body = robot.try_get('whole_body')  # noqa : F841
+        omni_base = robot.try_get('omni_base')  # noqa : F841
+        gripper = robot.try_get('gripper')  # noqa : F841
         shell(LOGO)
+
+
+if __name__ == '__main__':
+    main()
