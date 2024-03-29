@@ -45,6 +45,7 @@ def main(args=None):
         whole_body = robot.try_get('whole_body')  # noqa : F841
         omni_base = robot.try_get('omni_base')  # noqa : F841
         gripper = robot.try_get('gripper')  # noqa : F841
+        tts = robot.try_get('default', robot.Items.TEXT_TO_SPEECH)  # noqa : F841
         shell(LOGO)
 
 

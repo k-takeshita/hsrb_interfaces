@@ -161,6 +161,7 @@ class Gripper(robot.Item):
         Returns:
             double: Distance between gripper finger tips [m]
         """
+        self._joint_state_sub.wait_for_message()
         joint_state = self._joint_state_sub.data
         hand_motor_pos = joint_state.position[
             joint_state.name.index(self._joint_names[0])]

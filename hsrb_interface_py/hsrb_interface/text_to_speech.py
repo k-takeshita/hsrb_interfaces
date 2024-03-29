@@ -39,7 +39,7 @@ class TextToSpeech(robot.Item):
         super(TextToSpeech, self).__init__()
         self._setting = settings.get_entry('text_to_speech', name)
         topic = self._setting['topic']
-        self._pub = self.create_publisher(Voice, topic, 0)
+        self._pub = self._node.create_publisher(Voice, topic, 0)
         self._language = TextToSpeech.JAPANESE
 
     @property

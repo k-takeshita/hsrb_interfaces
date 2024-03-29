@@ -104,6 +104,12 @@ _HSRB_SETTINGS = """
             "goal_topic": "/base_goal",
             "timeout": 1.0
         }
+    },
+    "text_to_speech": {
+        "default_tts": {
+            "class": ["text_to_speech", "TextToSpeech"],
+            "topic": "/talk_request"
+        }
     }
 }
 """
