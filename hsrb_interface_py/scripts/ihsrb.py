@@ -7,6 +7,8 @@ from IPython.terminal.embed import InteractiveShellEmbed
 
 import rclpy
 
+from rclpy.signals import SignalHandlerOptions
+
 try:
     from traitlets.config.loader import Config
 except ImportError:
@@ -40,7 +42,7 @@ _robot.enable_interactive()
 
 
 def main(args=None):
-    rclpy.init(args=args)
+    rclpy.init(args=args, signal_handler_options=SignalHandlerOptions.NO)
     with Robot() as robot:
         whole_body = robot.try_get('whole_body')  # noqa : F841
         omni_base = robot.try_get('omni_base')  # noqa : F841
