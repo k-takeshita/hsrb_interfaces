@@ -47,6 +47,7 @@ if(BUILD_TESTING)
   ament_add_pytest_test(test_robot test/test_robot.py)
   ament_add_pytest_test(test_text_to_speech test/test_text_to_speech.py)
   ament_add_pytest_test(test_utils test/test_utils.py)
+  ament_add_pytest_test(test_whole_body test/test_whole_body.py)
   
 endif()
 
