@@ -11,12 +11,13 @@ import rclpy
 from tmc_voice_msgs.msg import Voice
 
 
-@patch.object(hsrb_interface.Robot, '_connecting')
+@patch('hsrb_interface.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 @patch('rclpy.node.Node.create_publisher')
 def test_text_to_speech(mock_pub_class, mock_get_entry, mock_connecting):
     """Test simple usage of TTS object."""
     rclpy.init()
+    robot = hsrb_interface.Robot()  # noqa: F841
     mock_connecting.return_value = True
 
     tts = hsrb_interface.text_to_speech.TextToSpeech('default_tts')
@@ -40,7 +41,7 @@ def test_text_to_speech(mock_pub_class, mock_get_entry, mock_connecting):
 
 
 @raises(hsrb_interface.exceptions.InvalidLanguageError)
-@patch.object(hsrb_interface.Robot, '_connecting')
+@patch('hsrb_interface.Robot._connecting')
 @patch('hsrb_interface.settings.get_entry')
 @patch('rclpy.node.Node.create_publisher')
 def test_invalid_language_error(mock_pub_class, mock_get_entry,
