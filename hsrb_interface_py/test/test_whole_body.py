@@ -8,13 +8,13 @@ import sys
 from unittest.mock import patch
 
 import _testing as testing
+from ament_index_python.packages import get_package_share_path
 from geometry_msgs.msg import TransformStamped
 from hsrb_interface import geometry
 from hsrb_interface.joint_group import JointGroup
 
 from nose.tools import eq_
 from nose.tools import raises
-import rospkg
 
 from tmc_planning_msgs.msg import TaskSpaceRegion
 
@@ -37,9 +37,8 @@ class WholeBodyTest(testing.RosMockTestCase):
         self.addCleanup(patcher.stop)
         self.tf2_buffer_mock = self.get_tf2_buffer_mock.return_value
 
-        rp = rospkg.RosPack()
-        urdf_xml = os.path.join(rp.get_path('hsrb_description'),
-                                'robots', 'hsrb4s.urdf.xacro')
+        description_package_path = get_package_share_path('hsrb_description')
+        urdf_xml = os.path.join(description_package_path, 'robots', 'hsrb4s.urdf.xacro')
         with open(urdf_xml) as f:
             model = [f.read()]
         self.get_param_mock.return_value = model
