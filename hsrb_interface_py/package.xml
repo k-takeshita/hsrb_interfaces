@@ -36,6 +36,7 @@
   <exec_depend>urdfdom_py</exec_depend>
 
   <test_depend>python3-mock</test_depend>
+  <test_depend>hsrb_description</test_depend>
 
   <export>
      <build_type>ament_cmake</build_type>

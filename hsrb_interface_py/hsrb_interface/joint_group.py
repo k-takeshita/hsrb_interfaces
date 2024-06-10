@@ -55,7 +55,7 @@ _DEBUG = False
 _PLANNING_ARM_TIMEOUT = 30.0
 
 # Max number of iteration of moition planning
-_PLANNING_MAX_ITERATION = 10000
+_PLANNING_MAX_ITERATION = 100000
 
 # Goal generation probability in moition planning
 _PLANNING_GOAL_GENERATION = 0.3
@@ -176,6 +176,8 @@ class JointGroup(robot.Item):
         looking_hand_constraint (bool):
             If true, the robot hand is in the robot view after the execution
             of move_end_effector_*.bot
+        constraint_tsrs (List[TaskSpaceRegion]):
+            A list of constraint of task space region.
     """
 
     def __init__(self, name):
@@ -222,6 +224,7 @@ class JointGroup(robot.Item):
         self._planning_timeout = _PLANNING_ARM_TIMEOUT
         self._use_base_timeopt = True
         self._looking_hand_constraint = False
+        self._constraint_tsrs = []
         self._tf_timeout = _TF_TIMEOUT
 
         if _DEBUG:
@@ -372,6 +375,42 @@ class JointGroup(robot.Item):
     def looking_hand_constraint(self, value):
         self._looking_hand_constraint = value
 
+    @property
+    def constraint_tsrs(self):
+        return self._constraint_tsrs
+
+    @constraint_tsrs.setter
+    def constraint_tsrs(self, value):
+        if not isinstance(value, list):
+            raise ValueError("value should be list")
+        for constraint_tsr in value:
+            if not isinstance(constraint_tsr, TaskSpaceRegion):
+                raise TypeError("value should be TaskSpaceRegion instance")
+        self._constraint_tsrs = value
+
+    def _set_constraint_tsrs(self, req):
+        if len(self._constraint_tsrs) > 0:
+            # ここでtsrを入れるのが大事
+            # このリクエスト変数は，手先ゴール等にもあるので，同じようにtsr制約を入れればいい
+            req.constraint_tsrs = self._constraint_tsrs
+            # 姿勢遷移のみで制約をかける場合，仮にでも台車は動いていいとする必要がある
+            # 視線遷移以外なら，この処理は不要
+            #
+            # 処理の途中でIKを解いているのだが，6自由度未満はIK自体がエラーになる仕様
+            # そもそもCBiRRT2で制約に対してIKを解いているのが変な気がしてきたけれど，どうするかなぁ
+            # IKを使わない実装にしたい場合は，ここをコメントアウト +
+            # tmc_manipulation_planner/tmc_robot_planner/src/robot_cbirrt_planner.cppのConstrainToTsrで
+            # CalcDistanceToTsrのelseの部分でいきなりreturn false; +
+            # _PLANNING_MAX_ITERATIONを一桁ぐらい増やしておく
+            # IK使用/不使用で，どっちが性能が出るかは不明
+            #
+            if req.base_movement_type.val is BaseMovementType.NONE:
+                # PlanWithJointGoalsRequestのみ_generate_planning_requestでNONEに設定されている
+                req.base_movement_type.val = BaseMovementType.RAIL_X
+                req.weighted_joints = ['_linear_base']
+                req.weight = [100.0]
+        return req
+
     def _change_joint_state(self, goal_state):
         """Move joints to specified joint state while checking self collision.
 
@@ -405,6 +444,8 @@ class JointGroup(robot.Item):
         goal_position.position = goal_state.position
         req.use_joints = goal_state.name
         req.goal_joint_states.append(goal_position)
+
+        req = self._set_constraint_tsrs(req)
 
         service_name = self._setting['plan_with_joint_goals_service']
         plan_service = self._node.create_client(
@@ -573,6 +614,8 @@ class JointGroup(robot.Item):
         req = self._generate_planning_request(PlanWithHandGoals.Request)
         req.origin_to_hand_goals = odom_to_hand_poses
         req.ref_frame_id = self._end_effector_frame
+
+        req = self._set_constraint_tsrs(req)
 
         service_name = self._setting['plan_with_hand_goals_service']
         plan_service = self._node.create_client(
